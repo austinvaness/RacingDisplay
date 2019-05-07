@@ -85,9 +85,18 @@
     <Compile Include="RacingBeacon.cs" />
     <Compile Include="RacingSession.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Workshop\metadata.mod" />
+    <Content Include="Workshop\thumb.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Workshop\modinfo.sbmi" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd /D $(ProjectDir)
-XCOPY "*.cs" "%25Appdata%25\SpaceEngineers\Mods\Racing Display\Data\Scripts\RacingMod" /Y</PostBuildEvent>
+mkdir "%25Appdata%25\SpaceEngineers\Mods\Racing Display\Data\Scripts\RacingMod"
+xcopy "*.cs" "%25Appdata%25\SpaceEngineers\Mods\Racing Display\Data\Scripts\RacingMod" /Y
+xcopy "Workshop\*.*" "%25Appdata%25\SpaceEngineers\Mods\Racing Display" /Y</PostBuildEvent>
   </PropertyGroup>
 </Project>

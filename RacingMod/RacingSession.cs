@@ -44,9 +44,6 @@ namespace RacingMod
         const string gateWaypointName = "Checkpoint";
         const string gateWaypointDescription = "The next checkpoint in the race.";
 
-        bool debug = false;
-        bool crash = false;
-
         public RacingSession ()
         {
             hudHeader = "#".PadRight(numberWidth + 1) + "Name".PadRight(nameWidth + 1) + "Distance\n";
@@ -110,17 +107,6 @@ namespace RacingMod
             if (messageText == "/rcd" && hudMsg != null)
             {
                 hudMsg.Visible = !hudMsg.Visible;
-                sendToOthers = false;
-            }
-            if (messageText == "/debug")
-            {
-                debug = !debug;
-                sendToOthers = false;
-            }
-
-            if (messageText == "/crash")
-            {
-                crash = !crash;
                 sendToOthers = false;
             }
         }
@@ -216,7 +202,6 @@ namespace RacingMod
                 return;
             }
 
-            //Dictionary<string, ValueEntry> values = new Dictionary<string, ValueEntry>();
             SortedDictionary<float, RacerInfo> values = new SortedDictionary<float, RacerInfo>(new DescendingComparer<float>());
             foreach (IMyCubeGrid g in grids.Values)
             {
