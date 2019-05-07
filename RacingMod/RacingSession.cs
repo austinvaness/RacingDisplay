@@ -229,7 +229,7 @@ namespace RacingMod
 
                 if (dist > 0)
                 {
-                    RacerInfo racer = new RacerInfo(dist, pos, 0, name, g.EntityId);
+                    RacerInfo racer = new RacerInfo(dist, pos, 0, name.Substring(1).Trim(), g.EntityId);
                     racer.Destination = destination;
                     IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
                     if(p != null)
@@ -443,7 +443,7 @@ namespace RacingMod
                     Text.Append(SetLength(i, numberWidth)).Append(' ');
 
                     // <num> <name>
-                    Text.Append(SetLength(current.Name, nameWidth, 1)).Append(' ');
+                    Text.Append(SetLength(current.Name, nameWidth)).Append(' ');
 
                     // <num> <name> <distance>
                     Text.Append((int)current.Distance).AppendLine();
