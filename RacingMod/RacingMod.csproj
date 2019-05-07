@@ -86,12 +86,17 @@
     <Compile Include="RacingSession.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Workshop-Test\thumb.jpg" />
     <Content Include="Workshop\metadata.mod" />
+    <Content Include="Workshop-Main\thumb.jpg" />
     <Content Include="Workshop\thumb.jpg" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Workshop-Main\modinfo.sbmi" />
+    <None Include="Workshop-Test\modinfo.sbmi" />
     <None Include="Workshop\modinfo.sbmi" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd /D $(ProjectDir)

@@ -43,6 +43,7 @@ namespace RacingMod
         Color gateWaypointColor = new Color(0, 255, 255);
         const string gateWaypointName = "Checkpoint";
         const string gateWaypointDescription = "The next checkpoint in the race.";
+        int gateWaypointGps;
 
         public RacingSession ()
         {
@@ -54,6 +55,7 @@ namespace RacingMod
 
             textApi = new HudAPIv2(CreateHudItems);
 
+            gateWaypointGps = MyAPIGateway.Session.GPS.Create(gateWaypointName, gateWaypointDescription, Vector3D.Zero, true).Hash;
 
             MyAPIGateway.Utilities.MessageEntered += MessageEntered;
             if(MyAPIGateway.Multiplayer.IsServer)
@@ -69,8 +71,7 @@ namespace RacingMod
             }
             else
             {
-                IMyGps temp = MyAPIGateway.Session.GPS.Create(gateWaypointName, gateWaypointDescription, Vector3D.Zero, true);
-                MyAPIGateway.Session.GPS.RemoveLocalGps(temp);
+                MyAPIGateway.Session.GPS.RemoveLocalGps(gateWaypointGps);
                 MyAPIGateway.Multiplayer.RegisterMessageHandler(packetId, ReceiveMessage);
             }
 
@@ -111,22 +112,6 @@ namespace RacingMod
             }
         }
 
-        private void RemoveWaypoint (long identityId)
-        {
-            MyVisualScriptLogicProvider.RemoveGPS(gateWaypointName, identityId);
-        }
-
-        private bool IsInCockpit (IMyPlayer arg, out IMyCockpit cockpit)
-        {
-            IMyEntity e = arg.Controller?.ControlledEntity?.Entity;
-            if (e == null)
-            {
-                cockpit = null;
-                return false;
-            }
-            cockpit = e as IMyCockpit;
-            return cockpit != null;
-        }
 
         protected override void UnloadData ()
         {
@@ -245,6 +230,10 @@ namespace RacingMod
             }
               
             BuildText(values);
+        }
+        private void RemoveWaypoint (long identityId)
+        {
+            MyVisualScriptLogicProvider.RemoveGPS(gateWaypointName, identityId);
         }
 
         void DrawRemoveWaypoint(long identityId, Vector3D coords)
