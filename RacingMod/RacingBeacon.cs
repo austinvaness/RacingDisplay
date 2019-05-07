@@ -10,8 +10,8 @@ namespace RacingMod
     public class RacingBeacon : MyGameLogicComponent
     {
         IMyBeacon b = null;
-        string data = "";
-        float value = float.NaN;
+        string customData = "";
+        float nodeNumber = float.NaN;
 
         public override void Init (MyObjectBuilder_EntityBase objectBuilder)
         {
@@ -22,8 +22,8 @@ namespace RacingMod
 
         public override void Close ()
         {
-            if (!float.IsNaN(value))
-                RacingSession.Instance.Nodes.Remove(value);
+            if (!float.IsNaN(nodeNumber))
+                RacingSession.Instance.Nodes.Remove(nodeNumber);
             b = null;
             NeedsUpdate = MyEntityUpdateEnum.NONE;
         }
@@ -33,21 +33,21 @@ namespace RacingMod
             if (b?.CubeGrid?.Physics == null || !b.CustomName.StartsWith("[Node]"))
                 return;
 
-            if (b.CustomData != data)
+            if (b.CustomData != customData)
             {
                 // Value changed
-                if (!float.IsNaN(value))
-                    RacingSession.Instance.Nodes.Remove(value);
+                if (!float.IsNaN(nodeNumber))
+                    RacingSession.Instance.Nodes.Remove(nodeNumber);
 
-                data = b.CustomData;
+                customData = b.CustomData;
                 float temp;
                 if (float.TryParse(b.CustomData, out temp))
-                    value = temp;
+                    nodeNumber = temp;
                 else
-                    value = float.NaN;
+                    nodeNumber = float.NaN;
             }
-            if (!float.IsNaN(value))
-                RacingSession.Instance.Nodes [value] = b;
+            if (!float.IsNaN(nodeNumber))
+                RacingSession.Instance.Nodes [nodeNumber] = b;
 
         }
     }

@@ -29,11 +29,11 @@ namespace RacingMod
         private HudAPIv2.HUDMessage hudMsg;
         const int numberWidth = 2; 
         const int nameWidth = 15;
-        const float moveValue = 0.02f; // 1 m/s in 1 tick = 1 * 1/60
+        const float moveThreshold = 0.02f; // 1 m/s in 1 tick = 1 * 1/60
         private const int rankUpTime = 90;
         private Vector2D position = new Vector2D(-0.95, 0.90);
         private bool running = false;
-        Dictionary<long, RacerInfo> previousValues = new Dictionary<long, RacerInfo>();
+        Dictionary<long, RacerInfo> previousRacerInfos = new Dictionary<long, RacerInfo>();
         readonly string hudHeader;
         int frameCount = 0;
         const string colorWhite = "<color=white>";
@@ -202,12 +202,13 @@ namespace RacingMod
                 return;
             }
 
-            SortedDictionary<float, RacerInfo> values = new SortedDictionary<float, RacerInfo>(new DescendingComparer<float>());
+            SortedDictionary<float, RacerInfo> ranking = new SortedDictionary<float, RacerInfo>(new DescendingComparer<float>());
             foreach (IMyCubeGrid g in grids.Values)
             {
                 if (g.Physics == null)
                     continue;
 
+                // check if this grid is a racer
                 string name = g.CustomName;
                 if (name.Length == 0 || name [0] != '#')
                     continue;
@@ -224,27 +225,27 @@ namespace RacingMod
 
                 Vector3? destination;
                 Vector3 pos = g.GetPosition();
-                float temp = GetValue(pos, beg, nodes[closest], end, nodeDist[closest], out destination);
+                float dist = GetDistance(pos, beg, nodes[closest], end, nodeDist[closest], out destination);
 
-                if (temp > 0)
+                if (dist > 0)
                 {
-                    RacerInfo value = new RacerInfo(temp, pos, 0, name, g.EntityId);
-                    value.Destination = destination;
+                    RacerInfo racer = new RacerInfo(dist, pos, 0, name, g.EntityId);
+                    racer.Destination = destination;
                     IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
                     if(p != null)
-                        value.Controller = p.IdentityId;
-                    values [temp] = value;
+                        racer.Controller = p.IdentityId;
+                    ranking [dist] = racer;
                 }
                 else
                 {
                     RacerInfo previous;
-                    if (previousValues.TryGetValue(g.EntityId, out previous) && previous.Controller != 0)
+                    if (previousRacerInfos.TryGetValue(g.EntityId, out previous) && previous.Controller != 0)
                         RemoveWaypoint(previous.Controller);
                 }
 
             }
               
-            BuildText(values);
+            BuildText(ranking);
         }
 
         void DrawRemoveWaypoint(long identityId, Vector3D coords)
@@ -282,7 +283,7 @@ namespace RacingMod
             }
         }
 
-        float [] GenerateNodeDistances (Vector3 [] nodes)
+        static float [] GenerateNodeDistances (Vector3 [] nodes)
         {
             float [] dist = new float [nodes.Length];
             if (nodes.Length == 0)
@@ -300,7 +301,7 @@ namespace RacingMod
             return dist;
         }
 
-        int GetClosestIndex (Vector3[] nodes, Vector3 value)
+        static int GetClosestIndex (Vector3[] nodes, Vector3 value)
         {
             int closest = 0;
             float closestDist2 = float.MaxValue;
@@ -316,7 +317,7 @@ namespace RacingMod
             return closest;
         }
 
-        float GetValue (Vector3 gridPos, Vector3? beg, Vector3 mid, Vector3? end, float midDistance, out Vector3? destination)
+        float GetDistance (Vector3 gridPos, Vector3? beg, Vector3 mid, Vector3? end, float midDistance, out Vector3? destination)
         {
             if (!beg.HasValue && !end.HasValue)
             {
@@ -332,7 +333,7 @@ namespace RacingMod
             {
                 Vector3 beforeSegment = mid - beg.Value;
                 beforeLength2 = beforeSegment.LengthSquared();
-                before = ScalerProjection(dir, Vector3.Normalize(beforeSegment));
+                before = ScalarProjection(dir, Vector3.Normalize(beforeSegment));
             }
 
             float? after = null;
@@ -341,7 +342,7 @@ namespace RacingMod
             {
                 Vector3 afterSegment = end.Value - mid;
                 afterLength2 = afterSegment.LengthSquared();
-                after = ScalerProjection(dir, Vector3.Normalize(afterSegment));
+                after = ScalarProjection(dir, Vector3.Normalize(afterSegment));
             }
 
             if (!after.HasValue)
@@ -376,44 +377,46 @@ namespace RacingMod
             return midDistance + before.Value;
         }
 
-        void BuildText (SortedDictionary<float, RacerInfo> values)
+        void BuildText (SortedDictionary<float, RacerInfo> ranking)
         {
             Text.Clear();
-            if (values.Count == 0)
+            if (ranking.Count == 0)
             {
                 Text.Append("No racers in range.");
-                previousValues.Clear();
+                previousRacerInfos.Clear();
             }
             else
             {
                 Text.Append(hudHeader);
                 bool drawWhite = false;
 
-                Dictionary<long, RacerInfo> newPreviousValues = new Dictionary<long, RacerInfo>(values.Count);
+                Dictionary<long, RacerInfo> newPrevRacerInfos = new Dictionary<long, RacerInfo>(ranking.Count);
                 int i = 1;
-                foreach(RacerInfo value in values.Values)
+                foreach(RacerInfo racer in ranking.Values)
                 {
-                    RacerInfo current = value;
+                    RacerInfo current = racer;
                     current.Rank = i;
 
                     string drawnColor = null;
                     RacerInfo previous;
-                    if (previousValues.TryGetValue(current.GridId, out previous))
+                    if (previousRacerInfos.TryGetValue(current.GridId, out previous))
                     {
                         RenderWaypoint(current, previous);
 
                         if (!Moved(current, previous))
                         {
+                            // stationary
                             drawnColor = colorStationary;
-                            current.RankUpFrame = previous.RankUpFrame;
                         }
-                        else if (previousValues.Count == values.Count && current.Rank < previous.Rank)
+                        else if (previousRacerInfos.Count == ranking.Count && current.Rank < previous.Rank)
                         {
+                            // just ranked up
                             current.RankUpFrame = frameCount;
                             drawnColor = colorRankUp;
                         }
                         else if (previous.RankUpFrame > 0)
                         {
+                            // recently ranked up
                             if (previous.RankUpFrame + rankUpTime > frameCount)
                                 current.RankUpFrame = previous.RankUpFrame;
                             drawnColor = colorRankUp;
@@ -443,28 +446,28 @@ namespace RacingMod
                     Text.Append(SetLength(current.Name, nameWidth, 1)).Append(' ');
 
                     // <num> <name> <distance>
-                    Text.Append((int)current.Value).AppendLine();
+                    Text.Append((int)current.Distance).AppendLine();
 
-                    newPreviousValues [current.GridId] = current;
+                    newPrevRacerInfos [current.GridId] = current;
 
                     i++;
                 }
-                previousValues = newPreviousValues;
+                previousRacerInfos = newPrevRacerInfos;
             }
         }
 
         bool Moved(RacerInfo value, RacerInfo previous)
         {
             float x = Math.Abs(previous.Position.X - value.Position.X);
-            if (x > moveValue)
+            if (x > moveThreshold)
                 return true;
 
             float y = Math.Abs(previous.Position.Y - value.Position.Y);
-            if (y > moveValue)
+            if (y > moveThreshold)
                 return true;
 
             float z = Math.Abs(previous.Position.Z - value.Position.Z);
-            if (z > moveValue)
+            if (z > moveThreshold)
                 return true;
             return false;
         }
@@ -481,7 +484,7 @@ namespace RacingMod
         /// Projects a value onto another vector.
         /// </summary>
         /// <param name="guide">Must be of length 1.</param>
-        float ScalerProjection (Vector3 value, Vector3 guide)
+        static float ScalarProjection (Vector3 value, Vector3 guide)
         {
             float returnValue = Vector3.Dot(value, guide);
             if (float.IsNaN(returnValue))
@@ -492,7 +495,7 @@ namespace RacingMod
         struct RacerInfo
         {
             public long GridId;
-            public float Value;
+            public float Distance;
             public Vector3 Position;
             public int Rank;
             public string Name;
@@ -500,9 +503,9 @@ namespace RacingMod
             public Vector3? Destination;
             public long Controller;
 
-            public RacerInfo (float value, Vector3 position, int rank, string name, long gridId)
+            public RacerInfo (float distance, Vector3 position, int rank, string name, long gridId)
             {
-                Value = value;
+                Distance = distance;
                 Position = position;
                 Rank = rank;
                 Name = name;
