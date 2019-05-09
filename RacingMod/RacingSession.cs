@@ -61,11 +61,25 @@ namespace RacingMod
             if (!node.Valid)
                 throw new ArgumentException("Trying to register an invalid node");
 
-            AddOrReplaceSorted(nodes, node);
+            if (!AddSorted(nodes, node))
+            {
+                // checkpoint with this id already existed
+                RacingBeacon last = nodes.Last();
+                float before = node.NodeNumber;
+                node.AssignNewNumber(last.NodeNumber + 1);
+                //if(!AddSorted(nodes, node))
+                /*if (nodes.Contains(node))
+                {
+                    RacingBeacon b = nodes[nodes.IndexOf(node)];
+                    throw new Exception($"what the actual fuck {before} -> {node.NodeNumber} == {b.NodeNumber} {node.Equals(b)} {node.CompareTo(b)} last={last.NodeNumber}");
+                }
+                nodes.Add(node);*/
+                return;
+            }
             
             // keep track of checkpoints separately for performance reasons
             if (node.Type == RacingBeacon.BeaconType.CHECKPOINT)
-                AddOrReplaceSorted(checkpointMapping, node);
+                AddSorted(checkpointMapping, node);
             
             RebuildNodeCaches();
         }
@@ -570,17 +584,14 @@ namespace RacingMod
         /// <param name="list">List to operate on.</param>
         /// <param name="item">Item to add.</param>
         /// <typeparam name="T">Item type stored in the list.</typeparam>
-        /// <returns>The result of the initial BinarySearch.</returns>
-        public static int AddOrReplaceSorted<T>(List<T> list, T item) where T: IComparable<T>
+        /// <returns>A bool indicating whether the item was added.</returns>
+        public static bool AddSorted<T>(List<T> list, T item) where T: IComparable<T>
         {
             // add the element into the list at an index that keeps the list sorted
             int index = list.BinarySearch(item);
             if (index < 0)
                 list.Insert(~index, item);
-            else
-                list[index] = item;
-            
-            return index;
+            return index < 0;
         }
         
         struct RacerInfo

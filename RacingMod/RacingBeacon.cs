@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using Sandbox.Common.ObjectBuilders;
 using Sandbox.ModAPI;
 using VRage.Game.Components;
@@ -46,13 +47,14 @@ namespace RacingMod
         {
             if (Valid)
                 RacingSession.Instance.RemoveNode(this);
-            
+            NodeNumber = float.NaN;
+
             // deregister events
             Beacon.CustomNameChanged -= OnCustomNameChanged;
             Beacon.CustomDataChanged -= OnCustomDataChanged;
 
             NeedsUpdate = MyEntityUpdateEnum.NONE;
-            
+
             Beacon = null;
         }
         
@@ -82,9 +84,10 @@ namespace RacingMod
 
             if (Type != oldType && Valid)
             {
-                if(Type == BeaconType.IGNORED)
+                if(oldType != BeaconType.IGNORED)
                     RacingSession.Instance.RemoveNode(this);
-                else
+                
+                if(Type != BeaconType.IGNORED)
                     RacingSession.Instance.RegisterNode(this);
             }
         }
@@ -105,6 +108,12 @@ namespace RacingMod
             
             if (Valid && Type != BeaconType.IGNORED)
                 RacingSession.Instance.RegisterNode(this);
+        }
+
+        public void AssignNewNumber(float newNodeNumber)
+        {
+            NodeNumber = newNodeNumber;
+            Beacon.CustomData = $"{NodeNumber}";
         }
 
         public int CompareTo(RacingBeacon other)
