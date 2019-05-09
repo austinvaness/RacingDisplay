@@ -1,16 +1,16 @@
 using System;
-using VRage.Game.Components;
-using VRage.ModAPI;
-using Sandbox.ModAPI;
-using VRage.Utils;
-using VRage.Game;
-using VRage.Game.ModAPI;
 using System.Collections.Generic;
-using System.Text;
-using VRageMath;
 using System.Linq;
+using System.Text;
 using Draygo.API;
 using Sandbox.Game;
+using Sandbox.ModAPI;
+using VRage.Game;
+using VRage.Game.Components;
+using VRage.Game.ModAPI;
+using VRage.ModAPI;
+using VRage.Utils;
+using VRageMath;
 
 namespace RacingMod
 {
@@ -19,19 +19,25 @@ namespace RacingMod
     {
         const ushort packetId = 1337;
 
-
         public static RacingSession Instance;
-        public SortedDictionary<float, IMyBeacon> Nodes = new SortedDictionary<float, IMyBeacon>();
-        public StringBuilder Text = new StringBuilder("Initializing...");
+        
+        private readonly List<RacingBeacon> nodes = new List<RacingBeacon>();
+        private readonly List<RacingBeacon> checkpointMapping = new List<RacingBeacon>(); // checkpointMapping[checkpointIndex] = node;
+        private Vector3[] nodePositionCache = { };
+        private float[] nodeDistanceCache = { };
+        private StringBuilder Text = new StringBuilder("Initializing...");
 
-        private Dictionary<long, IMyCubeGrid> grids = new Dictionary<long, IMyCubeGrid>();
+        private readonly Dictionary<long, IMyCubeGrid> grids = new Dictionary<long, IMyCubeGrid>();
+        private readonly Dictionary<long, int> nextCheckpointIndices = new Dictionary<long, int>(); // holds indices of checkpointMapping
         private HudAPIv2 textApi;
         private HudAPIv2.HUDMessage hudMsg;
+        
         const int numberWidth = 2; 
         const int nameWidth = 15;
+        const int distWidth = 8;
         const float moveThreshold = 0.02f; // 1 m/s in 1 tick = 1 * 1/60
         private const int rankUpTime = 90;
-        private Vector2D position = new Vector2D(-0.95, 0.90);
+        private Vector2D hudPosition = new Vector2D(-0.95, 0.90);
         private bool running = false;
         Dictionary<long, RacerInfo> previousRacerInfos = new Dictionary<long, RacerInfo>();
         readonly string hudHeader;
@@ -40,20 +46,63 @@ namespace RacingMod
         const string colorStationary = "<color=255,124,124>";
         const string colorRankUp = "<color=124,255,154>";
 
-        Color gateWaypointColor = new Color(0, 255, 255);
+        private readonly Color gateWaypointColor = new Color(0, 255, 255); // nodes and cleared checkpoints
+        private readonly Color gateWaypointColorMandatory = new Color(255, 31, 0); // your next mandatory checkpoint
         const string gateWaypointName = "Checkpoint";
         const string gateWaypointDescription = "The next checkpoint in the race.";
 
         public RacingSession ()
         {
-            hudHeader = "#".PadRight(numberWidth + 1) + "Name".PadRight(nameWidth + 1) + "Distance\n";
+            hudHeader = "#".PadRight(numberWidth + 1) + "Name".PadRight(nameWidth + 1) + "Distance".PadRight(distWidth + 1) + "Checkpoint\n";
         }
 
+        public void RegisterNode(RacingBeacon node)
+        {
+            if (!node.Valid)
+                throw new ArgumentException("Trying to register an invalid node");
+
+            AddOrReplaceSorted(nodes, node);
+            
+            // keep track of checkpoints separately for performance reasons
+            if (node.Type == RacingBeacon.BeaconType.CHECKPOINT)
+                AddOrReplaceSorted(checkpointMapping, node);
+            
+            RebuildNodeCaches();
+        }
+
+        public void RemoveNode(RacingBeacon node)
+        {
+            nodes.Remove(node);
+            checkpointMapping.Remove(node);
+            
+            RebuildNodeCaches();
+        }
+
+        private void RebuildNodeCaches()
+        {
+            // rebuild position cache
+            nodePositionCache = nodes.Select(b => b.Coords).ToArray();
+            
+            // rebuild distance cache
+            nodeDistanceCache = new float[nodePositionCache.Length];
+            if (nodeDistanceCache.Length == 0)
+                return;
+            
+            float cumulative = 0;
+            nodeDistanceCache[0] = 0.0f;
+            Vector3 prev = nodePositionCache[0];
+            for (int i = 1; i < nodePositionCache.Length; i++)
+            {
+                Vector3 v = nodePositionCache[i];
+                cumulative += Vector3.Distance(prev, v);
+                nodeDistanceCache[i] = cumulative;
+                prev = nodePositionCache[i];
+            }
+        }
+        
         public override void BeforeStart ()
         {
-
             textApi = new HudAPIv2(CreateHudItems);
-
 
             MyAPIGateway.Utilities.MessageEntered += MessageEntered;
             if(MyAPIGateway.Multiplayer.IsServer)
@@ -62,6 +111,7 @@ namespace RacingMod
                 MyAPIGateway.Entities.OnEntityAdd += OnEntityAdd;
                 MyAPIGateway.Entities.OnEntityRemove += OnEntityRemove;
 
+                // grid scan
                 HashSet<IMyEntity> temp = new HashSet<IMyEntity>();
                 MyAPIGateway.Entities.GetEntities(temp);
                 foreach (IMyEntity e in temp)
@@ -99,7 +149,7 @@ namespace RacingMod
 
         private void CreateHudItems ()
         {
-            hudMsg = new HudAPIv2.HUDMessage(Text, position, HideHud: false, Font: "monospace");
+            hudMsg = new HudAPIv2.HUDMessage(Text, hudPosition, HideHud: false, Font: "monospace");
         }
 
         private void MessageEntered (string messageText, ref bool sendToOthers)
@@ -141,23 +191,20 @@ namespace RacingMod
                     MyAPIGateway.Multiplayer.UnregisterMessageHandler(packetId, ReceiveMessage);
                 }
             }
-            if (textApi != null)
-                textApi.Unload();
+
+            textApi?.Unload();
 
             Instance = null;
         }
 
         public override void UpdateAfterSimulation ()
         {
-            if (!running)
+            if (!running || !MyAPIGateway.Multiplayer.IsServer)
                 return;
 
-            if (MyAPIGateway.Multiplayer.IsServer)
-            {
-                ProcessValues();
-                BroadcastData();
-                frameCount++;
-            }
+            ProcessValues();
+            BroadcastData();
+            frameCount++;
         }
 
         private void BroadcastData ()
@@ -175,27 +222,29 @@ namespace RacingMod
             }
         }
 
-        private void OnEntityRemove (IMyEntity ent)
-        {
-            IMyCubeGrid myGrid = ent as IMyCubeGrid;
-            if (myGrid != null && myGrid.GridSizeEnum == MyCubeSize.Small)
-                grids.Remove(myGrid.EntityId);
-        }
-
         private void OnEntityAdd (IMyEntity ent)
         {
             IMyCubeGrid myGrid = ent as IMyCubeGrid;
             if (myGrid != null && myGrid.GridSizeEnum == MyCubeSize.Small)
+            {
                 grids [myGrid.EntityId] = myGrid;
+                nextCheckpointIndices[myGrid.EntityId] = 0;
+            }
+        }
+
+        private void OnEntityRemove (IMyEntity ent)
+        {
+            IMyCubeGrid myGrid = ent as IMyCubeGrid;
+            if (myGrid != null && myGrid.GridSizeEnum == MyCubeSize.Small)
+            {
+                grids.Remove(myGrid.EntityId);
+                nextCheckpointIndices.Remove(myGrid.EntityId);
+            }
         }
 
         void ProcessValues ()
         {
-
-            Vector3 [] nodes = Nodes.Values.Select(b => (Vector3)b.WorldMatrix.Translation).ToArray();
-            float [] nodeDist = GenerateNodeDistances(nodes);
-
-            if (Nodes.Count < 2)
+            if (nodes.Count < 2)
             {
                 Text.Clear();
                 Text.Append("Waiting for beacon nodes...").AppendLine();
@@ -212,23 +261,47 @@ namespace RacingMod
                 string name = g.CustomName;
                 if (name.Length == 0 || name [0] != '#')
                     continue;
-
+                
                 // Find the closest node
-                int closest = GetClosestIndex(nodes, g.GetPosition());
+                Vector3 pos = g.GetPosition();
+                int closest = GetClosestIndex(pos);
 
-                Vector3? beg = null;
+                RacingBeacon beg = null;
                 if (closest > 0)
                     beg = nodes[closest - 1];
-                Vector3? end = null;
-                if (closest < nodes.Length - 1)
-                    end = nodes [closest + 1];
+                
+                RacingBeacon end = null;
+                if (closest < nodes.Count - 1)
+                    end = nodes[closest + 1];
 
-                Vector3? destination;
-                Vector3 pos = g.GetPosition();
-                float dist = GetDistance(pos, beg, nodes[closest], end, nodeDist[closest], out destination);
-
+                RacingBeacon destination;
+                float dist = GetDistance(pos, beg, nodes[closest], end, out destination);
+                
                 if (dist > 0)
                 {
+                    // get next checkpoint
+                    int nextCheckpointIndex = nextCheckpointIndices[g.EntityId];
+                    if (nextCheckpointIndex < checkpointMapping.Count)
+                    {
+                        // check if we reached it
+                        RacingBeacon nextCheckpoint = checkpointMapping[nextCheckpointIndex];
+                        if (g.WorldAABB.Intersects(nextCheckpoint.CollisionArea))
+                        {
+                            nextCheckpointIndices[g.EntityId] = ++nextCheckpointIndex;
+                        }
+                        
+                        // make sure the destination is no further along the track than our next checkpoint
+                        if (nextCheckpointIndex < checkpointMapping.Count) // re-check because it might have changed 
+                        {
+                            int nextCheckpointNodeId = nodes.BinarySearch(checkpointMapping[nextCheckpointIndex]);
+                            if (nodes.BinarySearch(destination) > nextCheckpointNodeId)
+                            {
+                                destination = checkpointMapping[nextCheckpointIndex];
+                                dist = nodeDistanceCache[nextCheckpointNodeId];
+                            }
+                        }
+                    }
+                    
                     RacerInfo racer = new RacerInfo(dist, pos, 0, name, g.EntityId);
                     racer.Destination = destination;
                     IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
@@ -244,14 +317,24 @@ namespace RacingMod
                 }
 
             }
-              
+            
             BuildText(ranking);
         }
 
-        void DrawRemoveWaypoint(long identityId, Vector3D coords)
+        void DrawRemoveWaypoint(RacerInfo info)
         {
-            RemoveWaypoint(identityId);
-            MyVisualScriptLogicProvider.AddGPSObjective(gateWaypointName, gateWaypointDescription, coords, gateWaypointColor, 0, identityId);
+            RemoveWaypoint(info.Controller);
+
+            RacingBeacon node = info.Destination;
+
+            // figure out if it's a checkpoint we have yet to clear
+            int myNextCheckpoint = nextCheckpointIndices[info.GridId];
+            bool isCheckpoint = node.Type == RacingBeacon.BeaconType.CHECKPOINT;
+            bool notCleared = isCheckpoint && myNextCheckpoint <= checkpointMapping.BinarySearch(node);
+
+            MyVisualScriptLogicProvider.AddGPSObjective(gateWaypointName, gateWaypointDescription, node.Coords,
+                isCheckpoint && notCleared ? gateWaypointColorMandatory : gateWaypointColor,
+                0, info.Controller);
         }
 
         void RenderWaypoint(RacerInfo current, RacerInfo previous)
@@ -269,45 +352,28 @@ namespace RacingMod
                 if(previousId != 0 && playerIdentity != previousId) // Controller switched
                     RemoveWaypoint(previousId);
 
-                if(!current.Destination.HasValue) // Before start or after finish
+                if(current.Destination == null) // Before start or after finish
                 {
-                    if (previous.Destination.HasValue) // Player just left the track
+                    if (previous.Destination != null) // Player just left the track
                         RemoveWaypoint(playerIdentity);
                 }
                 else // Player is on the track
                 {
                     // Player just took control, or Player just got on the track, or Player has crossed a node/checkpoint
-                    if (previousId == 0 || playerIdentity != previousId || !previous.Destination.HasValue || current.Destination.Value != previous.Destination.Value) 
-                        DrawRemoveWaypoint(playerIdentity, current.Destination.Value);
+                    if (previousId == 0 || playerIdentity != previousId ||
+                        previous.Destination == null || current.Destination != previous.Destination) 
+                        DrawRemoveWaypoint(current);
                 }
             }
         }
-
-        static float [] GenerateNodeDistances (Vector3 [] nodes)
-        {
-            float [] dist = new float [nodes.Length];
-            if (nodes.Length == 0)
-                return dist;
-            float cumulative = 0;
-            dist [0] = 0;
-            Vector3 prev = nodes [0];
-            for (int i = 1; i < dist.Length; i++)
-            {
-                Vector3 v = nodes [i];
-                cumulative += Vector3.Distance(prev, v);
-                dist [i] = cumulative;
-                prev = nodes [i];
-            }
-            return dist;
-        }
-
-        static int GetClosestIndex (Vector3[] nodes, Vector3 value)
-        {
+        
+        int GetClosestIndex(Vector3 racerPos)
+        { 
             int closest = 0;
             float closestDist2 = float.MaxValue;
-            for (int i = 0; i < nodes.Length; i++)
+            for (int i = 0; i < nodePositionCache.Length; i++)
             {
-                float dist2 = Vector3.DistanceSquared(nodes [i], value);
+                float dist2 = Vector3.DistanceSquared(nodePositionCache[i], racerPos);
                 if (dist2 < closestDist2)
                 {
                     closestDist2 = dist2;
@@ -317,30 +383,32 @@ namespace RacingMod
             return closest;
         }
 
-        float GetDistance (Vector3 gridPos, Vector3? beg, Vector3 mid, Vector3? end, float midDistance, out Vector3? destination)
+        float GetDistance (Vector3 gridPos, RacingBeacon beg, RacingBeacon mid, RacingBeacon end, out RacingBeacon destination)
         {
-            if (!beg.HasValue && !end.HasValue)
+            float midDistance = nodeDistanceCache[nodes.BinarySearch(mid)];
+            
+            if (beg == null && end == null)
             {
                 destination = null;
                 return -1;
             }
 
-            Vector3 dir = gridPos - mid;
+            Vector3 dir = gridPos - mid.Coords;
 
             float? before = null;
             float beforeLength2 = 0;
-            if (beg.HasValue)
+            if (beg != null)
             {
-                Vector3 beforeSegment = mid - beg.Value;
+                Vector3 beforeSegment = mid.Coords - beg.Coords;
                 beforeLength2 = beforeSegment.LengthSquared();
                 before = ScalarProjection(dir, Vector3.Normalize(beforeSegment));
             }
 
             float? after = null;
             float afterLength2 = 0;
-            if (end.HasValue)
+            if (end != null)
             {
-                Vector3 afterSegment = end.Value - mid;
+                Vector3 afterSegment = end.Coords - mid.Coords;
                 afterLength2 = afterSegment.LengthSquared();
                 after = ScalarProjection(dir, Vector3.Normalize(afterSegment));
             }
@@ -424,8 +492,8 @@ namespace RacingMod
                     }
                     else
                     {
-                        if (current.Controller != 0 && current.Destination.HasValue)
-                            DrawRemoveWaypoint(current.Controller, current.Destination.Value);
+                        if (current.Controller != 0 && current.Destination != null)
+                            DrawRemoveWaypoint(current);
                     }
 
                     if (drawnColor != null)
@@ -446,7 +514,10 @@ namespace RacingMod
                     Text.Append(SetLength(current.Name, nameWidth, 1)).Append(' ');
 
                     // <num> <name> <distance>
-                    Text.Append((int)current.Distance).AppendLine();
+                    Text.Append(SetLength((int)current.Distance, distWidth)).Append(' ');
+                    
+                    // <num> <name> <distance> <checkpoint>
+                    Text.Append($"{nextCheckpointIndices[current.GridId]} / {checkpointMapping.Count}").AppendLine();
 
                     newPrevRacerInfos [current.GridId] = current;
 
@@ -491,7 +562,27 @@ namespace RacingMod
                 return 0;
             return returnValue;
         }
-
+        
+        /// <summary>
+        /// Adds an element to a list keeping the list sorted,
+        /// or replaces the element if it already exists.
+        /// </summary>
+        /// <param name="list">List to operate on.</param>
+        /// <param name="item">Item to add.</param>
+        /// <typeparam name="T">Item type stored in the list.</typeparam>
+        /// <returns>The result of the initial BinarySearch.</returns>
+        public static int AddOrReplaceSorted<T>(List<T> list, T item) where T: IComparable<T>
+        {
+            // add the element into the list at an index that keeps the list sorted
+            int index = list.BinarySearch(item);
+            if (index < 0)
+                list.Insert(~index, item);
+            else
+                list[index] = item;
+            
+            return index;
+        }
+        
         struct RacerInfo
         {
             public long GridId;
@@ -500,7 +591,7 @@ namespace RacingMod
             public int Rank;
             public string Name;
             public int RankUpFrame;
-            public Vector3? Destination;
+            public RacingBeacon Destination;
             public long Controller;
 
             public RacerInfo (float distance, Vector3 position, int rank, string name, long gridId)
