@@ -58,23 +58,14 @@ namespace RacingMod
 
         public void RegisterNode(RacingBeacon node)
         {
-            if (!node.Valid)
-                throw new ArgumentException("Trying to register an invalid node");
+            if (!node.Valid || node.Type == RacingBeacon.BeaconType.IGNORED)
+                throw new ArgumentException("Trying to register an invalid or ignored node");
 
             if (!AddSorted(nodes, node))
             {
                 // checkpoint with this id already existed
-                RacingBeacon last = nodes.Last();
-                float before = node.NodeNumber;
-                node.AssignNewNumber(last.NodeNumber + 1);
-                //if(!AddSorted(nodes, node))
-                /*if (nodes.Contains(node))
-                {
-                    RacingBeacon b = nodes[nodes.IndexOf(node)];
-                    throw new Exception($"what the actual fuck {before} -> {node.NodeNumber} == {b.NodeNumber} {node.Equals(b)} {node.CompareTo(b)} last={last.NodeNumber}");
-                }
-                nodes.Add(node);*/
-                return;
+                node.AssignNewNumber(nodes.Last().NodeNumber + 1);
+                return; // changing the node number triggers a re-register
             }
             
             // keep track of checkpoints separately for performance reasons
@@ -86,8 +77,13 @@ namespace RacingMod
 
         public void RemoveNode(RacingBeacon node)
         {
-            nodes.Remove(node);
-            checkpointMapping.Remove(node);
+            int index = nodes.FindIndex(other => other.Entity.EntityId == node.Entity.EntityId); 
+            if(index >= 0)
+                nodes.RemoveAt(index);
+
+            index = checkpointMapping.FindIndex(other => other.Entity.EntityId == node.Entity.EntityId); 
+            if(index >= 0)
+                checkpointMapping.RemoveAt(index);
             
             RebuildNodeCaches();
         }
@@ -289,7 +285,7 @@ namespace RacingMod
                     end = nodes[closest + 1];
 
                 RacingBeacon destination;
-                float dist = GetDistance(pos, beg, nodes[closest], end, out destination);
+                float dist = GetDistance(pos, beg, closest, end, out destination);
                 
                 if (dist > 0)
                 {
@@ -397,10 +393,11 @@ namespace RacingMod
             return closest;
         }
 
-        float GetDistance (Vector3 gridPos, RacingBeacon beg, RacingBeacon mid, RacingBeacon end, out RacingBeacon destination)
+        float GetDistance (Vector3 gridPos, RacingBeacon beg, int midIndex, RacingBeacon end, out RacingBeacon destination)
         {
-            float midDistance = nodeDistanceCache[nodes.BinarySearch(mid)];
-            
+            RacingBeacon mid = nodes[midIndex];
+            float midDistance = nodeDistanceCache[midIndex];
+
             if (beg == null && end == null)
             {
                 destination = null;

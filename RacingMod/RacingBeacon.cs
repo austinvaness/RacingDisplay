@@ -30,16 +30,15 @@ namespace RacingMod
         public override void Init (MyObjectBuilder_EntityBase objectBuilder)
         {
             Beacon = Entity as IMyBeacon;
+            
             if (MyAPIGateway.Multiplayer.IsServer)
             {
+                // wait for the grid to fully load in
                 NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
                 
-                if (Beacon != null)
-                {
-                    // register events
-                    Beacon.CustomNameChanged += OnCustomNameChanged;
-                    Beacon.CustomDataChanged += OnCustomDataChanged;
-                }
+                // register events
+                Beacon.CustomNameChanged += OnCustomNameChanged;
+                Beacon.CustomDataChanged += OnCustomDataChanged;
             }
         }
         
@@ -57,17 +56,29 @@ namespace RacingMod
 
             Beacon = null;
         }
-        
+
         public override void UpdateBeforeSimulation100 ()
         {
             if (RacingSession.Instance == null)
                 return;
+            
+            if (Beacon?.CubeGrid?.Physics == null)
+                return;
 
-            // update once to initialise once the RacingSession instance exists
-            OnCustomNameChanged(Beacon);
-            OnCustomDataChanged(Beacon);
-
-            // then bail out for good
+            if (Beacon.CubeGrid.IsStatic)
+            {
+                // update once to initialise
+                OnCustomNameChanged(Beacon);
+                OnCustomDataChanged(Beacon);
+            }
+            else
+            {
+                // we only want to be active for static grids
+                Beacon.CustomNameChanged -= OnCustomNameChanged;
+                Beacon.CustomDataChanged -= OnCustomDataChanged;
+            }
+            
+            // done waiting, bail out of here for good
             NeedsUpdate = MyEntityUpdateEnum.NONE;
         }
 
