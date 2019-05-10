@@ -40,6 +40,7 @@ namespace RacingMod
         const int defaultScrollingSpeed = 30;
         private int scrollingSpeed = defaultScrollingSpeed; // scroll 1 character further every X frames
         const string scrollSpacer = "   ";
+        private bool showCheckpoints = true;
         private Vector2D hudPosition = new Vector2D(-0.95, 0.90);
         private bool running = false;
         Dictionary<long, RacerInfo> previousRacerInfos = new Dictionary<long, RacerInfo>();
@@ -61,7 +62,10 @@ namespace RacingMod
 
         private void GenerateHeader()
         {
-            hudHeader = "#".PadRight(numberWidth + 1) + "Name".PadRight(nameWidth + 1) + "Distance".PadRight(distWidth + 1) + "Checkpoint\n";
+            hudHeader = "#".PadRight(numberWidth + 1) +
+                        "Name".PadRight(nameWidth + 1) +
+                        "Distance".PadRight(distWidth + 1) + 
+                        (showCheckpoints ? "Checkpoint\n" : "\n");
         }
 
         public void RegisterNode(RacingBeacon node)
@@ -170,7 +174,7 @@ namespace RacingMod
             hudMsg = new HudAPIv2.HUDMessage(Text, hudPosition, HideHud: false, Font: "monospace");
         }
 
-        private void MessageEntered (string messageText, ref bool sendToOthers)
+        private void MessageEntered(string messageText, ref bool sendToOthers)
         {
             if (messageText == "/rcd" && hudMsg != null)
             {
@@ -200,6 +204,13 @@ namespace RacingMod
                 {
                     nameWidth = defaultNameWidth;
                 }
+
+                GenerateHeader();
+                sendToOthers = false;
+            }
+            else if (messageText.StartsWith("/rcdcp"))
+            { 
+                showCheckpoints = !showCheckpoints;
 
                 GenerateHeader();
                 sendToOthers = false;
@@ -563,7 +574,10 @@ namespace RacingMod
                     Text.Append(SetLength((int)current.Distance, distWidth)).Append(' ');
                     
                     // <num> <name> <distance> <checkpoint>
-                    Text.Append($"{nextCheckpointIndices[current.GridId]} / {checkpointMapping.Count}").AppendLine();
+                    if(showCheckpoints)
+                        Text.Append($"{nextCheckpointIndices[current.GridId]} / {checkpointMapping.Count}");
+
+                    Text.AppendLine();
 
                     newPrevRacerInfos [current.GridId] = current;
 
