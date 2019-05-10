@@ -613,7 +613,7 @@ namespace RacingMod
 
         int ScrollingOffset(int textLength, int windowLength)
         {
-            if (textLength <= windowLength)
+            if (textLength <= windowLength || scrollingSpeed == 0)
                 return 0;
             return (frameCount/scrollingSpeed) % (textLength/2);
         }
