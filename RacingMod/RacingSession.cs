@@ -31,16 +31,19 @@ namespace RacingMod
         private readonly Dictionary<long, int> nextCheckpointIndices = new Dictionary<long, int>(); // holds indices of checkpointMapping
         private HudAPIv2 textApi;
         private HudAPIv2.HUDMessage hudMsg;
-        
         const int numberWidth = 2; 
-        const int nameWidth = 15;
+        const int defaultNameWidth = 15;
+        private int nameWidth = defaultNameWidth;
         const int distWidth = 8;
         const float moveThreshold = 0.02f; // 1 m/s in 1 tick = 1 * 1/60
         private const int rankUpTime = 90;
+        const int defaultScrollingSpeed = 30;
+        private int scrollingSpeed = defaultScrollingSpeed; // scroll 1 character further every X frames
+        const string scrollSpacer = "   ";
         private Vector2D hudPosition = new Vector2D(-0.95, 0.90);
         private bool running = false;
         Dictionary<long, RacerInfo> previousRacerInfos = new Dictionary<long, RacerInfo>();
-        readonly string hudHeader;
+        string hudHeader;
         int frameCount = 0;
         const string colorWhite = "<color=white>";
         const string colorStationary = "<color=255,124,124>";
@@ -52,6 +55,11 @@ namespace RacingMod
         const string gateWaypointDescription = "The next checkpoint in the race.";
 
         public RacingSession ()
+        {
+            GenerateHeader();
+        }
+
+        private void GenerateHeader()
         {
             hudHeader = "#".PadRight(numberWidth + 1) + "Name".PadRight(nameWidth + 1) + "Distance".PadRight(distWidth + 1) + "Checkpoint\n";
         }
@@ -167,6 +175,33 @@ namespace RacingMod
             if (messageText == "/rcd" && hudMsg != null)
             {
                 hudMsg.Visible = !hudMsg.Visible;
+                sendToOthers = false;
+            }
+            else if (messageText.StartsWith("/rcdss"))
+            {
+                try
+                {
+                    scrollingSpeed = Math.Max(0, int.Parse(messageText.Split(' ')[1]));
+                }
+                catch
+                {
+                    scrollingSpeed = defaultScrollingSpeed;
+                }
+
+                sendToOthers = false;
+            }
+            else if (messageText.StartsWith("/rcdnw"))
+            {
+                try
+                {
+                    nameWidth = Math.Max(4, int.Parse(messageText.Split(' ')[1]));
+                }
+                catch
+                {
+                    nameWidth = defaultNameWidth;
+                }
+
+                GenerateHeader();
                 sendToOthers = false;
             }
         }
@@ -312,7 +347,7 @@ namespace RacingMod
                         }
                     }
                     
-                    RacerInfo racer = new RacerInfo(dist, pos, 0, name, g.EntityId);
+                    RacerInfo racer = new RacerInfo(dist, pos, 0, name.Substring(1).Trim(), g.EntityId);
                     racer.Destination = destination;
                     IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
                     if(p != null)
@@ -522,7 +557,7 @@ namespace RacingMod
                     Text.Append(SetLength(i, numberWidth)).Append(' ');
 
                     // <num> <name>
-                    Text.Append(SetLength(current.Name, nameWidth, 1)).Append(' ');
+                    Text.Append(SetLength(current.Name, nameWidth, ScrollingOffset(current.Name.Length, nameWidth))).Append(' ');
 
                     // <num> <name> <distance>
                     Text.Append(SetLength((int)current.Distance, distWidth)).Append(' ');
@@ -554,12 +589,26 @@ namespace RacingMod
             return false;
         }
 
-        string SetLength(object o, int length, int startIndex = 0)
+        static string SetLength(object o, int length, int startIndex = 0)
         {
             string s = "";
             if(o != null)
                 s = o.ToString();
             return s.PadRight(length + startIndex).Substring(startIndex, length);
+        }
+
+        int ScrollingOffset(int textLength, int windowLength)
+        {
+            if (textLength <= windowLength)
+                return 0;
+            return (frameCount/scrollingSpeed) % (textLength/2);
+        }
+
+        static string MakeScrollable(string text, int windowLength)
+        {
+            if (text.Length <= windowLength)
+                return text;
+            return (text + scrollSpacer) + (text + scrollSpacer);
         }
 
         /// <summary>
@@ -607,7 +656,7 @@ namespace RacingMod
                 Distance = distance;
                 Position = position;
                 Rank = rank;
-                Name = name;
+                Name = MakeScrollable(name, RacingSession.Instance.nameWidth);
                 RankUpFrame = 0;
                 GridId = gridId;
                 Destination = null;
