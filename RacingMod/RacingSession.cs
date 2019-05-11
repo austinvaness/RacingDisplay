@@ -58,6 +58,7 @@ namespace RacingMod
         const string gateWaypointDescription = "The next waypoint to guide you through the race.";
         const string gateCheckpointName = "Checkpoint";
         const string gateCheckpointDescription = "The next mandatory checkpoint in the race.";
+        int gateWaypointGps;
 
         public RacingSession ()
         {
@@ -145,6 +146,8 @@ namespace RacingMod
         {
             textApi = new HudAPIv2(CreateHudItems);
 
+            gateWaypointGps = MyAPIGateway.Session.GPS.Create(gateWaypointName, gateWaypointDescription, Vector3D.Zero, true).Hash;
+
             MyAPIGateway.Utilities.MessageEntered += MessageEntered;
             if(MyAPIGateway.Multiplayer.IsServer)
             {
@@ -160,8 +163,7 @@ namespace RacingMod
             }
             else
             {
-                IMyGps temp = MyAPIGateway.Session.GPS.Create(gateWaypointName, gateWaypointDescription, Vector3D.Zero, true);
-                MyAPIGateway.Session.GPS.RemoveLocalGps(temp);
+                MyAPIGateway.Session.GPS.RemoveLocalGps(gateWaypointGps);
                 MyAPIGateway.Multiplayer.RegisterMessageHandler(packetId, ReceiveMessage);
             }
 
@@ -235,25 +237,7 @@ namespace RacingMod
                 sendToOthers = false;
             }
         }
-
-        private void RemoveWaypoint (long identityId)
-        {
-            MyVisualScriptLogicProvider.RemoveGPS(gateWaypointName, identityId);
-            MyVisualScriptLogicProvider.RemoveGPS(gateCheckpointName, identityId);
-        }
-
-        private bool IsInCockpit (IMyPlayer arg, out IMyCockpit cockpit)
-        {
-            IMyEntity e = arg.Controller?.ControlledEntity?.Entity;
-            if (e == null)
-            {
-                cockpit = null;
-                return false;
-            }
-            cockpit = e as IMyCockpit;
-            return cockpit != null;
-        }
-
+        
         protected override void UnloadData ()
         {
             if (running)
@@ -419,6 +403,12 @@ namespace RacingMod
             }
             
             BuildText(ranking);
+        }
+        
+        private void RemoveWaypoint (long identityId)
+        {
+            MyVisualScriptLogicProvider.RemoveGPS(gateWaypointName, identityId);
+            MyVisualScriptLogicProvider.RemoveGPS(gateCheckpointName, identityId);
         }
 
         void DrawRemoveWaypoint(RacerInfo info)
