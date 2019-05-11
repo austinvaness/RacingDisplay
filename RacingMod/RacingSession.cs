@@ -28,7 +28,7 @@ namespace RacingMod
         private StringBuilder Text = new StringBuilder("Initializing...");
 
         private readonly Dictionary<long, IMyCubeGrid> grids = new Dictionary<long, IMyCubeGrid>();
-        private readonly Dictionary<long, int> nextCheckpointIndices = new Dictionary<long, int>(); // holds indices of checkpointMapping
+        private readonly Dictionary<long, int> nextCheckpointIndices = new Dictionary<long, int>(); // key=GridId, value=index of checkpointMapping
         private HudAPIv2 textApi;
         private HudAPIv2.HUDMessage hudMsg;
         const int numberWidth = 2; 
@@ -52,8 +52,10 @@ namespace RacingMod
 
         private readonly Color gateWaypointColor = new Color(0, 255, 255); // nodes and cleared checkpoints
         private readonly Color gateWaypointColorMandatory = new Color(255, 31, 0); // your next mandatory checkpoint
-        const string gateWaypointName = "Checkpoint";
-        const string gateWaypointDescription = "The next checkpoint in the race.";
+        const string gateWaypointName = "Waypoint";
+        const string gateWaypointDescription = "The next waypoint to guide you through the race.";
+        const string gateCheckpointName = "Checkpoint";
+        const string gateCheckpointDescription = "The next mandatory checkpoint in the race.";
 
         public RacingSession ()
         {
@@ -220,6 +222,7 @@ namespace RacingMod
         private void RemoveWaypoint (long identityId)
         {
             MyVisualScriptLogicProvider.RemoveGPS(gateWaypointName, identityId);
+            MyVisualScriptLogicProvider.RemoveGPS(gateCheckpointName, identityId);
         }
 
         private bool IsInCockpit (IMyPlayer arg, out IMyCockpit cockpit)
@@ -384,13 +387,31 @@ namespace RacingMod
             RacingBeacon node = info.Destination;
 
             // figure out if it's a checkpoint we have yet to clear
-            int myNextCheckpoint = nextCheckpointIndices[info.GridId];
+            int myNextCheckpointIndex = nextCheckpointIndices[info.GridId];
             bool isCheckpoint = node.Type == RacingBeacon.BeaconType.CHECKPOINT;
-            bool notCleared = isCheckpoint && myNextCheckpoint <= checkpointMapping.BinarySearch(node);
+            bool notCleared = isCheckpoint && myNextCheckpointIndex <= checkpointMapping.BinarySearch(node);
+            bool mandatory = isCheckpoint && notCleared;
 
-            MyVisualScriptLogicProvider.AddGPSObjective(gateWaypointName, gateWaypointDescription, node.Coords,
-                isCheckpoint && notCleared ? gateWaypointColorMandatory : gateWaypointColor,
-                0, info.Controller);
+            if (mandatory)
+            {
+                // this node is a mandatory checkpoint
+                MyVisualScriptLogicProvider.AddGPSObjective(gateCheckpointName, gateCheckpointDescription, node.Coords,
+                    gateWaypointColorMandatory, 0, info.Controller);
+            }
+            else
+            {
+                // this node is just a waypoint
+                MyVisualScriptLogicProvider.AddGPSObjective(gateWaypointName, gateWaypointDescription, node.Coords, 
+                    gateWaypointColor, 0, info.Controller);
+                
+                // additionally show the next mandatory checkpoint so the racer knows where to go
+                if (myNextCheckpointIndex < checkpointMapping.Count)
+                {
+                    RacingBeacon myNextCheckpoint = checkpointMapping[myNextCheckpointIndex];
+                    MyVisualScriptLogicProvider.AddGPSObjective(gateCheckpointName, gateCheckpointDescription, 
+                        myNextCheckpoint.Coords, gateWaypointColorMandatory, 0, info.Controller);
+                }
+            }
         }
 
         void RenderWaypoint(RacerInfo current, RacerInfo previous)
