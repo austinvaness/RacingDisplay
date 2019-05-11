@@ -25,7 +25,14 @@ namespace RacingMod
 
         public bool Valid => !float.IsNaN(NodeNumber);
         public BoundingBoxD CollisionArea => Beacon.CubeGrid.WorldAABB;
-        public Vector3 Coords => Type == BeaconType.CHECKPOINT ? CollisionArea.Center : Beacon.WorldMatrix.Translation;
+        public Vector3 Coords => GetCoords();
+
+        private Vector3 GetCoords ()
+        {
+            if (Type == BeaconType.CHECKPOINT)
+                return CollisionArea.Center;
+            return Beacon.WorldMatrix.Translation;
+        }
 
         public override void Init (MyObjectBuilder_EntityBase objectBuilder)
         {
@@ -107,7 +114,9 @@ namespace RacingMod
         {
             // read node number from custom data
             float newNodeNumber;
-            UpdateNodeNumber(float.TryParse(Beacon.CustomData, out newNodeNumber) ? newNodeNumber : float.NaN);
+            if (!float.TryParse(Beacon.CustomData, out newNodeNumber))
+                newNodeNumber = float.NaN;
+            UpdateNodeNumber(newNodeNumber);
         }
 
         private void UpdateNodeNumber(float newNodeNumber)

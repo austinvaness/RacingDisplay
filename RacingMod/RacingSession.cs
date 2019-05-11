@@ -17,7 +17,8 @@ namespace RacingMod
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     public class RacingSession : MySessionComponentBase
     {
-        const ushort packetId = 1337;
+        const ushort packetMainId = 1337;
+        const ushort packetFinalsId = 1338;
 
         public static RacingSession Instance;
         
@@ -25,27 +26,33 @@ namespace RacingMod
         private readonly List<RacingBeacon> checkpointMapping = new List<RacingBeacon>(); // checkpointMapping[checkpointIndex] = node;
         private Vector3[] nodePositionCache = { };
         private float[] nodeDistanceCache = { };
-        private StringBuilder Text = new StringBuilder("Initializing...");
+
+        private HudAPIv2 textApi;
+        private Vector2D activeHudPosition = new Vector2D(-0.95, 0.90);
+        private HudAPIv2.HUDMessage activeRacersHud;
+        private StringBuilder ActiveRacersText = new StringBuilder("Initializing...");
+        private Vector2D finalHudPosition = new Vector2D(0.95, 0.9);
+        private HudAPIv2.HUDMessage finalRacersHud;
+        private StringBuilder FinalRacersText = new StringBuilder("Initializing...");
 
         private readonly Dictionary<long, IMyCubeGrid> grids = new Dictionary<long, IMyCubeGrid>();
         private readonly Dictionary<long, int> nextCheckpointIndices = new Dictionary<long, int>(); // key=GridId, value=index of checkpointMapping
         private readonly List<RacerInfo> finishes = new List<RacerInfo>();
-        private HudAPIv2 textApi;
-        private HudAPIv2.HUDMessage hudMsg;
+
         const int numberWidth = 2; 
-        const int defaultNameWidth = 15;
-        private int nameWidth = defaultNameWidth;
         const int distWidth = 8;
-        const float moveThreshold = 0.02f; // 1 m/s in 1 tick = 1 * 1/60
+        const int maxNameWidth = 20;
+        const int minNameWidth = 4;
+        private int nameWidth = maxNameWidth;
+
+        const float moveThreshold2 = 4; // Squared minimum velocity
         private const int rankUpTime = 90;
-        const int defaultScrollingSpeed = 30;
-        private int scrollingSpeed = defaultScrollingSpeed; // scroll 1 character further every X frames
-        const string scrollSpacer = "   ";
-        private bool showCheckpoints = true;
-        private Vector2D hudPosition = new Vector2D(-0.95, 0.90);
         private bool running = false;
         Dictionary<long, RacerInfo> previousRacerInfos = new Dictionary<long, RacerInfo>();
+
         string hudHeader;
+        string finalHudHeader;
+
         int frameCount = 0;
         private const string headerColor = "<color=127,127,127>";
         const string colorWhite = "<color=white>";
@@ -68,10 +75,11 @@ namespace RacingMod
         private void GenerateHeader()
         {
             hudHeader = headerColor +
-                        "#".PadLeft(numberWidth) + " " +
+                        "#".PadRight(numberWidth + 1) +
                         "Name".PadRight(nameWidth + 1) +
                         "Distance".PadRight(distWidth + 1);
-            if (showCheckpoints && checkpointMapping.Count > 0)
+            finalHudHeader = headerColor + "#".PadRight(numberWidth + 1) + "Finalist".PadRight(maxNameWidth);
+            if (checkpointMapping.Count > 0)
             {
                 if (checkpointMapping.Count < 10)
                     hudHeader += "Ckpnt";
@@ -80,6 +88,7 @@ namespace RacingMod
             }
 
             hudHeader += "\n" + colorWhite;
+            finalHudHeader += "\n" + colorWhite;
         }
 
         public void RegisterNode(RacingBeacon node)
@@ -164,22 +173,30 @@ namespace RacingMod
             else
             {
                 MyAPIGateway.Session.GPS.RemoveLocalGps(gateWaypointGps);
-                MyAPIGateway.Multiplayer.RegisterMessageHandler(packetId, ReceiveMessage);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(packetMainId, ReceiveActiveRacers);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(packetFinalsId, ReceiveFinalRacers);
             }
-
 
             running = true;
             Instance = this;
         }
 
-        private void ReceiveMessage (byte [] obj)
+        private void ReceiveActiveRacers(byte[] obj)
         {
+            DecodeString(obj, ActiveRacersText);
+        }
+        private void ReceiveFinalRacers (byte [] obj)
+        {
+            DecodeString(obj, FinalRacersText);
+        }
 
+        private void DecodeString (byte [] obj, StringBuilder sb)
+        {
             try
             {
                 string data = Encoding.ASCII.GetString(obj);
-                Text.Clear();
-                Text.Append(data);
+                sb.Clear();
+                sb.Append(data);
             }
             catch (Exception e)
             {
@@ -192,48 +209,22 @@ namespace RacingMod
 
         private void CreateHudItems ()
         {
-            hudMsg = new HudAPIv2.HUDMessage(Text, hudPosition, HideHud: false, Font: "monospace");
+            activeRacersHud = new HudAPIv2.HUDMessage(ActiveRacersText, activeHudPosition, HideHud: false, Font: "monospace");
+            FinalRacersText = new StringBuilder(finalHudHeader);
+            finalRacersHud = new HudAPIv2.HUDMessage(FinalRacersText, finalHudPosition, HideHud: false, Font: "monospace");
+            // Align the text to the right of the window
+            Vector2D len = finalRacersHud.GetTextLength();
+            len.Y = 0;
+            finalRacersHud.Offset = -len;
+            FinalRacersText.Clear();
         }
 
         private void MessageEntered(string messageText, ref bool sendToOthers)
         {
-            if (messageText == "/rcd" && hudMsg != null)
+            if (messageText == "/rcd" && activeRacersHud != null)
             {
-                hudMsg.Visible = !hudMsg.Visible;
-                sendToOthers = false;
-            }
-            else if (messageText.StartsWith("/rcdss"))
-            {
-                try
-                {
-                    scrollingSpeed = Math.Max(0, int.Parse(messageText.Split(' ')[1]));
-                }
-                catch
-                {
-                    scrollingSpeed = defaultScrollingSpeed;
-                }
-
-                sendToOthers = false;
-            }
-            else if (messageText.StartsWith("/rcdnw"))
-            {
-                try
-                {
-                    nameWidth = Math.Max(4, int.Parse(messageText.Split(' ')[1]));
-                }
-                catch
-                {
-                    nameWidth = defaultNameWidth;
-                }
-
-                GenerateHeader();
-                sendToOthers = false;
-            }
-            else if (messageText.StartsWith("/rcdcp"))
-            { 
-                showCheckpoints = !showCheckpoints;
-
-                GenerateHeader();
+                activeRacersHud.Visible = !activeRacersHud.Visible;
+                finalRacersHud.Visible = activeRacersHud.Visible;
                 sendToOthers = false;
             }
         }
@@ -248,7 +239,8 @@ namespace RacingMod
 
                 if(MyAPIGateway.Multiplayer.IsServer)
                 {
-                    MyAPIGateway.Multiplayer.UnregisterMessageHandler(packetId, ReceiveMessage);
+                    MyAPIGateway.Multiplayer.UnregisterMessageHandler(packetMainId, ReceiveActiveRacers);
+                    MyAPIGateway.Multiplayer.UnregisterMessageHandler(packetFinalsId, ReceiveFinalRacers);
                 }
             }
 
@@ -257,19 +249,20 @@ namespace RacingMod
             Instance = null;
         }
 
+
         public override void UpdateAfterSimulation ()
         {
             if (!running || !MyAPIGateway.Multiplayer.IsServer)
                 return;
 
             ProcessValues();
-            BroadcastData();
+            BroadcastData(ActiveRacersText, packetMainId);
             frameCount++;
         }
 
-        private void BroadcastData ()
+        private void BroadcastData (StringBuilder sb, ushort packetId)
         {
-            byte [] bytes = Encoding.ASCII.GetBytes(Text.ToString());
+            byte [] data = Encoding.ASCII.GetBytes(sb.ToString());
 
             List<IMyPlayer> players = new List<IMyPlayer>();
             MyAPIGateway.Players.GetPlayers(players);
@@ -278,7 +271,7 @@ namespace RacingMod
                 if (p.SteamUserId == MyAPIGateway.Multiplayer.ServerId)
                     continue;
 
-                MyAPIGateway.Multiplayer.SendMessageTo(1337, bytes, p.SteamUserId);
+                MyAPIGateway.Multiplayer.SendMessageTo(packetId, data, p.SteamUserId);
             }
         }
 
@@ -306,10 +299,12 @@ namespace RacingMod
         {
             if (nodes.Count < 2)
             {
-                Text.Clear();
-                Text.Append("Waiting for beacon nodes...").AppendLine();
+                ActiveRacersText.Clear();
+                ActiveRacersText.Append("Waiting for beacon nodes...").AppendLine();
                 return;
             }
+
+            int tempMaxNameWidth = 0;
 
             SortedDictionary<float, RacerInfo> ranking = new SortedDictionary<float, RacerInfo>(new DescendingComparer<float>());
             foreach (IMyCubeGrid g in grids.Values)
@@ -356,10 +351,11 @@ namespace RacingMod
                             {
                                 int lastCheckpointNodeId = nodes.BinarySearch(checkpointMapping.Last());
                                 int rank = finishes.Count + 1;
-                                RacerInfo finishInfo = new RacerInfo(nodeDistanceCache[lastCheckpointNodeId], pos,
-                                    rank, name, g.EntityId);
+                                RacerInfo finishInfo = new RacerInfo(g, nodeDistanceCache[lastCheckpointNodeId],
+                                    rank, name);
                                 
                                 finishes.Add(finishInfo);
+                                FinishesUpdated();
                                 
                                 // remove their gps waypoints
                                 IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
@@ -385,7 +381,10 @@ namespace RacingMod
                     // only show racers who haven't finished yet
                     if (checkpointMapping.Count == 0 || nextCheckpointIndex < checkpointMapping.Count)
                     {
-                        RacerInfo racer = new RacerInfo(dist, pos, 0, name, g.EntityId);
+                        if (name.Length > tempMaxNameWidth)
+                            tempMaxNameWidth = name.Length;
+
+                        RacerInfo racer = new RacerInfo(g, dist, 0, name);
                         racer.Destination = destination;
                         IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
                         if(p != null)
@@ -401,10 +400,35 @@ namespace RacingMod
                 }
 
             }
-            
+            tempMaxNameWidth = MathHelper.Clamp(tempMaxNameWidth, minNameWidth, maxNameWidth);
+            if (tempMaxNameWidth != nameWidth)
+            {
+                nameWidth = tempMaxNameWidth;
+                GenerateHeader();
+            }
             BuildText(ranking);
         }
-        
+
+        private void FinishesUpdated ()
+        {
+            // Build the final racer text
+            FinalRacersText.Clear();
+            if (finishes.Count > 0)
+            {
+                FinalRacersText.Append(finalHudHeader);
+                for (int i = 0; i < finishes.Count; i++)
+                {
+                    RacerInfo current = finishes [i];
+                    FinalRacersText.Append(SetLength(i + 1, numberWidth)).Append(' ');
+                    FinalRacersText.Append(SetLength(current.Name, maxNameWidth));
+                    FinalRacersText.AppendLine();
+                }
+            }
+
+            // Send the data
+            BroadcastData(FinalRacersText, packetFinalsId);
+        }
+
         private void RemoveWaypoint (long identityId)
         {
             MyVisualScriptLogicProvider.RemoveGPS(gateWaypointName, identityId);
@@ -556,30 +580,17 @@ namespace RacingMod
 
         void BuildText (SortedDictionary<float, RacerInfo> ranking)
         {
-            Text.Clear();
 
-            // display finishes at the top
-            for (int i = 0; i < finishes.Count; i++)
-            {
-                RacerInfo current = finishes[i];
-                Text.Append(SetLength(i+1, numberWidth)).Append(' ');
-                Text.Append(SetLength(current.Name, nameWidth, ScrollingOffset(current.Name.Length, nameWidth))).Append("  ");
-                //Text.Append($"{nextCheckpointIndices[current.GridId]}/{checkpointMapping.Count}");
-                Text.AppendLine();
-            }
-
-            if (finishes.Count > 0)
-                Text.AppendLine();
-            
-            // and all active racers below
+            // Build the active racer text
+            ActiveRacersText.Clear();
             if (ranking.Count == 0)
             {
-                Text.Append("No racers in range.");
+                ActiveRacersText.Append("No racers in range.");
                 previousRacerInfos.Clear();
             }
             else
             {
-                Text.Append(hudHeader);
+                ActiveRacersText.Append(hudHeader);
                 bool drawWhite = false;
 
                 Dictionary<long, RacerInfo> newPrevRacerInfos = new Dictionary<long, RacerInfo>(ranking.Count);
@@ -622,34 +633,36 @@ namespace RacingMod
 
                     if (drawnColor != null)
                     {
-                        Text.Append(drawnColor);
+                        ActiveRacersText.Append(drawnColor);
                         drawWhite = true;
                     }
                     else if (drawWhite)
                     {
-                        Text.Append(colorWhite);
+                        ActiveRacersText.Append(colorWhite);
                         drawWhite = false;
                     }
 
                     // <num>
-                    Text.Append(SetLength(i, numberWidth)).Append(' ');
+                    ActiveRacersText.Append(SetLength(i, numberWidth)).Append(' ');
 
                     // <num> <name>
-                    Text.Append(SetLength(current.Name, nameWidth, ScrollingOffset(current.Name.Length, nameWidth))).Append(' ');
+                    ActiveRacersText.Append(SetLength(current.Name, nameWidth)).Append(' ');
 
                     // <num> <name> <distance>
-                    Text.Append(SetLength((int)current.Distance, distWidth-1)).Append("m ");
+                    ActiveRacersText.Append(SetLength((int)current.Distance, distWidth)).Append(' ');
                     
                     // <num> <name> <distance> <checkpoint>
-                    if (showCheckpoints && checkpointMapping.Count > 0)
+                    if (checkpointMapping.Count > 0)
                     {
-                        int cpWidth = checkpointMapping.Count < 10 ? 1 : 2;
-                        Text.Append(SetLength(nextCheckpointIndices[current.GridId], cpWidth));
-                        Text.Append(" / ");
-                        Text.Append(SetLength(checkpointMapping.Count, cpWidth));
+                        int cpWidth = 2;
+                        if (checkpointMapping.Count < 10)
+                            cpWidth = 1;
+                        ActiveRacersText.Append(SetLength(nextCheckpointIndices[current.GridId], cpWidth));
+                        ActiveRacersText.Append(" / ");
+                        ActiveRacersText.Append(SetLength(checkpointMapping.Count, cpWidth));
                     }
 
-                    Text.AppendLine();
+                    ActiveRacersText.AppendLine();
 
                     newPrevRacerInfos [current.GridId] = current;
 
@@ -661,18 +674,9 @@ namespace RacingMod
 
         bool Moved(RacerInfo value, RacerInfo previous)
         {
-            float x = Math.Abs(previous.Position.X - value.Position.X);
-            if (x > moveThreshold)
-                return true;
-
-            float y = Math.Abs(previous.Position.Y - value.Position.Y);
-            if (y > moveThreshold)
-                return true;
-
-            float z = Math.Abs(previous.Position.Z - value.Position.Z);
-            if (z > moveThreshold)
-                return true;
-            return false;
+            if (value.Racer.Physics == null)
+                return false;
+            return value.Racer.Physics.LinearVelocity.LengthSquared() > moveThreshold2;
         }
 
         static string SetLength(object o, int length, int startIndex = 0)
@@ -680,24 +684,7 @@ namespace RacingMod
             string s = "";
             if(o != null)
                 s = o.ToString();
-            if(o.GetType() == typeof(int))
-                return s.PadLeft(length);
-            else
-                return s.PadRight(length + startIndex).Substring(startIndex, length);
-        }
-
-        int ScrollingOffset(int textLength, int windowLength)
-        {
-            if (textLength <= windowLength || scrollingSpeed == 0)
-                return 0;
-            return (frameCount/scrollingSpeed) % (textLength/2);
-        }
-
-        static string MakeScrollable(string text, int windowLength)
-        {
-            if (text.Length <= windowLength)
-                return text;
-            return (text + scrollSpacer) + (text + scrollSpacer);
+            return s.PadRight(length + startIndex).Substring(startIndex, length);
         }
 
         /// <summary>
@@ -731,23 +718,22 @@ namespace RacingMod
         
         struct RacerInfo
         {
-            public long GridId;
+            public IMyCubeGrid Racer;
+            public long GridId => Racer.EntityId;
             public float Distance;
-            public Vector3 Position;
             public int Rank;
             public string Name;
             public int RankUpFrame;
             public RacingBeacon Destination;
             public long Controller;
 
-            public RacerInfo (float distance, Vector3 position, int rank, string name, long gridId)
+            public RacerInfo (IMyCubeGrid racer, float distance, int rank, string name)
             {
+                Racer = racer;
                 Distance = distance;
-                Position = position;
                 Rank = rank;
-                Name = MakeScrollable(name, RacingSession.Instance.nameWidth);
+                Name = name;
                 RankUpFrame = 0;
-                GridId = gridId;
                 Destination = null;
                 Controller = 0;
             }
