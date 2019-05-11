@@ -29,6 +29,7 @@ namespace RacingMod
 
         private readonly Dictionary<long, IMyCubeGrid> grids = new Dictionary<long, IMyCubeGrid>();
         private readonly Dictionary<long, int> nextCheckpointIndices = new Dictionary<long, int>(); // key=GridId, value=index of checkpointMapping
+        private readonly List<RacerInfo> finishes = new List<RacerInfo>();
         private HudAPIv2 textApi;
         private HudAPIv2.HUDMessage hudMsg;
         const int numberWidth = 2; 
@@ -46,6 +47,7 @@ namespace RacingMod
         Dictionary<long, RacerInfo> previousRacerInfos = new Dictionary<long, RacerInfo>();
         string hudHeader;
         int frameCount = 0;
+        private const string headerColor = "<color=127,127,127>";
         const string colorWhite = "<color=white>";
         const string colorStationary = "<color=255,124,124>";
         const string colorRankUp = "<color=124,255,154>";
@@ -64,10 +66,19 @@ namespace RacingMod
 
         private void GenerateHeader()
         {
-            hudHeader = "#".PadRight(numberWidth + 1) +
+            hudHeader = headerColor +
+                        "#".PadLeft(numberWidth) + " " +
                         "Name".PadRight(nameWidth + 1) +
-                        "Distance".PadRight(distWidth + 1) + 
-                        (showCheckpoints ? "Checkpoint\n" : "\n");
+                        "Distance".PadRight(distWidth + 1);
+            if (showCheckpoints && checkpointMapping.Count > 0)
+            {
+                if (checkpointMapping.Count < 10)
+                    hudHeader += "Ckpnt";
+                else
+                    hudHeader += "Chckpnt";
+            }
+
+            hudHeader += "\n" + colorWhite;
         }
 
         public void RegisterNode(RacingBeacon node)
@@ -84,7 +95,10 @@ namespace RacingMod
             
             // keep track of checkpoints separately for performance reasons
             if (node.Type == RacingBeacon.BeaconType.CHECKPOINT)
+            {
                 AddSorted(checkpointMapping, node);
+                GenerateHeader();
+            }
             
             RebuildNodeCaches();
         }
@@ -95,9 +109,12 @@ namespace RacingMod
             if(index >= 0)
                 nodes.RemoveAt(index);
 
-            index = checkpointMapping.FindIndex(other => other.Entity.EntityId == node.Entity.EntityId); 
-            if(index >= 0)
+            index = checkpointMapping.FindIndex(other => other.Entity.EntityId == node.Entity.EntityId);
+            if (index >= 0)
+            {
                 checkpointMapping.RemoveAt(index);
+                GenerateHeader();
+            }
             
             RebuildNodeCaches();
         }
@@ -338,6 +355,8 @@ namespace RacingMod
                 
                 if (dist > 0)
                 {
+                    name = name.Substring(1).Trim();
+                    
                     // get next checkpoint
                     int nextCheckpointIndex = nextCheckpointIndices[g.EntityId];
                     if (nextCheckpointIndex < checkpointMapping.Count)
@@ -347,6 +366,24 @@ namespace RacingMod
                         if (g.WorldAABB.Intersects(nextCheckpoint.CollisionArea))
                         {
                             nextCheckpointIndices[g.EntityId] = ++nextCheckpointIndex;
+                            
+                            // check if it's a finish
+                            if (checkpointMapping.Count > 0 && nextCheckpointIndex >= checkpointMapping.Count)
+                            {
+                                int lastCheckpointNodeId = nodes.BinarySearch(checkpointMapping.Last());
+                                int rank = finishes.Count + 1;
+                                RacerInfo finishInfo = new RacerInfo(nodeDistanceCache[lastCheckpointNodeId], pos,
+                                    rank, name, g.EntityId);
+                                
+                                finishes.Add(finishInfo);
+                                
+                                // remove their gps waypoints
+                                IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
+                                if(p != null)
+                                    RemoveWaypoint(p.IdentityId);
+                                
+                                MyAPIGateway.Utilities.ShowNotification($"{name} just finished in position {rank}");
+                            }
                         }
                         
                         // make sure the destination is no further along the track than our next checkpoint
@@ -360,13 +397,17 @@ namespace RacingMod
                             }
                         }
                     }
-                    
-                    RacerInfo racer = new RacerInfo(dist, pos, 0, name.Substring(1).Trim(), g.EntityId);
-                    racer.Destination = destination;
-                    IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
-                    if(p != null)
-                        racer.Controller = p.IdentityId;
-                    ranking [dist] = racer;
+
+                    // only show racers who haven't finished yet
+                    if (checkpointMapping.Count == 0 || nextCheckpointIndex < checkpointMapping.Count)
+                    {
+                        RacerInfo racer = new RacerInfo(dist, pos, 0, name, g.EntityId);
+                        racer.Destination = destination;
+                        IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
+                        if(p != null)
+                            racer.Controller = p.IdentityId;
+                        ranking [dist] = racer;
+                    }
                 }
                 else
                 {
@@ -526,6 +567,21 @@ namespace RacingMod
         void BuildText (SortedDictionary<float, RacerInfo> ranking)
         {
             Text.Clear();
+
+            // display finishes at the top
+            for (int i = 0; i < finishes.Count; i++)
+            {
+                RacerInfo current = finishes[i];
+                Text.Append(SetLength(i+1, numberWidth)).Append(' ');
+                Text.Append(SetLength(current.Name, nameWidth, ScrollingOffset(current.Name.Length, nameWidth))).Append("  ");
+                //Text.Append($"{nextCheckpointIndices[current.GridId]}/{checkpointMapping.Count}");
+                Text.AppendLine();
+            }
+
+            if (finishes.Count > 0)
+                Text.AppendLine();
+            
+            // and all active racers below
             if (ranking.Count == 0)
             {
                 Text.Append("No racers in range.");
@@ -585,18 +641,23 @@ namespace RacingMod
                         drawWhite = false;
                     }
 
-                    // <num> 
+                    // <num>
                     Text.Append(SetLength(i, numberWidth)).Append(' ');
 
                     // <num> <name>
                     Text.Append(SetLength(current.Name, nameWidth, ScrollingOffset(current.Name.Length, nameWidth))).Append(' ');
 
                     // <num> <name> <distance>
-                    Text.Append(SetLength((int)current.Distance, distWidth)).Append(' ');
+                    Text.Append(SetLength((int)current.Distance, distWidth-1)).Append("m ");
                     
                     // <num> <name> <distance> <checkpoint>
-                    if(showCheckpoints)
-                        Text.Append($"{nextCheckpointIndices[current.GridId]} / {checkpointMapping.Count}");
+                    if (showCheckpoints && checkpointMapping.Count > 0)
+                    {
+                        int cpWidth = checkpointMapping.Count < 10 ? 1 : 2;
+                        Text.Append(SetLength(nextCheckpointIndices[current.GridId], cpWidth));
+                        Text.Append(" / ");
+                        Text.Append(SetLength(checkpointMapping.Count, cpWidth));
+                    }
 
                     Text.AppendLine();
 
@@ -629,7 +690,10 @@ namespace RacingMod
             string s = "";
             if(o != null)
                 s = o.ToString();
-            return s.PadRight(length + startIndex).Substring(startIndex, length);
+            if(o.GetType() == typeof(int))
+                return s.PadLeft(length);
+            else
+                return s.PadRight(length + startIndex).Substring(startIndex, length);
         }
 
         int ScrollingOffset(int textLength, int windowLength)
