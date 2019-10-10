@@ -16,7 +16,7 @@ namespace RacingMod
         {
             IGNORED,
             RACING_NODE,
-            CHECKPOINT
+            FINISH
         }
 
         public BeaconType Type { get; private set; } = BeaconType.IGNORED;
@@ -29,7 +29,7 @@ namespace RacingMod
 
         private Vector3 GetCoords ()
         {
-            if (Type == BeaconType.CHECKPOINT)
+            if (Type == BeaconType.FINISH)
                 return CollisionArea.Center;
             return Beacon.WorldMatrix.Translation;
         }
@@ -74,7 +74,7 @@ namespace RacingMod
 
             if (Beacon.CubeGrid.IsStatic)
             {
-                // update once to initialise
+                // update once to initialize
                 OnCustomNameChanged(Beacon);
                 OnCustomDataChanged(Beacon);
             }
@@ -91,12 +91,14 @@ namespace RacingMod
 
         private void OnCustomNameChanged(IMyTerminalBlock obj)
         {
+            if (Beacon?.CustomName == null)
+                return;
+
             BeaconType oldType = Type;
-            
             if (Beacon.CustomName.StartsWith("[Node]"))
                 Type = BeaconType.RACING_NODE;
-            else if (Beacon.CustomName.StartsWith("[CP]") || Beacon.CustomName.StartsWith("[Checkpoint]"))
-                Type = BeaconType.CHECKPOINT;
+            else if (Beacon.CustomName.StartsWith("[Finish]"))
+                Type = BeaconType.FINISH;
             else
                 Type = BeaconType.IGNORED;
 
@@ -130,22 +132,16 @@ namespace RacingMod
                 RacingSession.Instance.RegisterNode(this);
         }
 
-        public void AssignNewNumber(float newNodeNumber)
-        {
-            NodeNumber = newNodeNumber;
-            Beacon.CustomData = $"{NodeNumber}";
-        }
-
         public int CompareTo(RacingBeacon other)
         {
-            return this.NodeNumber.CompareTo(other.NodeNumber);
+            return NodeNumber.CompareTo(other.NodeNumber);
         }
 
         public bool Equals(RacingBeacon other)
         {
             if (other == null)
                 return !Valid;
-            return this.NodeNumber.Equals(other.NodeNumber);
+            return NodeNumber.Equals(other.NodeNumber);
         }
     }
 }
