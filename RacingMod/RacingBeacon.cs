@@ -3,6 +3,7 @@ using System.Globalization;
 using Sandbox.Common.ObjectBuilders;
 using Sandbox.ModAPI;
 using VRage.Game.Components;
+using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
 using VRageMath;
@@ -15,8 +16,10 @@ namespace RacingMod
         public enum BeaconType
         {
             IGNORED,
-            RACING_NODE,
-            FINISH
+            NODE,
+            CHECKPOINT, // Racer must pass through to count
+            LAP, // Increments number laps by 1
+            FINISH // Node is last node
         }
 
         public BeaconType Type { get; private set; } = BeaconType.IGNORED;
@@ -24,13 +27,18 @@ namespace RacingMod
         public float NodeNumber { get; private set; } = float.NaN;
 
         public bool Valid => !float.IsNaN(NodeNumber);
-        public BoundingBoxD CollisionArea => Beacon.CubeGrid.WorldAABB;
         public Vector3 Coords => GetCoords();
+        public int Index = -1;
+
+        public bool Contains(IMyPlayer p)
+        {
+            return Beacon.CubeGrid.WorldAABB.Contains(p.GetPosition()) == ContainmentType.Contains;
+        }
 
         private Vector3 GetCoords ()
         {
             if (Type == BeaconType.FINISH)
-                return CollisionArea.Center;
+                return Beacon.CubeGrid.WorldAABB.Center;
             return Beacon.WorldMatrix.Translation;
         }
 
@@ -55,7 +63,7 @@ namespace RacingMod
                 RacingSession.Instance.RemoveNode(this);
             NodeNumber = float.NaN;
 
-            // deregister events
+            // Unregister events
             Beacon.CustomNameChanged -= OnCustomNameChanged;
             Beacon.CustomDataChanged -= OnCustomDataChanged;
 
@@ -66,59 +74,89 @@ namespace RacingMod
 
         public override void UpdateBeforeSimulation100 ()
         {
-            if (RacingSession.Instance == null)
-                return;
-            
-            if (Beacon?.CubeGrid?.Physics == null)
-                return;
+            try
+            {
+                if (RacingSession.Instance == null)
+                    return;
 
-            if (Beacon.CubeGrid.IsStatic)
-            {
-                // update once to initialize
-                OnCustomNameChanged(Beacon);
-                OnCustomDataChanged(Beacon);
+                if (Beacon?.CubeGrid?.Physics == null)
+                    return;
+
+                if (Beacon.CubeGrid.IsStatic)
+                {
+                    // update once to initialize
+                    OnCustomNameChanged(Beacon);
+                    OnCustomDataChanged(Beacon);
+                }
+                else
+                {
+                    // we only want to be active for static grids
+                    Beacon.CustomNameChanged -= OnCustomNameChanged;
+                    Beacon.CustomDataChanged -= OnCustomDataChanged;
+                }
+
+                // done waiting, bail out of here for good
+                NeedsUpdate = MyEntityUpdateEnum.NONE;
             }
-            else
+            catch (Exception e)
             {
-                // we only want to be active for static grids
-                Beacon.CustomNameChanged -= OnCustomNameChanged;
-                Beacon.CustomDataChanged -= OnCustomDataChanged;
+                RacingSession.ShowError(e, GetType());
             }
-            
-            // done waiting, bail out of here for good
-            NeedsUpdate = MyEntityUpdateEnum.NONE;
         }
 
         private void OnCustomNameChanged(IMyTerminalBlock obj)
         {
-            if (Beacon?.CustomName == null)
-                return;
-
-            BeaconType oldType = Type;
-            if (Beacon.CustomName.StartsWith("[Node]"))
-                Type = BeaconType.RACING_NODE;
-            else if (Beacon.CustomName.StartsWith("[Finish]"))
-                Type = BeaconType.FINISH;
-            else
-                Type = BeaconType.IGNORED;
-
-            if (Type != oldType && Valid)
+            try
             {
-                if(oldType != BeaconType.IGNORED)
-                    RacingSession.Instance.RemoveNode(this);
-                
-                if(Type != BeaconType.IGNORED)
-                    RacingSession.Instance.RegisterNode(this);
+                if (Beacon?.CustomName == null)
+                    return;
+
+                BeaconType oldType = Type;
+                if (Beacon.CustomName.StartsWith("[Node]"))
+                    Type = BeaconType.NODE;
+                else if (Beacon.CustomName.StartsWith("[Finish]"))
+                    Type = BeaconType.FINISH;
+                else if (Beacon.CustomName.StartsWith("[Checkpoint]"))
+                    Type = BeaconType.CHECKPOINT;
+                else if (Beacon.CustomName.StartsWith("[Lap]"))
+                    Type = BeaconType.LAP;
+                else
+                    Type = BeaconType.IGNORED;
+
+                if (Type != oldType && Valid)
+                {
+                    if (oldType != BeaconType.IGNORED)
+                        RacingSession.Instance.RemoveNode(this);
+
+                    if (Type != BeaconType.IGNORED)
+                        RacingSession.Instance.RegisterNode(this);
+                }
+            }
+            catch(Exception e)
+            {
+                RacingSession.ShowError(e, GetType());
             }
         }
 
         private void OnCustomDataChanged(IMyTerminalBlock obj)
         {
-            // read node number from custom data
-            float newNodeNumber;
-            if (!float.TryParse(Beacon.CustomData, out newNodeNumber))
-                newNodeNumber = float.NaN;
-            UpdateNodeNumber(newNodeNumber);
+            try
+            {
+                if (Type == BeaconType.LAP)
+                {
+                    NodeNumber = 0;
+                    return;
+                }
+                // read node number from custom data
+                float newNodeNumber;
+                if (!float.TryParse(Beacon.CustomData, out newNodeNumber))
+                    newNodeNumber = float.NaN;
+                UpdateNodeNumber(newNodeNumber);
+            }
+            catch (Exception e)
+            {
+                RacingSession.ShowError(e, GetType());
+            }
         }
 
         private void UpdateNodeNumber(float newNodeNumber)

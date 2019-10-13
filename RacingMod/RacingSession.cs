@@ -11,12 +11,22 @@ using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
 using VRageMath;
+using ProtoBuf;
+using VRage.Game.ModAPI.Interfaces;
 
 namespace RacingMod
 {
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     public class RacingSession : MySessionComponentBase
     {
+        // TODO:
+        // Try to crash with many racers at once (formation?) 
+        // Test end conditions
+        // Test start = finish maps
+        // Finish not a node?
+
+        const int defaultMsgMs = 4000;
+
         const ushort packetMainId = 1337;
         const ushort packetFinalsId = 1338;
         const ushort serverCmdId = 1339;
@@ -24,34 +34,33 @@ namespace RacingMod
         public static RacingSession Instance;
         
         private readonly List<RacingBeacon> nodes = new List<RacingBeacon>();
+        readonly List<RacingBeacon> lapNodes = new List<RacingBeacon>();
         private RacingBeacon finish;
-        private Vector3[] nodePositions = { };
-        private float[] nodeDistances = { };
+        private double[] nodeDistances = { };
 
         private HudAPIv2 textApi;
         private Vector2D activeHudPosition = new Vector2D(-0.95, 0.90);
         private HudAPIv2.HUDMessage activeRacersHud;
-        private StringBuilder ActiveRacersText = new StringBuilder("Initializing...");
+        private readonly StringBuilder ActiveRacersText = new StringBuilder("Initializing...");
         private Vector2D finalHudPosition = new Vector2D(0.95, 0.9);
         private HudAPIv2.HUDMessage finalRacersHud;
         private StringBuilder FinalRacersText = new StringBuilder("Initializing...");
 
-        private readonly Dictionary<long, IMyCubeGrid> grids = new Dictionary<long, IMyCubeGrid>();
-        private readonly Dictionary<long, RacerInfo> finishes = new Dictionary<long, RacerInfo>();
-
         const int numberWidth = 2; 
         const int distWidth = 8;
-        const int maxNameWidth = 20;
-        const int minNameWidth = 4;
-        private int nameWidth = maxNameWidth;
+        const int nameWidth = 20;
 
-        const float moveThreshold2 = 4; // Squared minimum velocity
+        const double moveThreshold2 = 16; // Squared minimum velocity
         private const int rankUpTime = 90;
         private bool running = false;
-        Dictionary<long, RacerInfo> previousRacerInfos = new Dictionary<long, RacerInfo>();
 
-        string hudHeader;
-        string finalHudHeader;
+        Dictionary<ulong, RacerInfo> previousRacerInfos = new Dictionary<ulong, RacerInfo>();
+        private readonly Dictionary<ulong, RacerInfo> finishes = new Dictionary<ulong, RacerInfo>();
+        readonly Dictionary<ulong, int> reachedNode = new Dictionary<ulong, int>();
+        readonly Dictionary<ulong, int> laps = new Dictionary<ulong, int>();
+
+        readonly string hudHeader;
+        readonly string finalHudHeader;
 
         int frameCount = 0;
         private const string headerColor = "<color=127,127,127>";
@@ -64,18 +73,16 @@ namespace RacingMod
         const string gateWaypointDescription = "The next waypoint to guide you through the race.";
         int gateWaypointGps;
 
-        public RacingSession ()
-        {
-            GenerateHeader();
-        }
+        private readonly List<IMyPlayer> playersTemp = new List<IMyPlayer>(); // Temporary
+        private readonly HashSet<ulong> activePlayers = new HashSet<ulong>();
 
-        private void GenerateHeader()
+        public RacingSession ()
         {
             hudHeader = headerColor +
                         "#".PadRight(numberWidth + 1) +
                         "Name".PadRight(nameWidth + 1) +
                         "Distance".PadRight(distWidth + 1);
-            finalHudHeader = headerColor + "#".PadRight(numberWidth + 1) + "Finalist".PadRight(maxNameWidth);
+            finalHudHeader = headerColor + "#".PadRight(numberWidth + 1) + "Finalist".PadRight(nameWidth);
 
             hudHeader += "\n" + colorWhite;
             finalHudHeader += "\n" + colorWhite;
@@ -86,16 +93,24 @@ namespace RacingMod
             if (!node.Valid || node.Type == RacingBeacon.BeaconType.IGNORED)
                 return;
 
-            if (AddSorted(nodes, node))
+            if(node.Type == RacingBeacon.BeaconType.LAP)
+            {
+                lapNodes.Add(node);
+            }
+            else if (AddSorted(nodes, node))
             {
                 if (node.Type == RacingBeacon.BeaconType.FINISH)
                     finish = node;
+                else if (finish == node)
+                    finish = null;
             }
             else
             {
                 // checkpoint with this id already existed
+                node.Beacon.CustomData = "";
                 return;
             }
+
             
             RebuildNodeInformation();
         }
@@ -106,25 +121,35 @@ namespace RacingMod
             if(index >= 0)
                 nodes.RemoveAt(index);
 
+            int lapIndex = lapNodes.FindIndex(other => other.Beacon.EntityId == node.Beacon.EntityId);
+            if (lapIndex >= 0)
+                lapNodes.RemoveAtFast(lapIndex);
+
+            if (finish == node)
+                finish = null;
             RebuildNodeInformation();
         }
 
         private void RebuildNodeInformation()
         {
             // rebuild position cache
-            nodePositions = nodes.Select(b => b.Coords).ToArray();
+            Vector3[] nodePositions = nodes.Select(b => b.Coords).ToArray();
             
             // rebuild distance cache
-            nodeDistances = new float[nodePositions.Length];
+            nodeDistances = new double[nodePositions.Length];
             if (nodeDistances.Length == 0)
                 return;
+
+            reachedNode.Clear();
             
-            float cumulative = 0;
-            nodeDistances[0] = 0.0f;
-            Vector3 prev = nodePositions[0];
+            double cumulative = 0;
+            nodeDistances [0] = 0;
+            nodes [0].Index = 0;
+            Vector3D prev = nodePositions[0];
             for (int i = 1; i < nodePositions.Length; i++)
             {
-                Vector3 v = nodePositions[i];
+                nodes [i].Index = i;
+                Vector3D v = nodePositions[i];
                 cumulative += Vector3.Distance(prev, v);
                 nodeDistances[i] = cumulative;
                 prev = nodePositions[i];
@@ -141,15 +166,7 @@ namespace RacingMod
             if(MyAPIGateway.Multiplayer.IsServer)
             {
                 MyVisualScriptLogicProvider.RemoveGPSForAll(gateWaypointName);
-                MyAPIGateway.Entities.OnEntityAdd += OnEntityAdd;
-                MyAPIGateway.Entities.OnEntityRemove += OnEntityRemove;
-
-                // grid scan
-                HashSet<IMyEntity> temp = new HashSet<IMyEntity>();
-                MyAPIGateway.Entities.GetEntities(temp);
-                foreach (IMyEntity e in temp)
-                    OnEntityAdd(e);
-                MyAPIGateway.Multiplayer.RegisterMessageHandler(serverCmdId, ReceiveClear);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(serverCmdId, ReceiveCmd);
             }
             else
             {
@@ -162,19 +179,26 @@ namespace RacingMod
             Instance = this;
         }
 
-        private void ReceiveClear (byte [] obj)
+        private void ReceiveCmd (byte [] obj)
         {
-            ulong steamId = BitConverter.ToUInt64(obj, 0);
-            List<IMyPlayer> players = new List<IMyPlayer>();
-            MyAPIGateway.Players.GetPlayers(players);
-            foreach(IMyPlayer p in players)
+            try
             {
-                if(p.SteamUserId == steamId)
+                CommandInfo cmd = MyAPIGateway.Utilities.SerializeFromBinary<CommandInfo>(obj);
+                playersTemp.Clear();
+                MyAPIGateway.Players.GetPlayers(playersTemp);
+                foreach (IMyPlayer p in playersTemp)
                 {
-                    if(p.PromoteLevel == MyPromoteLevel.Admin || p.PromoteLevel == MyPromoteLevel.Owner)
-                        finishes.Clear();
-                    return;
+                    if (p.SteamUserId == cmd.steamId)
+                    {
+                        bool temp = false;
+                        ProcessCommand(p, cmd.cmd, ref temp);
+                        return;
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                ShowError(e, GetType());
             }
         }
 
@@ -197,10 +221,7 @@ namespace RacingMod
             }
             catch (Exception e)
             {
-                MyLog.Default.WriteLineAndConsole($"{e.Message}\n{e.StackTrace}");
-
-                if (MyAPIGateway.Session?.Player != null)
-                    MyAPIGateway.Utilities.ShowNotification($"[ ERROR: {GetType().FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]", 10000, MyFontEnum.Red);
+                ShowError(e, GetType());
             }
         }
 
@@ -218,40 +239,86 @@ namespace RacingMod
 
         private void MessageEntered(string messageText, ref bool sendToOthers)
         {
-            if (messageText == "/rcd" && activeRacersHud != null)
-            {
-                activeRacersHud.Visible = !activeRacersHud.Visible;
-                finalRacersHud.Visible = activeRacersHud.Visible;
-                sendToOthers = false;
-            }
-            else if(messageText == "/rcd clear")
-            {
-                IMyPlayer p = MyAPIGateway.Session?.Player;
-                if (p == null)
-                    return;
-                if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
-                    return;
-
-                sendToOthers = false;
-                if (MyAPIGateway.Session.IsServer)
-                {
-                    finishes.Clear();
-                }
-                else
-                {
-                    byte [] data = BitConverter.GetBytes(p.SteamUserId);
-                    MyAPIGateway.Multiplayer.SendMessageToServer(serverCmdId, data);
-                }
-            }
+            IMyPlayer p = MyAPIGateway.Session?.Player;
+            if (p == null || string.IsNullOrEmpty(messageText) || !messageText.StartsWith("/rcd "))
+                return;
+            ProcessCommand(p, messageText, ref sendToOthers);
         }
         
+        void ProcessCommand(IMyPlayer p, string cmd, ref bool sendToOthers)
+        {
+            bool redirect = false;
+            switch (cmd)
+            {
+                case "/rcd toggle":
+                    if(activeRacersHud != null)
+                    {
+                        activeRacersHud.Visible = !activeRacersHud.Visible;
+                        finalRacersHud.Visible = activeRacersHud.Visible;
+                        sendToOthers = false;
+                    }
+                    break;
+                case "/rcd join":
+                    sendToOthers = false;
+                    if (MyAPIGateway.Session.IsServer)
+                    {
+                        if(activePlayers.Add(p.SteamUserId))
+                        {
+                            reachedNode.Remove(p.SteamUserId);
+                            if(finishes.Remove(p.SteamUserId))
+                                FinishesUpdated();
+                            MyVisualScriptLogicProvider.ShowNotification("You have joined the race.", defaultMsgMs, "White", p.IdentityId);
+                        }
+                        else
+                        {
+                            MyVisualScriptLogicProvider.ShowNotification("You are already in the race.", defaultMsgMs, "White", p.IdentityId);
+                        }
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    break;
+                case "/rcd leave":
+                    sendToOthers = false;
+                    if (MyAPIGateway.Session.IsServer)
+                        LeaveRace(p);
+                    else
+                        redirect = true;
+                    break;
+                case "/rcd clear":
+                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
+                        return;
+
+                    sendToOthers = false;
+                    if (MyAPIGateway.Session.IsServer)
+                    {
+                        finishes.Clear();
+                        FinishesUpdated();
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    MyAPIGateway.Utilities.ShowNotification("Cleared all finishers.", defaultMsgMs);
+                    break;
+                default:
+                    sendToOthers = true;
+                    return;
+            }
+
+            if (redirect)
+            {
+                byte [] data = MyAPIGateway.Utilities.SerializeToBinary(new CommandInfo(cmd, p.SteamUserId));
+                MyAPIGateway.Multiplayer.SendMessageToServer(serverCmdId, data);
+            }
+        }
+
         protected override void UnloadData ()
         {
             if (running)
             {
                 MyAPIGateway.Utilities.MessageEntered -= MessageEntered;
-                MyAPIGateway.Entities.OnEntityAdd -= OnEntityAdd;
-                MyAPIGateway.Entities.OnEntityRemove -= OnEntityRemove;
 
                 if(MyAPIGateway.Multiplayer.IsServer)
                 {
@@ -279,7 +346,7 @@ namespace RacingMod
             }
             catch (Exception e)
             {
-                MyLog.Default.WriteLineAndConsole($"[ ERROR: {GetType().FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]");
+                ShowError(e, GetType());
             }
         }
 
@@ -298,40 +365,31 @@ namespace RacingMod
             }
         }
 
-        private void OnEntityAdd (IMyEntity ent)
+        bool IsPlayerActive(IMyPlayer p)
         {
-            try
-            {
-                IMyCubeGrid myGrid = ent as IMyCubeGrid;
-                if (myGrid != null && myGrid.GridSizeEnum == MyCubeSize.Small)
-                {
-                    grids [myGrid.EntityId] = myGrid;
-                }
-            }
-            catch (Exception e)
-            {
-                MyLog.Default.WriteLineAndConsole($"[ ERROR: {GetType().FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]");
-            }
+            return activePlayers.Contains(p.SteamUserId) && p.Character?.Physics != null;
         }
 
-        private void OnEntityRemove (IMyEntity ent)
+        bool LeaveRace(IMyPlayer p)
         {
-            try
+            RemoveWaypoint(p.IdentityId);
+            reachedNode.Remove(p.SteamUserId);
+            laps.Remove(p.SteamUserId);
+            if(activePlayers.Remove(p.SteamUserId))
             {
-                IMyCubeGrid myGrid = ent as IMyCubeGrid;
-                if (myGrid != null && myGrid.GridSizeEnum == MyCubeSize.Small)
-                {
-                    grids.Remove(myGrid.EntityId);
-                }
+                MyVisualScriptLogicProvider.ShowNotification("You have left the race.", defaultMsgMs, "White", p.IdentityId);
+                return true;
             }
-            catch (Exception e)
+            else
             {
-                MyLog.Default.WriteLineAndConsole($"[ ERROR: {GetType().FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]");
+                MyVisualScriptLogicProvider.ShowNotification("You are not in the race.", defaultMsgMs, "White", p.IdentityId);
+                return false;
             }
         }
 
         void ProcessValues ()
         {
+            ActiveRacersText.Clear();
             if (nodes.Count < 2)
             {
                 ActiveRacersText.Clear();
@@ -339,92 +397,133 @@ namespace RacingMod
                 return;
             }
 
-            int longestNameWidth = 0;
-
-            SortedDictionary<float, RacerInfo> ranking = new SortedDictionary<float, RacerInfo>(new DescendingComparer<float>());
-            foreach (IMyCubeGrid g in grids.Values)
+            SortedDictionary<double, RacerInfo> ranking = new SortedDictionary<double, RacerInfo>(new DescendingComparer<double>());
+            playersTemp.Clear();
+            MyAPIGateway.Players.GetPlayers(playersTemp, IsPlayerActive);
+            foreach (IMyPlayer p in playersTemp)
             {
-                if (g.Physics == null)
-                    continue;
+                IMyCharacter c = p.Character;
+                string name = p.DisplayName;
 
-                // Check if this grid is a racer
-                string name = g.CustomName;
-                if (name.Length == 0 || name [0] != '#')
-                    continue;
-                
+                RacerInfo previous;
+                bool hasPrevious = previousRacerInfos.TryGetValue(p.SteamUserId, out previous);
+
                 // Find the closest node
-                Vector3 pos = g.GetPosition();
-                int closest = GetClosestIndex(pos);
-
-                RacingBeacon beg = null;
-                if (closest > 0)
-                    beg = nodes[closest - 1];
-                
-                RacingBeacon end = null;
-                if (closest < nodes.Count - 1)
-                    end = nodes[closest + 1];
-
-                RacingBeacon destination;
-                float dist = GetDistance(pos, beg, closest, end, out destination);
-                
-                // Check if racer is on the track
-                if (dist > 0)
+                Vector3D pos = c.GetPosition();
+                double dist;
+                int start;
+                int end;
+                double partial;
+                if (GetClosestSegment(pos, out start, out end, out partial))
                 {
-                    name = name.Substring(1).Trim();
-
-                    // Check if it's a finish
-                    if(finish != null)
+                    int reachedNode;
+                    if (!this.reachedNode.TryGetValue(p.SteamUserId, out reachedNode))
                     {
-                        // If the closest node is the last node, the grid has not finished, and the grid is intersecting with the finish
-                        if (closest == nodes.Count - 1 && !finishes.ContainsKey(g.EntityId) && g.WorldAABB.Intersects(finish.CollisionArea))
-                        {
-                            int rank = finishes.Count + 1;
-                            RacerInfo finishInfo = new RacerInfo(g, 0, rank, name);
-
-                            finishes.Add(g.EntityId, finishInfo);
-                            FinishesUpdated();
-
-                            // Remove their gps waypoints
-                            IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
-                            if (p != null)
-                                RemoveWaypoint(p.IdentityId);
-
-                            MyAPIGateway.Utilities.ShowNotification($"{name} just finished in position {rank}");
-                            continue; // The next if statement will never run
-                        }
+                        this.reachedNode [p.SteamUserId] = start;
+                        reachedNode = start;
                     }
-
-                    // Show if no finish exists or if the racer has not finished
-                    if (finish == null || !finishes.ContainsKey(g.EntityId))
+                    ActiveRacersText.Append(p.DisplayName).Append(": ").Append(reachedNode).Append(", ").Append(start).AppendLine();
+                    if (start == reachedNode)
                     {
-                        if (name.Length > longestNameWidth)
-                            longestNameWidth = name.Length;
+                        // Racer is in expected position.
+                        dist = nodeDistances [start] + partial;
+                    }
+                    else if (start == reachedNode + 1 && NodeCleared(p, reachedNode + 1))
+                    {
+                        // Racer has moved past one node.
+                        this.reachedNode [p.SteamUserId] = start;
+                        dist = nodeDistances [start] + partial;
+                    }
+                    else// if (start > reachedNode + 1 || start < reachedNode)
+                    {
+                        // Racer has moved past multiple nodes, clamp them.
+                        start = reachedNode;
+                        end = reachedNode + 1;
 
-                        RacerInfo racer = new RacerInfo(g, dist, 0, name)
-                        {
-                            Destination = destination
-                        };
-                        IMyPlayer p = MyAPIGateway.Players.GetPlayerControllingEntity(g);
-                        if(p != null)
-                            racer.Controller = p.IdentityId;
-                        ranking [dist] = racer;
+                        if (hasPrevious)
+                            dist = previous.Distance;
+                        else
+                            dist = nodeDistances[start];
                     }
                 }
                 else
                 {
-                    RacerInfo previous;
-                    if (previousRacerInfos.TryGetValue(g.EntityId, out previous) && previous.Controller != 0)
-                        RemoveWaypoint(previous.Controller);
+                    // Outside of the track, quit the race
+                    LeaveRace(p);
+                    continue;
+                }
+
+                RacingBeacon destination = nodes[end];
+                if(hasPrevious && !MyVisualScriptLogicProvider.IsPlayerInCockpit(p.IdentityId))
+                {
+                    destination = previous.Destination;
+                    dist = previous.Distance;
+                }
+
+                int currLaps;
+                if (!laps.TryGetValue(p.SteamUserId, out currLaps))
+                {
+                    laps [p.SteamUserId] = 0;
+                    currLaps = 0;
+                }
+
+                if (Lapped(p))
+                    laps [p.SteamUserId] = currLaps + 1;
+
+                dist += currLaps * nodeDistances [nodeDistances.Length - 1];
+
+                // Check if racer is on the track
+                if (dist >= 0)
+                {
+                    // Check if it's a finish
+                    if(end == nodes.Count - 1 && finish != null && finish.Contains(p))
+                    {
+                        // If the closest node is the last node, a finish exists, and the grid is intersecting with the finish
+                        int rank = finishes.Count + 1;
+                        RacerInfo finishInfo = new RacerInfo(p, 0, rank, name);
+
+                        finishes.Add(p.SteamUserId, finishInfo);
+                        FinishesUpdated();
+
+                        // Remove their gps waypoints
+                        RemoveWaypoint(p.IdentityId);
+
+                        MyVisualScriptLogicProvider.ShowNotificationToAll($"{name} just finished in position {rank}", defaultMsgMs, "White");
+                        LeaveRace(p);
+                    }
+                    else
+                    {
+                        RacerInfo racer = new RacerInfo(p, dist, 0, name)
+                        {
+                            Destination = destination
+                        };
+                        ranking [dist] = racer;
+                    }
+
+                }
+                else
+                {
+                    RemoveWaypoint(p.IdentityId);
                 }
 
             }
-            longestNameWidth = MathHelper.Clamp(longestNameWidth, minNameWidth, maxNameWidth);
-            if (longestNameWidth != nameWidth)
-            {
-                nameWidth = longestNameWidth;
-                GenerateHeader();
-            }
             BuildText(ranking);
+        }
+
+        private bool Lapped (IMyPlayer p)
+        {
+            foreach(RacingBeacon lapNode in lapNodes)
+            {
+                if (lapNode.Contains(p))
+                    return true;
+            }
+            return false;
+        }
+
+        bool NodeCleared (IMyPlayer p, int reachedNode)
+        {
+            RacingBeacon node = nodes [reachedNode];
+            return node.Type != RacingBeacon.BeaconType.CHECKPOINT || node.Contains(p);
         }
 
         private void FinishesUpdated ()
@@ -439,7 +538,7 @@ namespace RacingMod
                 {
                     i++;
                     FinalRacersText.Append(SetLength(i, numberWidth)).Append(' ');
-                    FinalRacersText.Append(SetLength(current.Name, maxNameWidth));
+                    FinalRacersText.Append(SetLength(current.Name, nameWidth));
                     FinalRacersText.AppendLine();
                 }
             }
@@ -455,134 +554,103 @@ namespace RacingMod
 
         void DrawRemoveWaypoint(RacerInfo info)
         {
-            RemoveWaypoint(info.Controller);
+            RemoveWaypoint(info.Racer.IdentityId);
 
             RacingBeacon node = info.Destination;
 
             MyVisualScriptLogicProvider.AddGPSObjective(gateWaypointName, gateWaypointDescription, node.Coords, 
-                gateWaypointColor, 0, info.Controller);
+                gateWaypointColor, 0, info.Racer.IdentityId);
                 
         }
 
         void RenderWaypoint(RacerInfo current, RacerInfo previous)
         {
-            long playerIdentity = current.Controller;
-            long previousId = previous.Controller;
-
-            if(playerIdentity == 0) // No controller currently
+            if (current.Destination == null) // Before start or after finish
             {
-                if(previousId != 0) // Controller left
-                    RemoveWaypoint(previousId);
+                if (previous.Destination != null) // Player just left the track
+                    RemoveWaypoint(current.Racer.IdentityId);
             }
-            else // Has controller
+            else // Player is on the track
             {
-                if(previousId != 0 && playerIdentity != previousId) // Controller switched
-                    RemoveWaypoint(previousId);
-
-                if(current.Destination == null) // Before start or after finish
-                {
-                    if (previous.Destination != null) // Player just left the track
-                        RemoveWaypoint(playerIdentity);
-                }
-                else // Player is on the track
-                {
-                    // Player just took control, or Player just got on the track, or Player has crossed a node/checkpoint
-                    if (previousId == 0 || playerIdentity != previousId ||
-                        previous.Destination == null || current.Destination != previous.Destination) 
-                        DrawRemoveWaypoint(current);
-                }
+                // Player just took control, or Player just got on the track, or Player has crossed a node/checkpoint
+                if (previous.Destination == null || current.Destination != previous.Destination)
+                    DrawRemoveWaypoint(current);
             }
         }
         
-        int GetClosestIndex(Vector3 racerPos)
-        { 
+        bool GetClosestSegment(Vector3D racerPos, out int start, out int end, out double partialDist)
+        {
+            start = 0;
+            end = -1;
+            partialDist = 0;
+            double minLinear2 = double.PositiveInfinity;
+
+            if (nodes.Count < 2)
+                return false;
+
             int closest = 0;
-            float closestDist2 = float.MaxValue;
-            for (int i = 0; i < nodePositions.Length; i++)
+            long minDistanceGrid = nodes [0].Beacon.CubeGrid.EntityId;
+            double minDistance2 = Vector3D.DistanceSquared(nodes [0].Coords, racerPos);
+
+            for (int i = 1; i < nodes.Count; i++)
             {
-                float dist2 = Vector3.DistanceSquared(nodePositions[i], racerPos);
-                if (dist2 < closestDist2)
+                Vector3D node = nodes [i].Coords;
+                Vector3D segment = nodes [i - 1].Coords - node;
+                double segmentLen = segment.Length();
+                if (segmentLen <= 0)
+                    continue;
+                segment /= segmentLen;
+
+                long beaconGrid = nodes [i].Beacon.CubeGrid.EntityId;
+                Vector3D endToRacer = racerPos - node;
+                double dist2 = endToRacer.LengthSquared();
+                if (dist2 < minDistance2 && beaconGrid != minDistanceGrid)
                 {
-                    closestDist2 = dist2;
+                    minDistanceGrid = beaconGrid;
+                    minDistance2 = dist2;
                     closest = i;
                 }
+
+                double scaler = ScalarProjection(endToRacer, segment);
+                ActiveRacersText.Append(i).Append(": ").Append((int)scaler).Append(' ').Append((int)dist2);
+                if (scaler <= 0 || scaler > segmentLen)
+                {
+                    ActiveRacersText.AppendLine();
+                    continue;
+                }
+                double linear2 = (endToRacer - (scaler * segment)).LengthSquared();
+                ActiveRacersText.Append(' ').Append((int)linear2).AppendLine();
+
+                if(linear2 < minLinear2)
+                {
+                    start = i - 1;
+                    end = i;
+                    partialDist = segmentLen - scaler;
+                    minLinear2 = linear2;
+                }
             }
-            return closest;
+            if(end < 0 || minDistance2 < minLinear2)
+            {
+                if (closest >= nodes.Count - 1)
+                    return false; // Racer is past the last node
+                start = closest;
+                end = closest + 1;
+                partialDist = 0;
+            }
+            return true;
         }
 
-        float GetDistance (Vector3 gridPos, RacingBeacon beg, int midIndex, RacingBeacon end, out RacingBeacon destination)
+        void BuildText (SortedDictionary<double, RacerInfo> ranking)
         {
-            // Closet node
-            RacingBeacon mid = nodes[midIndex];
-            // Distance from start to closest node
-            float midDistance = nodeDistances[midIndex];
-
-            if (beg == null && end == null)
-            {
-                destination = null;
-                return -1;
-            }
-
-            Vector3 dir = gridPos - mid.Coords;
-
-            float? before = null;
-            //float beforeLength2 = 0;
-            if (beg != null)
-            {
-                Vector3 beforeSegment = mid.Coords - beg.Coords;
-                //beforeLength2 = beforeSegment.LengthSquared();
-                before = ScalarProjection(dir, Vector3.Normalize(beforeSegment));
-            }
-
-            float? after = null;
-            //float afterLength2 = 0;
-            if (end != null)
-            {
-                Vector3 afterSegment = end.Coords - mid.Coords;
-                //afterLength2 = afterSegment.LengthSquared();
-                after = ScalarProjection(dir, Vector3.Normalize(afterSegment));
-            }
-
-            if (!after.HasValue)
-            {
-                if(before.Value < 0)
-                {
-                    destination = mid;
-                    return midDistance + before.Value;
-                }
-                destination = null;
-                return -1;
-            }
-
-            if (!before.HasValue)
-            {
-                if (after.Value > 0)
-                {
-                    destination = end;
-                    return midDistance + after.Value;
-                }
-                destination = null;
-                return -1;
-            }
-
-            if (after > 0)
-            {
-                destination = end;
-                return midDistance + after.Value;
-            }
-
-            destination = mid;
-            return midDistance + before.Value;
-        }
-
-        void BuildText (SortedDictionary<float, RacerInfo> ranking)
-        {
-
             // Build the active racer text
-            ActiveRacersText.Clear();
-
-            ActiveRacersText.Append(finish != null).AppendLine();
-
+            //ActiveRacersText.Clear();
+            for(int i = 0; i < nodes.Count; i++)
+            {
+                ActiveRacersText.Append(i).Append(": ").Append(nodeDistances [i]);
+                if (nodes [i].Type == RacingBeacon.BeaconType.CHECKPOINT)
+                    ActiveRacersText.Append(" Contains ").Append(nodes [i].Contains(MyAPIGateway.Session.Player));
+                ActiveRacersText.AppendLine();
+            }
             if (ranking.Count == 0)
             {
                 ActiveRacersText.Append("No racers in range.");
@@ -593,7 +661,7 @@ namespace RacingMod
                 ActiveRacersText.Append(hudHeader);
                 bool drawWhite = false;
 
-                Dictionary<long, RacerInfo> newPrevRacerInfos = new Dictionary<long, RacerInfo>(ranking.Count);
+                Dictionary<ulong, RacerInfo> newPrevRacerInfos = new Dictionary<ulong, RacerInfo>(ranking.Count);
                 int i = finishes.Count + 1;
                 foreach(RacerInfo racer in ranking.Values)
                 {
@@ -602,7 +670,7 @@ namespace RacingMod
 
                     string drawnColor = null;
                     RacerInfo previous;
-                    if (previousRacerInfos.TryGetValue(current.GridId, out previous))
+                    if (previousRacerInfos.TryGetValue(current.RacerId, out previous))
                     {
                         RenderWaypoint(current, previous);
 
@@ -627,7 +695,7 @@ namespace RacingMod
                     }
                     else
                     {
-                        if (current.Controller != 0 && current.Destination != null)
+                        if (current.Destination != null)
                             DrawRemoveWaypoint(current);
                     }
 
@@ -649,11 +717,11 @@ namespace RacingMod
                     ActiveRacersText.Append(SetLength(current.Name, nameWidth)).Append(' ');
 
                     // <num> <name> <distance>
-                    ActiveRacersText.Append(SetLength((int)current.Distance, distWidth)).Append(' ');
+                    ActiveRacersText.Append(SetLength((int)current.Distance, distWidth));
                     
                     ActiveRacersText.AppendLine();
 
-                    newPrevRacerInfos [current.GridId] = current;
+                    newPrevRacerInfos [current.RacerId] = current;
 
                     i++;
                 }
@@ -663,9 +731,9 @@ namespace RacingMod
 
         bool Moved (RacerInfo value)
         {
-            if (value.Racer.Physics == null)
+            if (value.Car?.Physics == null)
                 return false;
-            return value.Racer.Physics.LinearVelocity.LengthSquared() > moveThreshold2;
+            return value.Car.Physics.LinearVelocity.LengthSquared() > moveThreshold2;
         }
 
         static string SetLength(object o, int length, int startIndex = 0)
@@ -680,10 +748,10 @@ namespace RacingMod
         /// Projects a value onto another vector.
         /// </summary>
         /// <param name="guide">Must be of length 1.</param>
-        static float ScalarProjection (Vector3 value, Vector3 guide)
+        static double ScalarProjection (Vector3D value, Vector3D guide)
         {
-            float returnValue = Vector3.Dot(value, guide);
-            if (float.IsNaN(returnValue))
+            double returnValue = Vector3.Dot(value, guide);
+            if (double.IsNaN(returnValue))
                 return 0;
             return returnValue;
         }
@@ -705,18 +773,25 @@ namespace RacingMod
             return index < 0;
         }
         
+        public static void ShowError(Exception e, Type type)
+        {
+            MyLog.Default.WriteLineAndConsole($"ERROR in {type.FullName}: {e.Message}\n{e.StackTrace}");
+            if (MyAPIGateway.Session?.Player != null)
+                MyAPIGateway.Utilities.ShowNotification($"[ ERROR: {type.FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]", 10000, MyFontEnum.Red);
+        }
+
         struct RacerInfo
         {
-            public IMyCubeGrid Racer;
-            public long GridId => Racer.EntityId;
-            public float Distance;
+            public IMyPlayer Racer;
+            public ulong RacerId => Racer.SteamUserId;
+            public double Distance;
             public int Rank;
             public string Name;
             public int RankUpFrame;
             public RacingBeacon Destination;
-            public long Controller;
+            public IMyCubeGrid Car => (Racer.Controller?.ControlledEntity as IMyCockpit)?.CubeGrid;
 
-            public RacerInfo (IMyCubeGrid racer, float distance, int rank, string name)
+            public RacerInfo (IMyPlayer racer, double distance, int rank, string name)
             {
                 Racer = racer;
                 Distance = distance;
@@ -724,7 +799,6 @@ namespace RacingMod
                 Name = name;
                 RankUpFrame = 0;
                 Destination = null;
-                Controller = 0;
             }
 
             public override bool Equals (object obj)
@@ -732,14 +806,14 @@ namespace RacingMod
                 if(obj is RacerInfo)
                 {
                     RacerInfo info = (RacerInfo)obj;
-                    return GridId == info.GridId;
+                    return RacerId == info.RacerId;
                 }
                 return false;
             }
 
             public override int GetHashCode ()
             {
-                return -913653116 + GridId.GetHashCode();
+                return -913653116 + RacerId.GetHashCode();
             }
         }
 
@@ -747,8 +821,34 @@ namespace RacingMod
         {
             public int Compare (T x, T y)
             {
-                return y.CompareTo(x);
+                int result = y.CompareTo(x);
+                if (result == 0)
+                    return 1;
+                else
+                    return result;
             }
         }
+
+
+        [ProtoContract]
+        public class CommandInfo
+        {
+            [ProtoMember(1)]
+            public string cmd;
+            [ProtoMember(2)]
+            public ulong steamId;
+
+            public CommandInfo ()
+            {
+            }
+
+            public CommandInfo (string cmd, ulong steamId)
+            {
+                this.cmd = cmd;
+                this.steamId = steamId;
+            }
+        }
+
+        
     }
 }
