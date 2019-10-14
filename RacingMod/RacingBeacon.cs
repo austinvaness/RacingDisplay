@@ -119,11 +119,14 @@ namespace RacingMod
                 else if (Beacon.CustomName.StartsWith("[Checkpoint]"))
                     Type = BeaconType.CHECKPOINT;
                 else if (Beacon.CustomName.StartsWith("[Lap]"))
+                {
+                    NodeNumber = 0;
                     Type = BeaconType.LAP;
+                }
                 else
                     Type = BeaconType.IGNORED;
 
-                if (Type != oldType && Valid)
+                if (Type != oldType && (Valid || Type == BeaconType.LAP))
                 {
                     if (oldType != BeaconType.IGNORED)
                         RacingSession.Instance.RemoveNode(this);

@@ -13,6 +13,7 @@ using VRage.Utils;
 using VRageMath;
 using ProtoBuf;
 using VRage.Game.ModAPI.Interfaces;
+using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
 namespace RacingMod
 {
@@ -20,10 +21,10 @@ namespace RacingMod
     public class RacingSession : MySessionComponentBase
     {
         // TODO:
-        // Try to crash with many racers at once (formation?) 
-        // Test end conditions
-        // Test start = finish maps
-        // Finish not a node?
+        // Finish = Start?
+        // Laps allow jumping segments
+
+        bool debug = false;
 
         const int defaultMsgMs = 4000;
 
@@ -58,6 +59,7 @@ namespace RacingMod
         private readonly Dictionary<ulong, RacerInfo> finishes = new Dictionary<ulong, RacerInfo>();
         readonly Dictionary<ulong, int> reachedNode = new Dictionary<ulong, int>();
         readonly Dictionary<ulong, int> laps = new Dictionary<ulong, int>();
+        readonly HashSet<ulong> currentlyLaping = new HashSet<ulong>();
 
         readonly string hudHeader;
         readonly string finalHudHeader;
@@ -240,7 +242,7 @@ namespace RacingMod
         private void MessageEntered(string messageText, ref bool sendToOthers)
         {
             IMyPlayer p = MyAPIGateway.Session?.Player;
-            if (p == null || string.IsNullOrEmpty(messageText) || !messageText.StartsWith("/rcd "))
+            if (p == null || string.IsNullOrEmpty(messageText))
                 return;
             ProcessCommand(p, messageText, ref sendToOthers);
         }
@@ -248,23 +250,26 @@ namespace RacingMod
         void ProcessCommand(IMyPlayer p, string cmd, ref bool sendToOthers)
         {
             bool redirect = false;
+            if (!cmd.StartsWith("/rcd"))
+                return;
+            sendToOthers = false;
             switch (cmd)
             {
-                case "/rcd toggle":
+                case "/rcd ui":
                     if(activeRacersHud != null)
                     {
                         activeRacersHud.Visible = !activeRacersHud.Visible;
                         finalRacersHud.Visible = activeRacersHud.Visible;
-                        sendToOthers = false;
                     }
                     break;
                 case "/rcd join":
-                    sendToOthers = false;
                     if (MyAPIGateway.Session.IsServer)
                     {
                         if(activePlayers.Add(p.SteamUserId))
                         {
                             reachedNode.Remove(p.SteamUserId);
+                            currentlyLaping.Remove(p.SteamUserId);
+                            laps.Remove(p.SteamUserId);
                             if(finishes.Remove(p.SteamUserId))
                                 FinishesUpdated();
                             MyVisualScriptLogicProvider.ShowNotification("You have joined the race.", defaultMsgMs, "White", p.IdentityId);
@@ -280,7 +285,6 @@ namespace RacingMod
                     }
                     break;
                 case "/rcd leave":
-                    sendToOthers = false;
                     if (MyAPIGateway.Session.IsServer)
                         LeaveRace(p);
                     else
@@ -290,7 +294,6 @@ namespace RacingMod
                     if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
                         return;
 
-                    sendToOthers = false;
                     if (MyAPIGateway.Session.IsServer)
                     {
                         finishes.Clear();
@@ -302,8 +305,15 @@ namespace RacingMod
                     }
                     MyAPIGateway.Utilities.ShowNotification("Cleared all finishers.", defaultMsgMs);
                     break;
+                case "/rcd debug":
+                    if (MyAPIGateway.Session.IsServer)
+                        debug = !debug;
+                    else
+                        redirect = true;
+                    break;
                 default:
-                    sendToOthers = true;
+                    MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd join: Joins the race.\n/rcd leave: Leaves the race.\n" +
+                        "/rcd ui: Toggles the on screen UIs.\n/rcd clear: (Admin only) Removes all finalists.", "rcd", p.IdentityId);
                     return;
             }
 
@@ -342,11 +352,30 @@ namespace RacingMod
             {
                 ProcessValues();
                 BroadcastData(ActiveRacersText, packetMainId);
+                DrawDebug();
                 frameCount++;
             }
             catch (Exception e)
             {
                 ShowError(e, GetType());
+            }
+        }
+
+        private void DrawDebug ()
+        {
+            if (!debug)
+                return;
+            Vector4 color = Color.White.ToVector4();
+            MyStringId mat = MyStringId.GetOrCompute("SquareSimple");
+            for(int i = 1; i < nodes.Count; i++)
+            {
+                Vector3D origin = nodes [i - 1].Coords;
+                Vector3 direction = nodes [i].Coords - origin;
+                float len = direction.Length();
+                if (len == 0)
+                    continue;
+                direction /= len;
+                MyTransparentGeometry.AddLineBillboard(mat, color, origin, direction, len, 1, BlendTypeEnum.AdditiveTop);
             }
         }
 
@@ -375,6 +404,7 @@ namespace RacingMod
             RemoveWaypoint(p.IdentityId);
             reachedNode.Remove(p.SteamUserId);
             laps.Remove(p.SteamUserId);
+            currentlyLaping.Remove(p.SteamUserId);
             if(activePlayers.Remove(p.SteamUserId))
             {
                 MyVisualScriptLogicProvider.ShowNotification("You have left the race.", defaultMsgMs, "White", p.IdentityId);
@@ -410,12 +440,21 @@ namespace RacingMod
 
                 // Find the closest node
                 Vector3D pos = c.GetPosition();
-                double dist;
+
+                int currLaps;
+                if (!laps.TryGetValue(p.SteamUserId, out currLaps))
+                {
+                    laps [p.SteamUserId] = 0;
+                    currLaps = 0;
+                }
+                double dist = currLaps * nodeDistances [nodeDistances.Length - 1];
+
                 int start;
                 int end;
                 double partial;
                 if (GetClosestSegment(pos, out start, out end, out partial))
                 {
+                    ActiveRacersText.Append(partial).AppendLine();
                     int reachedNode;
                     if (!this.reachedNode.TryGetValue(p.SteamUserId, out reachedNode))
                     {
@@ -426,13 +465,13 @@ namespace RacingMod
                     if (start == reachedNode)
                     {
                         // Racer is in expected position.
-                        dist = nodeDistances [start] + partial;
+                        dist += nodeDistances [start] + partial;
                     }
                     else if (start == reachedNode + 1 && NodeCleared(p, reachedNode + 1))
                     {
                         // Racer has moved past one node.
                         this.reachedNode [p.SteamUserId] = start;
-                        dist = nodeDistances [start] + partial;
+                        dist += nodeDistances [start] + partial;
                     }
                     else// if (start > reachedNode + 1 || start < reachedNode)
                     {
@@ -443,13 +482,14 @@ namespace RacingMod
                         if (hasPrevious)
                             dist = previous.Distance;
                         else
-                            dist = nodeDistances[start];
+                            dist += nodeDistances[start];
                     }
+                    ActiveRacersText.Append(dist).AppendLine();
                 }
                 else
                 {
                     // Outside of the track, quit the race
-                    LeaveRace(p);
+                    //LeaveRace(p);
                     continue;
                 }
 
@@ -460,17 +500,18 @@ namespace RacingMod
                     dist = previous.Distance;
                 }
 
-                int currLaps;
-                if (!laps.TryGetValue(p.SteamUserId, out currLaps))
-                {
-                    laps [p.SteamUserId] = 0;
-                    currLaps = 0;
-                }
+                ActiveRacersText.Append(currLaps).Append(' ').Append("Laps").AppendLine();
 
                 if (Lapped(p))
-                    laps [p.SteamUserId] = currLaps + 1;
+                {
+                    if(currentlyLaping.Add(p.SteamUserId))
+                        laps [p.SteamUserId] = currLaps + 1;
+                }
+                else
+                {
+                    currentlyLaping.Remove(p.SteamUserId);
+                }
 
-                dist += currLaps * nodeDistances [nodeDistances.Length - 1];
 
                 // Check if racer is on the track
                 if (dist >= 0)
@@ -591,6 +632,7 @@ namespace RacingMod
             int closest = 0;
             long minDistanceGrid = nodes [0].Beacon.CubeGrid.EntityId;
             double minDistance2 = Vector3D.DistanceSquared(nodes [0].Coords, racerPos);
+            ActiveRacersText.Append("0: - ").Append((int)minDistance2).AppendLine();
 
             for (int i = 1; i < nodes.Count; i++)
             {
@@ -606,6 +648,7 @@ namespace RacingMod
                 double dist2 = endToRacer.LengthSquared();
                 if (dist2 < minDistance2 && beaconGrid != minDistanceGrid)
                 {
+                    ActiveRacersText.Append(beaconGrid).AppendLine();
                     minDistanceGrid = beaconGrid;
                     minDistance2 = dist2;
                     closest = i;
@@ -613,7 +656,7 @@ namespace RacingMod
 
                 double scaler = ScalarProjection(endToRacer, segment);
                 ActiveRacersText.Append(i).Append(": ").Append((int)scaler).Append(' ').Append((int)dist2);
-                if (scaler <= 0 || scaler > segmentLen)
+                if (scaler <= 0 || scaler > segmentLen || beaconGrid == minDistanceGrid)
                 {
                     ActiveRacersText.AppendLine();
                     continue;
@@ -644,13 +687,16 @@ namespace RacingMod
         {
             // Build the active racer text
             //ActiveRacersText.Clear();
+
+            /*ActiveRacersText.Append(lapNodes.Count).AppendLine();
             for(int i = 0; i < nodes.Count; i++)
             {
                 ActiveRacersText.Append(i).Append(": ").Append(nodeDistances [i]);
                 if (nodes [i].Type == RacingBeacon.BeaconType.CHECKPOINT)
                     ActiveRacersText.Append(" Contains ").Append(nodes [i].Contains(MyAPIGateway.Session.Player));
                 ActiveRacersText.AppendLine();
-            }
+            }*/
+
             if (ranking.Count == 0)
             {
                 ActiveRacersText.Append("No racers in range.");
@@ -663,6 +709,7 @@ namespace RacingMod
 
                 Dictionary<ulong, RacerInfo> newPrevRacerInfos = new Dictionary<ulong, RacerInfo>(ranking.Count);
                 int i = finishes.Count + 1;
+                double previousDist = -1;
                 foreach(RacerInfo racer in ranking.Values)
                 {
                     RacerInfo current = racer;
@@ -717,8 +764,12 @@ namespace RacingMod
                     ActiveRacersText.Append(SetLength(current.Name, nameWidth)).Append(' ');
 
                     // <num> <name> <distance>
-                    ActiveRacersText.Append(SetLength((int)current.Distance, distWidth));
-                    
+                    if(previousDist < 0)
+                        ActiveRacersText.Append(SetLength((int)current.Distance, distWidth));
+                    else
+                        ActiveRacersText.Append(SetLength((int)(current.Distance - previousDist), distWidth));
+                    previousDist = current.Distance;
+
                     ActiveRacersText.AppendLine();
 
                     newPrevRacerInfos [current.RacerId] = current;
