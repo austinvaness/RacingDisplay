@@ -18,7 +18,6 @@ namespace RacingMod
             IGNORED,
             NODE,
             CHECKPOINT, // Racer must pass through to count
-            LAP, // Increments number laps by 1
             FINISH // Node is last node
         }
 
@@ -27,17 +26,24 @@ namespace RacingMod
         public float NodeNumber { get; private set; } = float.NaN;
 
         public bool Valid => !float.IsNaN(NodeNumber);
-        public Vector3 Coords => GetCoords();
+        public Vector3 Coords { get; private set; }
         public int Index = -1;
+        MatrixD transMatrix;
 
         public bool Contains(IMyPlayer p)
         {
-            return Beacon.CubeGrid.WorldAABB.Contains(p.GetPosition()) == ContainmentType.Contains;
+            IMyEntity e = RacingSession.GetCockpit(p)?.CubeGrid;
+            if (e == null)
+                return Beacon.CubeGrid.LocalAABB.Contains(Vector3D.TransformNormal(p.GetPosition() - Beacon.CubeGrid.WorldMatrix.Translation, transMatrix)) != ContainmentType.Disjoint;
+            return Beacon.CubeGrid.LocalAABB.Intersects(
+                new BoundingSphereD(Vector3D.TransformNormal(e.WorldVolume.Center - Beacon.CubeGrid.WorldMatrix.Translation, transMatrix), e.WorldVolume.Radius)
+                );
         }
 
-        private Vector3 GetCoords ()
+        public Vector3 CalculateCoords ()
         {
-            if (Type == BeaconType.FINISH)
+            transMatrix = MatrixD.Transpose(Beacon.CubeGrid.WorldMatrix);
+            if (Type == BeaconType.FINISH || Type == BeaconType.CHECKPOINT)
                 return Beacon.CubeGrid.WorldAABB.Center;
             return Beacon.WorldMatrix.Translation;
         }
@@ -82,6 +88,8 @@ namespace RacingMod
                 if (Beacon?.CubeGrid?.Physics == null)
                     return;
 
+                Coords = CalculateCoords();
+
                 if (Beacon.CubeGrid.IsStatic)
                 {
                     // update once to initialize
@@ -111,22 +119,20 @@ namespace RacingMod
                 if (Beacon?.CustomName == null)
                     return;
 
+                string name = Beacon.CustomName.ToLower();
                 BeaconType oldType = Type;
-                if (Beacon.CustomName.StartsWith("[Node]"))
+                if (name.StartsWith("[node]"))
                     Type = BeaconType.NODE;
-                else if (Beacon.CustomName.StartsWith("[Finish]"))
+                else if (name.StartsWith("[finish]"))
                     Type = BeaconType.FINISH;
-                else if (Beacon.CustomName.StartsWith("[Checkpoint]"))
+                else if (name.StartsWith("[checkpoint]"))
                     Type = BeaconType.CHECKPOINT;
-                else if (Beacon.CustomName.StartsWith("[Lap]"))
-                {
-                    NodeNumber = 0;
-                    Type = BeaconType.LAP;
-                }
                 else
                     Type = BeaconType.IGNORED;
 
-                if (Type != oldType && (Valid || Type == BeaconType.LAP))
+                Coords = CalculateCoords();
+
+                if (Type != oldType && Valid)
                 {
                     if (oldType != BeaconType.IGNORED)
                         RacingSession.Instance.RemoveNode(this);
@@ -141,16 +147,11 @@ namespace RacingMod
             }
         }
 
-        private void OnCustomDataChanged(IMyTerminalBlock obj)
+        public void OnCustomDataChanged(IMyTerminalBlock obj)
         {
             try
             {
-                if (Type == BeaconType.LAP)
-                {
-                    NodeNumber = 0;
-                    return;
-                }
-                // read node number from custom data
+                // Read node number from custom data
                 float newNodeNumber;
                 if (!float.TryParse(Beacon.CustomData, out newNodeNumber))
                     newNodeNumber = float.NaN;
@@ -175,6 +176,8 @@ namespace RacingMod
 
         public int CompareTo(RacingBeacon other)
         {
+            if (Type == BeaconType.FINISH)
+                return 1;
             return NodeNumber.CompareTo(other.NodeNumber);
         }
 
@@ -182,7 +185,7 @@ namespace RacingMod
         {
             if (other == null)
                 return !Valid;
-            return NodeNumber.Equals(other.NodeNumber);
+            return NodeNumber.Equals(other.NodeNumber) && Type != BeaconType.FINISH;
         }
     }
 }
