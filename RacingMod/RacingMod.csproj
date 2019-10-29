@@ -103,7 +103,9 @@
     <None Include="Workshop-Test\modinfo.sbmi" />
     <None Include="Workshop\modinfo.sbmi" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Analyzer Include="..\..\..\VS2017\SEWhitelistChecker.dll" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd /D $(ProjectDir)
