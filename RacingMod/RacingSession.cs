@@ -29,9 +29,9 @@ namespace RacingMod
         const int defaultMsgMs = 4000;
 
         const ushort packetMainId = 1337;
-        const ushort serverCmdId = 1339;
-        //const ushort nextRacerId = 1357;
-        //const ushort nextRacerId2 = 1358;
+        const ushort packetCmd = 1339;
+        const ushort packetSpecRequest = 1357;
+        const ushort packetSpecResponse = 1358;
 
         public static RacingSession Instance;
         
@@ -60,7 +60,7 @@ namespace RacingMod
         readonly HashSet<ulong> inFinish = new HashSet<ulong>();
         private readonly HashSet<ulong> activePlayers = new HashSet<ulong>();
 
-        //readonly ConcurrentDictionary<ulong, ulong> nextPlayerRequests = new ConcurrentDictionary<ulong, ulong>();
+        readonly ConcurrentDictionary<ulong, Queue<ulong>> nextPlayerRequests = new ConcurrentDictionary<ulong, Queue<ulong>>();
 
         private string hudHeader;
 
@@ -174,28 +174,32 @@ namespace RacingMod
             if(MyAPIGateway.Multiplayer.IsServer)
             {
                 MyVisualScriptLogicProvider.RemoveGPSForAll(gateWaypointName);
-                MyAPIGateway.Multiplayer.RegisterMessageHandler(serverCmdId, ReceiveCmd);
-                //MyAPIGateway.Multiplayer.RegisterMessageHandler(nextRacerId, ReceiveFindNextRacer);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(packetCmd, ReceiveCmd);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(packetSpecRequest, ReceiveSpecRequest);
             }
             else
             {
                 MyAPIGateway.Session.GPS.RemoveLocalGps(gateWaypointGps);
-                //MyAPIGateway.Multiplayer.RegisterMessageHandler(packetMainId, ReceiveActiveRacers);
-                //MyAPIGateway.Multiplayer.RegisterMessageHandler(nextRacerId2, ReceiveNextRacer);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(packetMainId, ReceiveActiveRacers);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(packetSpecResponse, ReceiveSpecResponse);
             }
 
             running = true;
             Instance = this;
         }
 
-
-        /*private void ReceiveNextRacer (byte [] obj)
+        private void ReceiveSpecResponse (byte [] obj)
         {
             try
             {
                 NextRacerInfo info = MyAPIGateway.Utilities.SerializeFromBinary<NextRacerInfo>(obj);
-                followedId = info.steamId;
+                if (specCam != null && followedEntity != null)
+                {
+                    Vector3D diff = specCam.Position - followedEntity.GetPosition();
+                    specCam.Position = diff + info.position;
+                }
                 followedEntity = null;
+                followedId = info.steamId;
             }
             catch (Exception e)
             {
@@ -203,33 +207,24 @@ namespace RacingMod
             }
         }
 
-        private void ReceiveFindNextRacer (byte [] obj)
+        private void ReceiveSpecRequest(byte[] data)
         {
             try
             {
-                CurrentRacerInfo request = MyAPIGateway.Utilities.SerializeFromBinary<CurrentRacerInfo>(obj);
-                nextPlayerRequests [request.requestor] = request.current;
-            }
-            catch (Exception e)
-            {
-                ShowError(e, GetType());
-            }
-        }*/
-
-        private void ReceiveCmd (byte [] obj)
-        {
-            try
-            {
-                CommandInfo cmd = MyAPIGateway.Utilities.SerializeFromBinary<CommandInfo>(obj);
-                playersTemp.Clear();
-                MyAPIGateway.Players.GetPlayers(playersTemp);
-                foreach (IMyPlayer p in playersTemp)
+                CurrentRacerInfo info = MyAPIGateway.Utilities.SerializeFromBinary<CurrentRacerInfo>(data);
+                AddSpecRequest(info.current, info.requestor);
+                return;
+                if (info.current > 0)
                 {
-                    if (p.SteamUserId == cmd.steamId)
+                }
+                else
+                {
+                    IMyPlayer p = GetPlayer(info.requestor);
+                    IMyPlayer close;
+                    if(GetClosestRacer(p.GetPosition(), out close))
                     {
-                        bool temp = false;
-                        ProcessCommand(p, cmd.cmd, ref temp);
-                        return;
+                        byte [] data2 = MyAPIGateway.Utilities.SerializeToBinary(new NextRacerInfo(close.SteamUserId, close.GetPosition()));
+                        MyAPIGateway.Multiplayer.SendMessageTo(packetSpecResponse, data2, info.requestor);
                     }
                 }
             }
@@ -237,6 +232,43 @@ namespace RacingMod
             {
                 ShowError(e, GetType());
             }
+        }
+
+        void AddSpecRequest(ulong current, ulong requestor)
+        {
+            Queue<ulong> list;
+            if (!nextPlayerRequests.TryGetValue(current, out list))
+                list = new Queue<ulong>();
+            list.Enqueue(requestor);
+            nextPlayerRequests [current] = list;
+        }
+
+        private void ReceiveCmd (byte [] obj)
+        {
+            try
+            {
+                CommandInfo cmd = MyAPIGateway.Utilities.SerializeFromBinary<CommandInfo>(obj);
+                IMyPlayer p = GetPlayer(cmd.steamId);
+                bool temp = false;
+                if (p != null)
+                    ProcessCommand(p, cmd.cmd, ref temp);
+            }
+            catch (Exception e)
+            {
+                ShowError(e, GetType());
+            }
+        }
+
+        IMyPlayer GetPlayer(ulong steamId)
+        {
+            playersTemp.Clear();
+            MyAPIGateway.Players.GetPlayers(playersTemp);
+            foreach (IMyPlayer p in playersTemp)
+            {
+                if (p.SteamUserId == steamId)
+                    return p;
+            }
+            return null;
         }
 
         private void ReceiveActiveRacers(byte[] obj)
@@ -342,7 +374,7 @@ namespace RacingMod
             if (redirect)
             {
                 byte [] data = MyAPIGateway.Utilities.SerializeToBinary(new CommandInfo(cmd, p.SteamUserId));
-                MyAPIGateway.Multiplayer.SendMessageToServer(serverCmdId, data);
+                MyAPIGateway.Multiplayer.SendMessageToServer(packetCmd, data);
             }
         }
 
@@ -366,7 +398,13 @@ namespace RacingMod
 
         public override void UpdateAfterSimulation ()
         {
-            if (!running || MyAPIGateway.Multiplayer?.IsServer != true)
+            if (!running)
+                return;
+
+            if(MyAPIGateway.Session?.Player != null)
+                SpectatorLock();
+
+            if (!MyAPIGateway.Session?.IsServer == true)
                 return;
 
             try
@@ -374,7 +412,6 @@ namespace RacingMod
                 ProcessValues();
                 BroadcastData(ActiveRacersText, packetMainId);
                 DrawDebug();
-                //SpectatorLock();
                 frameCount++;
             }
             catch (Exception e)
@@ -474,13 +511,11 @@ namespace RacingMod
             MyAPIGateway.Players.GetPlayers(playersTemp, IsPlayerActive);
             foreach (IMyPlayer p in playersTemp)
             {
-                IMyCharacter c = p.Character;
-
                 RacerInfo previous;
                 bool hasPrevious = previousRacerInfos.TryGetValue(p.SteamUserId, out previous);
 
                 // Find the closest node
-                Vector3D pos = c.GetPosition();
+                Vector3D pos = p.GetPosition();
 
                 int currLaps = 0;
                 if (!laps.TryGetValue(p.SteamUserId, out currLaps))
@@ -625,105 +660,91 @@ namespace RacingMod
             BuildText(ranking);
         }
 
-        /*IMyEntity followedEntity;
+        IMyPlayer followedEntity;
         ulong followedId;
-        MySpectator specCam;
+        MySpectator specCam => MyAPIGateway.Session.CameraController as MySpectator;
         void SpectatorLock()
         {
             if(MyAPIGateway.Session?.Player == null)// || activePlayers.Contains(MyAPIGateway.Session.Player.SteamUserId))
             {
                 followedEntity = null;
+                followedId = 0;
                 return;
             }
+
+            MyAPIGateway.Utilities.ShowNotification($"{followedEntity?.DisplayName ?? "null"} {followedId}", 16);
 
             if (activePlayers.Count > 0 && MyAPIGateway.Session.IsCameraUserControlledSpectator && !MyAPIGateway.Gui.ChatEntryVisible 
                 && !MyAPIGateway.Gui.IsCursorVisible && MyAPIGateway.Gui.GetCurrentScreen == MyTerminalPageEnum.None)
             {
-                MyAPIGateway.Utilities.ShowNotification("Available", 17);
+                MyAPIGateway.Utilities.ShowNotification("Available", 16);
                 if (MyAPIGateway.Input.IsNewKeyPressed(VRage.Input.MyKeys.T))
                 {
                     // Disable following, key used by something else
                     followedEntity = null;
-                }
-                else/* if(MyAPIGateway.Input.IsNewKeyPressed(VRage.Input.MyKeys.OemOpenBrackets))
-                {
-                    // <
-                    MyAPIGateway.Utilities.ShowNotification("Left Pressed.");
-                    if (followedEntity == null)
-                    {
-                        GetClosestRacer(MyAPIGateway.Session.Camera.Position, out followedEntity, out followedId);
-                        specCam = MyAPIGateway.Session.CameraController as MySpectator;
-                        //followRequest = 0;
-                    }
-                    else
-                    {
-                        //followRequest = 1;
-                    }
+                    followedId = 0;
                 }
                 else if(MyAPIGateway.Input.IsNewKeyPressed(VRage.Input.MyKeys.OemCloseBrackets))
                 {
-                    // >
+                    // Next
                     MyAPIGateway.Utilities.ShowNotification("Right Pressed.");
-                    if (followedEntity == null)
-                    {
-                        GetClosestRacer(MyAPIGateway.Session.Camera.Position, out followedEntity, out followedId);
-                        specCam = MyAPIGateway.Session.CameraController as MySpectator;
-                    }
-                    else
-                    {
-                        if(MyAPIGateway.Session.IsServer)
-                        {
-                            nextPlayerRequests [MyAPIGateway.Session.Player.SteamUserId] = followedId;
-                        }
-                        else
-                        {
-                            byte[] data = MyAPIGateway.Utilities.SerializeToBinary(new CurrentRacerInfo(MyAPIGateway.Session.Player.SteamUserId, followedId));
-                            MyAPIGateway.Multiplayer.SendMessageToServer(nextRacerId, data);
-                        }
-                    }
+                    ulong currentId = 0;
+                    if (followedEntity != null)
+                        currentId = followedEntity.SteamUserId;
+                    RequestNextRacer(new CurrentRacerInfo(MyAPIGateway.Session.Player.SteamUserId, currentId));
                 }
             }
 
             if(followedEntity != null)
             {
-                if(!activePlayers.Contains(followedId))
+                IMyEntity e = GetCockpit(followedEntity)?.CubeGrid;
+                if(e == null)
+                    e = followedEntity.Character;
+                if(e == null)
+                    MyAPIGateway.Utilities.ShowNotification($"Entity null.", 16);
+                else
+                    MyAPIGateway.Utilities.ShowNotification($"Following {e.GetType()} {e.Physics != null} {specCam != null} {!MyAPIGateway.Session.IsCameraControlledObject}", 16);
+                if (e?.Physics != null && specCam != null && !MyAPIGateway.Session.IsCameraControlledObject)
                 {
-                    GetClosestRacer(MyAPIGateway.Session.Camera.Position, out followedEntity, out followedId);
-                    specCam = MyAPIGateway.Session.CameraController as MySpectator;
-                }
-                else if (activePlayers.Count == 0 || followedEntity.MarkedForClose || followedEntity.Closed)
-                {
-                    followedEntity = null;
-                }
-                else if (followedEntity.Physics != null && specCam != null && !MyAPIGateway.Session.IsCameraControlledObject)
-                {
-                    specCam.Position += followedEntity.Physics.LinearVelocity * (1f / 60);
+                    specCam.Position += e.Physics.LinearVelocity * (1f / 60);
                 }
             }
+            else if(followedId != 0)
+            {
+                followedEntity = GetPlayer(followedId);
+            }
 
-        }*/
+        }
 
-        bool GetClosestRacer(Vector3D position, out IMyEntity closest, out ulong owner)
+        private void RequestNextRacer (CurrentRacerInfo info)
+        {
+            if (MyAPIGateway.Session.IsServer)
+            {
+                AddSpecRequest(info.current, info.requestor);
+            }
+            else
+            {
+                byte [] data = MyAPIGateway.Utilities.SerializeToBinary(info);//new CurrentRacerInfo(MyAPIGateway.Session.Player.SteamUserId, currentFollower));
+                MyAPIGateway.Multiplayer.SendMessageToServer(packetSpecRequest, data);
+            }
+        }
+
+        /// <summary>
+        /// Use ONLY on server, not client!
+        /// </summary>
+        bool GetClosestRacer(Vector3D position, out IMyPlayer closest)
         {
             double minDistance = double.PositiveInfinity;
             closest = null;
-            owner = 0;
 
             playersTemp.Clear();
             MyAPIGateway.Players.GetPlayers(playersTemp, (p) => activePlayers.Contains(p.SteamUserId));
             foreach (IMyPlayer p in playersTemp)
             {
-                IMyEntity e = GetCockpit(p)?.CubeGrid;
-                Vector3D pos;
-                if (e == null)
-                    pos = p.GetPosition();
-                else
-                    pos = e.GetPosition();
-                double dist = Vector3D.DistanceSquared(pos, position);
+                double dist = Vector3D.DistanceSquared(p.GetPosition(), position);
                 if (dist < minDistance)
                 {
-                    closest = e;
-                    owner = p.SteamUserId;
+                    closest = p;
                     minDistance = dist;
                 }
             }
@@ -871,24 +892,34 @@ namespace RacingMod
                 Dictionary<ulong, RacerInfo> newPrevRacerInfos = new Dictionary<ulong, RacerInfo>(ranking.Count);
                 int i = finishes.Count + 1;
                 double previousDist = -1;
-                //bool setAsFollowing = false;
+
+                bool setAsFollowing = false;
+                ulong firstId = ranking.Values.First().RacerId;
+                Queue<ulong> emptyRequests;
+                if (nextPlayerRequests.TryRemove(0, out emptyRequests))
+                {
+                    MergeRequestWith(emptyRequests, firstId);
+                    setAsFollowing = true;
+                }
+                if(nextPlayerRequests.TryRemove(ranking.Values.Last().RacerId, out emptyRequests))
+                {
+                    MergeRequestWith(emptyRequests, firstId);
+                    setAsFollowing = true;
+                }
+
                 foreach(RacerInfo racer in ranking.Values)
                 {
                     RacerInfo current = racer;
                     current.Rank = i;
 
-                    /*if (setAsFollowing)
+                    if (setAsFollowing)
                     {
-                        IMyEntity e = GetCockpit(current.Racer)?.CubeGrid;
-                        if (e != null)
-                        {
-                            followedEntity = e;
-                            setAsFollowing = false;
-                        }
-                    }*/
+                        SendSpectatorResponse(current.Racer);
+                        setAsFollowing = false;
+                    }
 
-                    //if (followedEntity != null && followRequest == 1)
-                    //    prevFollowingPos = current.Racer.GetPosition();
+                    if (nextPlayerRequests.ContainsKey(racer.RacerId))
+                        setAsFollowing = true;
 
                     string drawnColor = null;
                     RacerInfo previous;
@@ -962,8 +993,52 @@ namespace RacingMod
 
                     i++;
                 }
+
                 previousRacerInfos = newPrevRacerInfos;
             }
+        }
+
+        private void MergeRequestWith (Queue<ulong> emptyRequests, ulong id)
+        {
+            Queue<ulong> list;
+            if (nextPlayerRequests.TryGetValue(id, out list))
+            {
+                while (emptyRequests.Count > 0)
+                    list.Enqueue(emptyRequests.Dequeue());
+            }
+            else
+            {
+                list = emptyRequests;
+            }
+            nextPlayerRequests [id] = list;
+        }
+
+        private void SendSpectatorResponse (IMyPlayer racer)
+        {
+            Queue<ulong> requestors;
+            if (!nextPlayerRequests.TryRemove(racer.SteamUserId, out requestors))
+                return;
+            Vector3D racerPos = racer.GetPosition();
+            while(requestors.Count > 0)
+            {
+                ulong id = requestors.Dequeue();
+                if(MyAPIGateway.Session.Player?.SteamUserId == id)
+                {
+                    if (specCam != null && followedEntity != null)
+                    {
+                        Vector3D diff = specCam.Position - followedEntity.GetPosition();
+                        specCam.Position = diff + racerPos;
+                    }
+                    followedEntity = null;
+                    followedId = racer.SteamUserId;
+                }
+                else
+                {
+                    byte [] data = MyAPIGateway.Utilities.SerializeToBinary(new NextRacerInfo(racer.SteamUserId, racerPos));
+                    MyAPIGateway.Multiplayer.SendMessageTo(packetSpecResponse, data, requestors.Dequeue());
+                }
+            }
+            nextPlayerRequests [racer.SteamUserId] = requestors;
         }
 
         bool Moved (RacerInfo value)
