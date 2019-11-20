@@ -99,6 +99,7 @@
     <Content Include="Workshop\thumb.jpg" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".editorconfig" />
     <None Include="Workshop-Main\modinfo.sbmi" />
     <None Include="Workshop-Test\modinfo.sbmi" />
     <None Include="Workshop\modinfo.sbmi" />

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using Sandbox.Common.ObjectBuilders;
 using Sandbox.ModAPI;
 using VRage.Game.Components;
@@ -26,26 +25,18 @@ namespace RacingMod
         public float NodeNumber { get; private set; } = float.NaN;
 
         public bool Valid => !float.IsNaN(NodeNumber);
-        public Vector3 Coords { get; private set; }
+        public Vector3 Coords => Beacon.CubeGrid.WorldAABB.Center;
         public int Index = -1;
-        MatrixD transMatrix;
 
         public bool Contains(IMyPlayer p)
         {
+            MatrixD transMatrix = MatrixD.Transpose(Beacon.CubeGrid.WorldMatrix);
             IMyEntity e = RacingSession.GetCockpit(p)?.CubeGrid;
             if (e == null)
                 return Beacon.CubeGrid.LocalAABB.Contains(Vector3D.TransformNormal(p.GetPosition() - Beacon.CubeGrid.WorldMatrix.Translation, transMatrix)) != ContainmentType.Disjoint;
             return Beacon.CubeGrid.LocalAABB.Intersects(
                 new BoundingSphereD(Vector3D.TransformNormal(e.WorldVolume.Center - Beacon.CubeGrid.WorldMatrix.Translation, transMatrix), e.WorldVolume.Radius)
                 );
-        }
-
-        public Vector3 CalculateCoords ()
-        {
-            transMatrix = MatrixD.Transpose(Beacon.CubeGrid.WorldMatrix);
-            if (Type == BeaconType.FINISH || Type == BeaconType.CHECKPOINT)
-                return Beacon.CubeGrid.WorldAABB.Center;
-            return Beacon.WorldMatrix.Translation;
         }
 
         public override void Init (MyObjectBuilder_EntityBase objectBuilder)
@@ -88,8 +79,6 @@ namespace RacingMod
                 if (Beacon?.CubeGrid?.Physics == null)
                     return;
 
-                Coords = CalculateCoords();
-
                 if (Beacon.CubeGrid.IsStatic)
                 {
                     // update once to initialize
@@ -129,8 +118,6 @@ namespace RacingMod
                     Type = BeaconType.CHECKPOINT;
                 else
                     Type = BeaconType.IGNORED;
-
-                Coords = CalculateCoords();
 
                 if (Type != oldType && Valid)
                 {
