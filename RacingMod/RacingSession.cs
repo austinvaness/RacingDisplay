@@ -85,9 +85,7 @@ namespace RacingMod
         MySpectator SpecCam => MyAPIGateway.Session.CameraController as MySpectator;
         const double maxCamDistance = 100;
         bool specPositionLock = false;
-        Vector3D specLockedPos;
-        Vector3D specLockedForward;
-        Vector3D specLockedUp;
+        MatrixD specCamLocal;
 
         public RacingSession ()
         {
@@ -786,13 +784,9 @@ namespace RacingMod
                 {
                     if(specPositionLock)
                     {
-                        // This is probably the worst way to do this but it works.
-                        MatrixD m = MatrixD.CreateFromDir(
-                            Vector3D.TransformNormal(specLockedForward, e.WorldMatrix), 
-                            Vector3D.TransformNormal(specLockedUp, e.WorldMatrix)
-                        );
-                        m.Translation = Vector3D.Transform(specLockedPos, e.WorldMatrix);
-                        SpecCam.SetViewMatrix(MatrixD.Invert(m));
+                        Matrix m = specCamLocal * e.WorldMatrix;
+                        SpecCam.Position = m.Translation;
+                        SpecCam.SetTarget(m.Translation + m.Forward * 5, m.Up);
                     }
                     else
                     {
@@ -816,17 +810,13 @@ namespace RacingMod
             {
                 // Clamp
                 Vector3D ePos = followedEntity.GetPosition();
+
                 Vector3D diff = SpecCam.Position - ePos;
                 double len2 = diff.LengthSquared();
-                Vector3D pos;
                 if (len2 > (maxCamDistance * maxCamDistance))
-                    pos = ePos + ((diff / Math.Sqrt(len2)) * maxCamDistance);
-                else
-                    pos = SpecCam.Position;
+                    SpecCam.Position = ePos + ((diff / Math.Sqrt(len2)) * maxCamDistance);
 
-                Vector3D forward = -Vector3D.Normalize(diff);
-
-                Vector3D up;
+                Vector3D? up = null;
                 IMyEntity e = followedEntity.Controller?.ControlledEntity?.Entity;
                 if(e != null)
                 {
@@ -841,14 +831,8 @@ namespace RacingMod
                     else
                         up = -Vector3.Normalize(grav);
                 }
-                else
-                {
-                    up = SpecCam.Orientation.Up;
-                }
 
-                MatrixD matrix = MatrixD.CreateFromDir(forward, up);
-                matrix.Translation = pos;
-                SpecCam.SetViewMatrix(MatrixD.Invert(matrix));
+                SpecCam.SetTarget(ePos, up);
 
                 if (specPositionLock && e != null)
                     UpdateSpectatorLock(e);
@@ -857,11 +841,9 @@ namespace RacingMod
 
         private void UpdateSpectatorLock(IMyEntity e)
         {
-            MatrixD eTranspose = MatrixD.Transpose(e.WorldMatrix);
             MatrixD specCamMatrix = SpecCam.Orientation;
-            specLockedPos = Vector3D.TransformNormal(SpecCam.Position - e.GetPosition(), eTranspose);
-            specLockedForward = Vector3D.TransformNormal(specCamMatrix.Forward, eTranspose);
-            specLockedUp = Vector3D.TransformNormal(specCamMatrix.Up, eTranspose);
+            specCamMatrix.Translation = SpecCam.Position;
+            specCamLocal = specCamMatrix * e.WorldMatrixNormalizedInv;
         }
 
         private void Follow (IMyPlayer entity, ulong id)
@@ -880,7 +862,7 @@ namespace RacingMod
                 if (followedEntity != null)
                     MyAPIGateway.Utilities.ShowNotification($"Following {followedEntity.DisplayName}.");
             }
-            else
+            else if(followedEntity != null || followedId != 0)
             {
                 followedEntity = null;
                 followedId = 0;
