@@ -81,7 +81,7 @@ namespace RacingMod
         private readonly StringBuilder tempSb = new StringBuilder();
 
         IMyPlayer followedEntity;
-        ulong followedId = 0;
+        Vector3D followedPos;
         MySpectator SpecCam => MyAPIGateway.Session.CameraController as MySpectator;
         const double maxCamDistance = 100;
         bool specPositionLock = false;
@@ -128,7 +128,11 @@ namespace RacingMod
             else if (AddSorted(nodes, node))
             {
                 if (finish != null && finish.Beacon == node.Beacon)
+                {
+                    numLaps = 1;
+                    UpdateHeader();
                     finish = null;
+                }
             }
             else
             {
@@ -148,7 +152,11 @@ namespace RacingMod
                 nodes.RemoveAt(index);
 
             if (finish != null && finish.Beacon == node.Beacon)
+            {
+                numLaps = 1;
+                UpdateHeader();
                 finish = null;
+            }
             RebuildNodeInformation();
         }
 
@@ -186,11 +194,13 @@ namespace RacingMod
             gateWaypointGps = MyAPIGateway.Session.GPS.Create(gateWaypointName, gateWaypointDescription, Vector3D.Zero, true).Hash;
 
             MyAPIGateway.Utilities.MessageEntered += MessageEntered;
-            if(MyAPIGateway.Multiplayer.IsServer)
+            MyVisualScriptLogicProvider.PlayerDisconnected += PlayerDisconnected;
+            if (MyAPIGateway.Multiplayer.IsServer)
             {
                 MyVisualScriptLogicProvider.RemoveGPSForAll(gateWaypointName);
                 MyAPIGateway.Multiplayer.RegisterMessageHandler(packetCmd, ReceiveCmd);
                 MyAPIGateway.Multiplayer.RegisterMessageHandler(packetSpecRequest, ReceiveSpecRequest);
+                
             }
             else
             {
@@ -203,12 +213,18 @@ namespace RacingMod
             Instance = this;
         }
 
+        private void PlayerDisconnected (long playerId)
+        {
+            if (MyAPIGateway.Session?.Player != null && followedEntity != null && followedEntity.IdentityId == playerId)
+                ClearFollow();
+        }
+
         private void ReceiveSpecResponse (byte [] obj)
         {
             try
             {
                 NextRacerInfo info = MyAPIGateway.Utilities.SerializeFromBinary<NextRacerInfo>(obj);
-                Follow(null, info.steamId);
+                SetFollow(info.steamId, info.position);
             }
             catch (Exception e)
             {
@@ -238,7 +254,7 @@ namespace RacingMod
                 {
                     if (MyAPIGateway.Session.Player?.SteamUserId == info.requestor)
                     {
-                        Follow(p, p.SteamUserId);
+                        SetFollow(p);
                     }
                     else
                     {
@@ -425,7 +441,7 @@ namespace RacingMod
             try
             {
                 if (MyAPIGateway.Session.Player != null)
-                    SpectatorLock();
+                    Spectator();
 
                 if (MyAPIGateway.Session.IsServer)
                 {
@@ -502,6 +518,7 @@ namespace RacingMod
 
         bool LeaveRace(IMyPlayer p)
         {
+            previousRacerInfos.Remove(p.SteamUserId);
             RemoveWaypoint(p.IdentityId);
             nextNode.Remove(p.SteamUserId);
             inFinish.Remove(p.SteamUserId);
@@ -532,135 +549,32 @@ namespace RacingMod
             MyAPIGateway.Players.GetPlayers(playersTemp, IsPlayerActive);
             foreach (IMyPlayer p in playersTemp)
             {
-                RacerInfo previous;
-                bool hasPrevious = previousRacerInfos.TryGetValue(p.SteamUserId, out previous);
 
                 // Find the closest node
-                Vector3D pos = p.GetPosition();
+                int currLaps = GetNumLaps(p);
+                bool missed;
+                double dist;
+                int? nextNode = GetNextNode(p, currLaps, out missed, out dist);
 
-                int currLaps = 0;
-                if (!laps.TryGetValue(p.SteamUserId, out currLaps))
+                if (!nextNode.HasValue)
+                    continue;
+                
+                //MyAPIGateway.Utilities.ShowNotification($"{nextNode.Value}", 16);
+
+                RacingBeacon destination = nodes[nextNode.Value];
+
+                if (inFinish.Contains(p.SteamUserId))
                 {
-                    laps [p.SteamUserId] = 0;
-                    currLaps = 0;
+                    missed = false; // When racer has crossed the finish, the racer will be ahead of the first node
+                    if(finish == null || !finish.Contains(p))
+                        inFinish.Remove(p.SteamUserId);
                 }
-                else if(currLaps > numLaps)
-                {
-                    currLaps = Math.Max(numLaps - 1, 0);
-                    laps [p.SteamUserId] = currLaps;
-                }
-                double dist = currLaps * nodeDistances [nodeDistances.Length - 1];
-
-                RacingBeacon destination;
-                int start;
-                int end;
-                double partial;
-                bool missed = false;
-                if (GetClosestSegment(pos, out start, out end, out partial))
-                {
-                    int nextNode;
-                    if (!this.nextNode.TryGetValue(p.SteamUserId, out nextNode))
-                    {
-                        this.nextNode [p.SteamUserId] = end;
-                        nextNode = end;
-                        if(numLaps > 1)
-                            MyVisualScriptLogicProvider.ShowNotification($"Lap {currLaps + 1} / {numLaps}", defaultMsgMs, "White", p.IdentityId);
-                    }
-                    if (end <= nextNode)
-                    {
-                        // Racer is in expected position.
-                        dist += nodeDistances [start] + partial;
-                    }
-                    else if (start == nextNode && partial > 0 && NodeCleared(p, nextNode))
-                    {
-                        // Racer has moved past one node.
-                        this.nextNode [p.SteamUserId] = end;
-                        dist += nodeDistances [start] + partial;
-                    }
-                    else
-                    {
-                        // Racer has moved past multiple nodes, clamp them.
-                        missed = start >= nextNode && partial > 0;
-                        start = nextNode - 1;
-                        end = nextNode;
-                        partial = 1;
-
-                        if (hasPrevious)
-                            dist = previous.Distance;
-                        else
-                            dist += nodeDistances[start];
-                    }
-
-                    if (start == 0 && partial == 0)
-                        destination = nodes [0];
-                    else
-                        destination = nodes [nextNode];
-
-                }
-                else
-                {
-                    // Beyond the last node
-                    int nextNode;
-                    if (!this.nextNode.TryGetValue(p.SteamUserId, out nextNode))
-                    {
-                        this.nextNode [p.SteamUserId] = 0;
-                        nextNode = 0;
-                    }
-
-                    if(nextNode > 0)
-                    {
-                        // Has been on the track previously
-                        if(finish == null)
-                        {
-                            if(nextNode >= nodes.Count - 1)
-                            {
-                                // The previous node is the last node.
-                                LeaveRace(p);
-                                continue;
-                            }
-                            else
-                            {
-                                // The previous node is on the track somewhere
-                                end = nextNode;
-                                dist += nodeDistances [end - 1];
-                                destination = nodes [end];
-                            }
-                        }
-                        else
-                        {
-                            if (nextNode > 0)
-                                missed = true;
-
-                            end = nextNode;
-                            dist += nodeDistances [end - 1];
-                            destination = nodes [end];
-                        }
-                    }
-                    else
-                    {
-                        // The racer has not yet entered the track, display the first node
-                        end = 1;
-                        destination = nodes [0];
-                    }
-                }
-
-
-
-                if (hasPrevious && GetCockpit(p) == null)
-                {
-                    destination = previous.Destination;
-                    dist = previous.Distance;
-                }
-
-
-                if (inFinish.Contains(p.SteamUserId) && (finish == null || !finish.Contains(p)))
-                    inFinish.Remove(p.SteamUserId);
 
                 // Check if racer is on the track
                 if (dist >= 0)
                 {
                     // Check if it's a finish
-                    if(end == nodes.Count - 1 && finish != null && finish.Contains(p))
+                    if(nextNode == nodes.Count - 1 && finish != null && finish.Contains(p))
                     {
                         // If the closest node is the last node, a finish exists, and the grid is intersecting with the finish
                         if (currLaps >= numLaps - 1)
@@ -671,9 +585,6 @@ namespace RacingMod
 
                             finishes.Add(p.SteamUserId, finishInfo);
                             FinishesUpdated();
-
-                            // Remove their gps waypoints
-                            RemoveWaypoint(p.IdentityId);
 
                             MyVisualScriptLogicProvider.ShowNotificationToAll($"{p.DisplayName} just finished in position {rank}", defaultMsgMs, "White");
                             LeaveRace(p);
@@ -714,7 +625,152 @@ namespace RacingMod
             BuildText(ranking);
         }
 
-        void SpectatorLock()
+        int? GetNextNode(IMyPlayer p, int laps, out bool missed, out double dist)
+        {
+            RacerInfo? previous = GetPreviousInfo(p);
+
+            if (previous.HasValue && GetCockpit(p) == null)
+            {
+                missed = previous.Value.Missed;
+                dist = previous.Value.Distance;
+                return previous.Value.Destination.Index;
+            }
+            
+            missed = false;
+            dist = laps * nodeDistances [nodes.Count - 1];
+
+            int nextNode;
+            bool isNew = !this.nextNode.TryGetValue(p.SteamUserId, out nextNode);
+            if (isNew)
+            {
+                this.nextNode [p.SteamUserId] = 0;
+                nextNode = 0;
+                if (numLaps > 1)
+                    MyVisualScriptLogicProvider.ShowNotification($"Lap {laps + 1} / {numLaps}", defaultMsgMs, "White", p.IdentityId);
+            }
+
+            int start;
+            int end;
+            double partial;
+            GetClosestSegment(p.GetPosition(), out start, out end, out partial);
+            //MyAPIGateway.Utilities.ShowNotification($"{start} {end}", 16);
+
+            if (start < 0)
+            {
+                return nextNode;
+                // Before start
+                // end is 0
+                // show whatever predefined nextNode there is
+            }
+            else if (start >= nodes.Count - 1)
+            {
+                // After end
+                if (nextNode > 0)
+                {
+                    // Has been on the track previously
+                    if (finish == null)
+                    {
+                        if (nextNode >= nodes.Count - 1 && NodeCleared(p, nodes.Count - 1))
+                        {
+                            // The previous node is the last node.
+                            LeaveRace(p);
+                            return null;
+                        }
+                        else
+                        {
+                            // The previous node is on the track somewhere
+                            missed = true;
+                            dist += nodeDistances [nextNode];
+                            return nextNode;
+                        }
+                    }
+                    else
+                    {
+
+                        if (nextNode >= nodes.Count - 1)
+                        {
+                            // The previous node is the last node.
+                            missed = true;
+                        }
+                        dist += nodeDistances [nextNode];
+                        return nextNode;
+                        
+                    }
+                }
+                else
+                {
+                    // The racer has not yet entered the track, display the first node
+                    return 0;
+                    //end = 0;
+                    //destination = nodes [0];
+                }
+            }
+            else
+            {
+                // On the track
+                if (isNew)
+                {
+                    this.nextNode [p.SteamUserId] = end;
+                    nextNode = end;
+                    //MyAPIGateway.Utilities.ShowNotification($"nextNode is now {end}");
+                }
+
+                if (end <= nextNode)
+                {
+                    // Racer is in expected position.
+                    dist += nodeDistances [start] + partial;
+                    return nextNode;
+                }
+                else if (start == nextNode && NodeCleared(p, nextNode))
+                {
+                    // Racer has moved past one node.
+                    this.nextNode [p.SteamUserId] = end;
+                    //nextNode = end;
+                    dist += nodeDistances [start] + partial;
+                    return end;
+                }
+                else
+                {
+                    // Racer has moved past multiple nodes, clamp them.
+                    missed = start >= nextNode;
+                    //start = nextNode - 1;
+                    //end = nextNode;
+
+                    if (previous.HasValue)
+                        dist = previous.Value.Distance;
+                    else
+                        dist += nodeDistances [nextNode];
+                    return nextNode;
+                }
+            }
+
+        }
+
+        RacerInfo? GetPreviousInfo(IMyPlayer p)
+        {
+            RacerInfo temp;
+            if (previousRacerInfos.TryGetValue(p.SteamUserId, out temp))
+                return temp;
+            return null;
+        }
+
+        int GetNumLaps(IMyPlayer p)
+        {
+            int laps;
+            if (this.laps.TryGetValue(p.SteamUserId, out laps))
+            {
+                if (laps >= numLaps)
+                    laps = numLaps - 1;
+                return laps;
+            }
+            else
+            {
+                this.laps [p.SteamUserId] = 0;
+                return 0;
+            }
+        }
+
+        void Spectator()
         {
             if (SpecCam != null && !MyAPIGateway.Session.IsCameraControlledObject && !MyAPIGateway.Gui.ChatEntryVisible 
                 && !MyAPIGateway.Gui.IsCursorVisible && MyAPIGateway.Gui.GetCurrentScreen == MyTerminalPageEnum.None)
@@ -722,7 +778,7 @@ namespace RacingMod
                 if (MyAPIGateway.Input.IsNewKeyPressed(VRage.Input.MyKeys.T))
                 {
                     // Disable following, key used by something else
-                    Follow(null, 0);
+                    ClearFollow();
                 }
                 else if(MyAPIGateway.Input.IsNewKeyPressed(VRage.Input.MyKeys.OemCloseBrackets))
                 {
@@ -774,15 +830,25 @@ namespace RacingMod
                 }
             }
 
-            if(followedEntity != null)
+            if(followedEntity != null && SpecCam != null && !MyAPIGateway.Session.IsCameraControlledObject)
             {
                 IMyEntity e = GetCockpit(followedEntity)?.CubeGrid;
                 if(e == null)
                     e = followedEntity.Character;
 
-                if (e?.Physics != null && SpecCam != null && !MyAPIGateway.Session.IsCameraControlledObject)
+                if(e == null)
                 {
-                    if(specPositionLock)
+                    SpecCam.Position = followedPos + Vector3D.One;
+                }
+                else 
+                {
+                    if (followedPos != Vector3D.Zero)
+                    {
+                        followedPos = Vector3D.Zero;
+                        FaceFollowed();
+                    }
+
+                    if (specPositionLock)
                     {
                         Matrix m = specCamLocal * e.WorldMatrix;
                         SpecCam.Position = m.Translation;
@@ -790,16 +856,13 @@ namespace RacingMod
                     }
                     else
                     {
-                        SpecCam.Position += e.Physics.LinearVelocity * (1f / 60);
+                        Vector3D velocity = Vector3D.Zero;
+                        if (e.Physics != null)
+                            velocity = e.Physics.LinearVelocity;
+                        SpecCam.Position += velocity * (1f / 60);
                     }
                 }
-            }
-            else if(followedId != 0)
-            {
-                followedEntity = GetPlayer(followedId);
-                if (followedEntity != null)
-                    MyAPIGateway.Utilities.ShowNotification($"Following {followedEntity.DisplayName}.");
-                FaceFollowed();
+
             }
 
         }
@@ -846,30 +909,50 @@ namespace RacingMod
             specCamLocal = specCamMatrix * e.WorldMatrixNormalizedInv;
         }
 
-        private void Follow (IMyPlayer entity, ulong id)
+        /// <summary>
+        /// Called only on server!!!
+        /// </summary>
+        private void SetFollow (IMyPlayer entity)
         {
-            if(entity != null)
+            if(entity == null)
+            {
+                ClearFollow();
+            }
+            else
             {
                 followedEntity = entity;
-                followedId = id;
-                if (followedEntity != null)
-                    MyAPIGateway.Utilities.ShowNotification($"Following {followedEntity.DisplayName}.");
+                followedPos = entity.GetPosition(); // Probably not necessary since this method will only be called by server, which has all entities loaded
+                MyAPIGateway.Utilities.ShowNotification($"Following {followedEntity.DisplayName}.");
+
+                FaceFollowed();
             }
-            else if (id != 0)
+        }
+
+        private void SetFollow (ulong id, Vector3D pos)
+        {
+            IMyPlayer entity = GetPlayer(id);
+            if(entity == null)
             {
-                followedEntity = GetPlayer(id);
-                followedId = id;
-                if (followedEntity != null)
-                    MyAPIGateway.Utilities.ShowNotification($"Following {followedEntity.DisplayName}.");
+                ClearFollow();
             }
-            else if(followedEntity != null || followedId != 0)
+            else
             {
-                followedEntity = null;
-                followedId = 0;
-                MyAPIGateway.Utilities.ShowNotification("Cleared spectator follow.");
+                followedEntity = entity;
+                followedPos = pos;
+                MyAPIGateway.Utilities.ShowNotification($"Following {followedEntity.DisplayName}.");
+
+                FaceFollowed();
             }
 
-            FaceFollowed();
+        }
+
+        private void ClearFollow()
+        {
+            if (followedEntity != null)
+            {
+                followedEntity = null;
+                MyAPIGateway.Utilities.ShowNotification("Cleared spectator follow.");
+            }
         }
 
         private void RequestNextRacer (CurrentRacerInfo info)
@@ -970,7 +1053,7 @@ namespace RacingMod
             }
         }
         
-        bool GetClosestSegment(Vector3D racerPos, out int start, out int end, out double partialDist)
+        void GetClosestSegment(Vector3D racerPos, out int start, out int end, out double partialDist)
         {
             start = 0;
             end = -1;
@@ -978,7 +1061,7 @@ namespace RacingMod
             double minLinear2 = double.PositiveInfinity;
 
             if (nodes.Count < 2)
-                return false;
+                return;
 
             int closest = 0;
             long minDistanceGrid = nodes [0].Beacon.CubeGrid.EntityId;
@@ -1018,15 +1101,17 @@ namespace RacingMod
                     minLinear2 = linear2;
                 }
             }
-            if(end < 0 || minDistance2 < minLinear2)
+
+            if(minDistance2 < minLinear2)
             {
-                if (closest >= nodes.Count - 1)
-                    return false; // Racer is past the last node
+                if (closest > nodes.Count - 1)
+                    closest = nodes.Count - 1; // Racer is past the last node
+                if (closest <= 0)
+                    closest = -1;
                 start = closest;
                 end = closest + 1;
                 partialDist = 0;
             }
-            return true;
         }
 
         void BuildText (SortedDictionary<double, RacerInfo> ranking)
@@ -1054,7 +1139,7 @@ namespace RacingMod
                 bool drawWhite = false;
 
                 int i = finishes.Count + 1;
-                double previousDist = -1;
+                double previousDist = nodeDistances[nodes.Count - 1] * numLaps;
 
                 SendNextSpectatorResponse(ranking.Values.Last().RacerId, ranking.Values.First().Racer);
                 SendPrevSpectatorResponse(ranking.Values.First().RacerId, ranking.Values.Last().Racer);
@@ -1132,10 +1217,7 @@ namespace RacingMod
                     }
                     else
                     {
-                        if (previousDist < 0)
-                            ActiveRacersText.Append(SetLength((int)current.Distance, distWidth));
-                        else
-                            ActiveRacersText.Append(SetLength((int)(current.Distance - previousDist), distWidth));
+                        ActiveRacersText.Append(SetLength((int)(previousDist - current.Distance), distWidth));
                         previousDist = current.Distance;
                     }
 
@@ -1195,7 +1277,7 @@ namespace RacingMod
             {
                 if (MyAPIGateway.Session.Player?.SteamUserId == id)
                 {
-                    Follow(newRacer, newRacer.SteamUserId);
+                    SetFollow(newRacer);
                 }
                 else
                 {

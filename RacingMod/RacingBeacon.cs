@@ -33,10 +33,31 @@ namespace RacingMod
             MatrixD transMatrix = MatrixD.Transpose(Beacon.CubeGrid.WorldMatrix);
             IMyEntity e = RacingSession.GetCockpit(p)?.CubeGrid;
             if (e == null)
-                return Beacon.CubeGrid.LocalAABB.Contains(Vector3D.TransformNormal(p.GetPosition() - Beacon.CubeGrid.WorldMatrix.Translation, transMatrix)) != ContainmentType.Disjoint;
-            return Beacon.CubeGrid.LocalAABB.Intersects(
+                e = p.Character;
+
+            if (e == null)
+                return false;
+
+            if (Beacon.CubeGrid.LocalAABB.Intersects(
                 new BoundingSphereD(Vector3D.TransformNormal(e.WorldVolume.Center - Beacon.CubeGrid.WorldMatrix.Translation, transMatrix), e.WorldVolume.Radius)
-                );
+                ))
+                return true;
+
+            if (e?.Physics == null)
+                return false;
+
+            Vector3D vel = e.Physics.LinearVelocity;
+            if (vel == Vector3D.Zero)
+                return false;
+
+            Vector3D direction = Vector3D.TransformNormal(e.Physics.LinearVelocity / -59, transMatrix);
+            double speed = direction.Length();
+            direction /= speed;
+            float? result = Beacon.CubeGrid.LocalAABB.Intersects(new Ray(e.GetPosition(), direction));
+            if (!result.HasValue)
+                return false;
+
+            return result.Value > 0 && result.Value < speed;
         }
 
         public override void Init (MyObjectBuilder_EntityBase objectBuilder)
