@@ -21,6 +21,8 @@ namespace RacingMod
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     public class RacingSession : MySessionComponentBase
     {
+        bool timeMode = false;
+
         int numLaps = 1;
 
         bool debug = false;
@@ -61,6 +63,8 @@ namespace RacingMod
 
         readonly ConcurrentDictionary<ulong, HashSet<ulong>> nextPlayerRequests = new ConcurrentDictionary<ulong, HashSet<ulong>>();
         readonly ConcurrentDictionary<ulong, HashSet<ulong>> prevPlayerRequests = new ConcurrentDictionary<ulong, HashSet<ulong>>();
+
+        Dictionary<ulong, DateTime> timeStart = new Dictionary<ulong, DateTime>();
 
         private string hudHeader;
 
@@ -309,6 +313,17 @@ namespace RacingMod
             return null;
         }
 
+        IMyPlayer GetPlayer(string name)
+        {
+            name = name.ToLower();
+            foreach (IMyPlayer p in playersTemp)
+            {
+                if (p.DisplayName.ToLower().Contains(name))
+                    return p;
+            }
+            return null;
+        }
+
         private void ReceiveActiveRacers(byte[] obj)
         {
             DecodeString(obj, ActiveRacersText);
@@ -330,7 +345,7 @@ namespace RacingMod
 
         private void CreateHudItems ()
         {
-            activeRacersHud = new HudAPIv2.HUDMessage(ActiveRacersText, activeHudPosition, HideHud: false, Font: "monospace");
+            activeRacersHud = new HudAPIv2.HUDMessage(ActiveRacersText, activeHudPosition, HideHud: false, Font: "monospace", Blend: BlendTypeEnum.PostPP);
         }
 
         private void MessageEntered(string messageText, ref bool sendToOthers)
@@ -348,32 +363,38 @@ namespace RacingMod
             }
         }
         
-        void ProcessCommand(IMyPlayer p, string cmd, ref bool sendToOthers)
+        void ProcessCommand(IMyPlayer p, string command, ref bool sendToOthers)
         {
             bool redirect = false;
-            cmd = cmd.ToLower();
-            if (!cmd.StartsWith("/rcd"))
+            command = command.ToLower().Trim();
+            if(!command.StartsWith("/rcd"))
                 return;
             sendToOthers = false;
-            switch (cmd)
+            string [] cmd = command.Split(' ');
+            if(cmd.Length == 1)
             {
-                case "/rcd ui":
+                ShowChatHelp(p);
+                return;
+            }
+            switch (cmd[1])
+            {
+                case "ui":
                     if(activeRacersHud != null)
                         activeRacersHud.Visible = !activeRacersHud.Visible;
                     break;
-                case "/rcd join":
+                case "join":
                     if (MyAPIGateway.Session.IsServer)
                         JoinRace(p);
                     else
                         redirect = true;
                     break;
-                case "/rcd leave":
+                case "leave":
                     if (MyAPIGateway.Session.IsServer)
                         LeaveRace(p);
                     else
                         redirect = true;
                     break;
-                case "/rcd rejoin":
+                case "rejoin":
                     if (MyAPIGateway.Session.IsServer)
                     {
                         LeaveRace(p);
@@ -384,7 +405,7 @@ namespace RacingMod
                         redirect = true;
                     }
                     break;
-                case "/rcd clear":
+                case "clear":
                     if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
                         return;
 
@@ -392,27 +413,132 @@ namespace RacingMod
                     {
                         finishes.Clear();
                         FinishesUpdated();
-                        MyVisualScriptLogicProvider.ShowNotification("Cleared all finishers.", defaultMsgMs, "White", p.IdentityId);
+                        MyVisualScriptLogicProvider.SendChatMessage("Cleared all finishers.", "rcd", p.IdentityId, "Red");
                     }
                     else
                     {
                         redirect = true;
                     }
                     break;
-                case "/rcd debug":
+                case "debug":
                     debug = !debug;
                     break;
+                case "mode":
+                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
+                        return;
+
+                    if (MyAPIGateway.Session.IsServer)
+                    {
+                        timeMode = !timeMode;
+                        if(timeMode)
+                            MyVisualScriptLogicProvider.SendChatMessage("Mode is now timed.", "rcd", p.IdentityId, "Red");
+                        else
+                            MyVisualScriptLogicProvider.SendChatMessage("Mode is now normal.", "rcd", p.IdentityId, "Red");
+
+                        FinishesUpdated();
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    break;
+                case "cleartimers":
+                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
+                        return;
+
+                    if (MyAPIGateway.Session.IsServer)
+                    {
+                        MyVisualScriptLogicProvider.SendChatMessage("Cleared all race timers", "rcd", p.IdentityId, "Red");
+                        timeStart.Clear();
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    break;
+                case "cleartimer":
+                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
+                        return;
+
+                    if(cmd.Length != 3)
+                    {
+                        MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd cleartimer <name>: Resets a specific racer's timer.", "rcd", p.IdentityId, "Red");
+                        return;
+                    }
+
+                    if (MyAPIGateway.Session.IsServer)
+                    {
+                        playersTemp.Clear();
+                        MyAPIGateway.Players.GetPlayers(playersTemp);
+                        IMyPlayer result = GetPlayer(cmd [2]);
+                        if(result == null)
+                        {
+                            MyVisualScriptLogicProvider.SendChatMessage($"No racer was found with a name containing '{cmd [2]}'.", "rcd", p.IdentityId, "Red");
+                        }
+                        else
+                        {
+                            MyVisualScriptLogicProvider.SendChatMessage($"Reset {result.DisplayName}'s race timer.", "rcd", p.IdentityId, "Red");
+                            timeStart.Remove(result.SteamUserId);
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    break;
+                case "grant":
+                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
+                        return;
+
+                    if (cmd.Length != 3)
+                    {
+                        MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd grant <name>: Fixes a 'missing' error on the ui.", "rcd", p.IdentityId, "Red");
+                        return;
+                    }
+
+                    if (MyAPIGateway.Session.IsServer)
+                    {
+                        playersTemp.Clear();
+                        MyAPIGateway.Players.GetPlayers(playersTemp);
+                        IMyPlayer result = GetPlayer(cmd [2]);
+                        if (result == null)
+                        {
+                            MyVisualScriptLogicProvider.SendChatMessage($"No racer was found with a name containing '{cmd [2]}'.", "rcd", p.IdentityId, "Red");
+                        }
+                        else
+                        {
+                            MyVisualScriptLogicProvider.SendChatMessage($"Reset {result.DisplayName}'s missing status.", "rcd", p.IdentityId, "Red");
+                            nextNode.Remove(result.SteamUserId);
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    break;
                 default:
-                    MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd join: Joins the race.\n/rcd leave: Leaves the race.\n" +
-                        "/rcd rejoin: Shortcut to leave and join the race.\n/rcd ui: Toggles the on screen UIs.\n/rcd clear: (Admin only) Removes all finalists.", "rcd", p.IdentityId);
+                    ShowChatHelp(p);
                     return;
             }
 
             if (redirect)
             {
-                byte [] data = MyAPIGateway.Utilities.SerializeToBinary(new CommandInfo(cmd, p.SteamUserId));
+                byte [] data = MyAPIGateway.Utilities.SerializeToBinary(new CommandInfo(command, p.SteamUserId));
                 MyAPIGateway.Multiplayer.SendMessageToServer(packetCmd, data);
             }
+        }
+
+        void ShowChatHelp(IMyPlayer p)
+        {
+            string s = "\nCommands:\n/rcd join: Joins the race.\n/rcd leave: Leaves the race.\n" +
+                "/rcd rejoin: Shortcut to leave and join the race.\n/rcd ui: Toggles the on screen UIs.";
+            if (p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin)
+                s = "\nAdmin Commands:\n/rcd clear: Removes all finalists.\n" +
+                    "/rcd cleartimer <name>: Resets a specific racer's timer.\n/rcd cleartimers: Reset all racer timers.\n" +
+                    "/rcd grant <name>: Fixes a 'missing' error on the ui caused by a missed checkpoint." + s;
+            MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Red");
         }
 
         protected override void UnloadData ()
@@ -544,11 +670,16 @@ namespace RacingMod
                 return;
             }
 
-            SortedDictionary<double, RacerInfo> ranking = new SortedDictionary<double, RacerInfo>(new DescendingComparer<double>());
+            SortedSet<RacerInfo> ranking;
+            if (timeMode)
+                ranking = new SortedSet<RacerInfo>(new RacerTimeComparer());
+            else
+                ranking = new SortedSet<RacerInfo>(new RacerDistanceComparer());
             playersTemp.Clear();
             MyAPIGateway.Players.GetPlayers(playersTemp, IsPlayerActive);
             foreach (IMyPlayer p in playersTemp)
             {
+
 
                 // Find the closest node
                 int currLaps = GetNumLaps(p);
@@ -558,9 +689,15 @@ namespace RacingMod
 
                 if (!nextNode.HasValue)
                     continue;
-                
-                //MyAPIGateway.Utilities.ShowNotification($"{nextNode.Value}", 16);
 
+                DateTime started;
+                if (!timeStart.TryGetValue(p.SteamUserId, out started))
+                {
+                    started = DateTime.Now;
+                    if (nextNode > 0 && nextNode < nodes.Count)
+                        timeStart [p.SteamUserId] = started;
+                }
+                    
                 RacingBeacon destination = nodes[nextNode.Value];
 
                 if (inFinish.Contains(p.SteamUserId))
@@ -581,8 +718,8 @@ namespace RacingMod
                         {
                             // The racer has finished all laps
                             int rank = finishes.Count + 1;
-                            RacerInfo finishInfo = new RacerInfo(p, 0, rank, missed);
-
+                            RacerInfo finishInfo = new RacerInfo(p, 0, rank, missed, started);
+                            finishInfo.StopTimer();
                             finishes.Add(p.SteamUserId, finishInfo);
                             FinishesUpdated();
 
@@ -598,20 +735,20 @@ namespace RacingMod
                                 laps [p.SteamUserId] = currLaps + 1;
                             }
                             this.nextNode [p.SteamUserId] = 0;
-                            RacerInfo racer = new RacerInfo(p, dist, 0, missed)
+                            RacerInfo racer = new RacerInfo(p, dist, 0, missed, started)
                             {
                                 Destination = destination
                             };
-                            ranking [dist] = racer;
+                            ranking.Add(racer);
                         }
                     }
                     else
                     {
-                        RacerInfo racer = new RacerInfo(p, dist, 0, missed)
+                        RacerInfo racer = new RacerInfo(p, dist, 0, missed, started)
                         {
                             Destination = destination
                         };
-                        ranking [dist] = racer;
+                        ranking.Add(racer);
                     }
 
                 }
@@ -635,7 +772,7 @@ namespace RacingMod
                 dist = previous.Value.Distance;
                 return previous.Value.Destination.Index;
             }
-            
+
             missed = false;
             dist = laps * nodeDistances [nodes.Count - 1];
 
@@ -653,7 +790,6 @@ namespace RacingMod
             int end;
             double partial;
             GetClosestSegment(p.GetPosition(), out start, out end, out partial);
-            //MyAPIGateway.Utilities.ShowNotification($"{start} {end}", 16);
 
             if (start < 0)
             {
@@ -670,6 +806,7 @@ namespace RacingMod
                     // Has been on the track previously
                     if (finish == null)
                     {
+
                         if (nextNode >= nodes.Count - 1 && NodeCleared(p, nodes.Count - 1))
                         {
                             // The previous node is the last node.
@@ -680,16 +817,18 @@ namespace RacingMod
                         {
                             // The previous node is on the track somewhere
                             missed = true;
+                            if (nextNode > nodes.Count - 1)
+                                nextNode = nodes.Count - 1;
                             dist += nodeDistances [nextNode];
                             return nextNode;
                         }
                     }
                     else
                     {
-
                         if (nextNode >= nodes.Count - 1)
                         {
                             // The previous node is the last node.
+                            // To get here, a collision with the finish must have failed.
                             missed = true;
                         }
                         dist += nodeDistances [nextNode];
@@ -701,8 +840,6 @@ namespace RacingMod
                 {
                     // The racer has not yet entered the track, display the first node
                     return 0;
-                    //end = 0;
-                    //destination = nodes [0];
                 }
             }
             else
@@ -712,12 +849,19 @@ namespace RacingMod
                 {
                     this.nextNode [p.SteamUserId] = end;
                     nextNode = end;
-                    //MyAPIGateway.Utilities.ShowNotification($"nextNode is now {end}");
                 }
 
                 if (end <= nextNode)
                 {
                     // Racer is in expected position.
+                    if(end == nextNode)
+                    {
+                        // This should help prevent collisions from not being detected by attempting the check earlier
+                        RacingBeacon node = nodes [end];
+                        if(node.Type == RacingBeacon.BeaconType.CHECKPOINT && node.Contains(p))
+                            this.nextNode [p.SteamUserId] = end + 1;
+                    }
+
                     dist += nodeDistances [start] + partial;
                     return nextNode;
                 }
@@ -725,7 +869,6 @@ namespace RacingMod
                 {
                     // Racer has moved past one node.
                     this.nextNode [p.SteamUserId] = end;
-                    //nextNode = end;
                     dist += nodeDistances [start] + partial;
                     return end;
                 }
@@ -733,8 +876,6 @@ namespace RacingMod
                 {
                     // Racer has moved past multiple nodes, clamp them.
                     missed = start >= nextNode;
-                    //start = nextNode - 1;
-                    //end = nextNode;
 
                     if (previous.HasValue)
                         dist = previous.Value.Distance;
@@ -1010,11 +1151,27 @@ namespace RacingMod
             {
                 tempSb.Append(colorFinalist);
                 int i = 0;
-                foreach(RacerInfo current in finishes.Values)
+                IEnumerable<RacerInfo> finishers;
+                if(timeMode)
+                {
+                    SortedSet<RacerInfo> sorted = new SortedSet<RacerInfo>(new RacerTimeComparer());
+                    foreach (RacerInfo info in finishes.Values)
+                        sorted.Add(info);
+                    finishers = sorted;
+                }
+                else
+                {
+                    finishers = finishes.Values;
+                }
+
+                foreach(RacerInfo current in finishers)
                 {
                     i++;
                     tempSb.Append(SetLength(i, numberWidth)).Append(' ');
-                    tempSb.Append(SetLength(current.Name, nameWidth)).AppendLine();
+                    tempSb.Append(SetLength(current.Name, nameWidth));
+                    if (timeMode)
+                        tempSb.Append(' ').Append(current.TimeElapsed.ToString("mm\\:ss\\:ff"));
+                    tempSb.AppendLine();
                 }
                 tempSb.Length--;
                 tempSb.Append(colorWhite).AppendLine();
@@ -1114,7 +1271,7 @@ namespace RacingMod
             }
         }
 
-        void BuildText (SortedDictionary<double, RacerInfo> ranking)
+        void BuildText (SortedSet<RacerInfo> ranking)
         {
             // Build the active racer text
             ActiveRacersText.Clear();
@@ -1141,12 +1298,12 @@ namespace RacingMod
                 int i = finishes.Count + 1;
                 double previousDist = nodeDistances[nodes.Count - 1] * numLaps;
 
-                SendNextSpectatorResponse(ranking.Values.Last().RacerId, ranking.Values.First().Racer);
-                SendPrevSpectatorResponse(ranking.Values.First().RacerId, ranking.Values.Last().Racer);
+                SendNextSpectatorResponse(ranking.Last().RacerId, ranking.First().Racer);
+                SendPrevSpectatorResponse(ranking.First().RacerId, ranking.Last().Racer);
 
                 ulong previousId = 0;
                 IMyPlayer previousRacer = null;
-                foreach (RacerInfo racer in ranking.Values)
+                foreach (RacerInfo racer in ranking)
                 {
                     RacerInfo current = racer;
                     current.Rank = i;
@@ -1217,8 +1374,15 @@ namespace RacingMod
                     }
                     else
                     {
-                        ActiveRacersText.Append(SetLength((int)(previousDist - current.Distance), distWidth));
-                        previousDist = current.Distance;
+                        if(timeMode)
+                        {
+                            ActiveRacersText.Append(SetLength(current.TimeElapsed.ToString("mm\\:ss\\:ff"), distWidth));
+                        }
+                        else
+                        {
+                            ActiveRacersText.Append(SetLength((int)(previousDist - current.Distance), distWidth));
+                            previousDist = current.Distance;
+                        }
                     }
 
                     int lap;
@@ -1346,18 +1510,29 @@ namespace RacingMod
             public double Distance;
             public int Rank;
             public string Name => Racer.DisplayName;
+            public TimeSpan TimeElapsed => timeSpan ?? (DateTime.Now - Started);
             public int RankUpFrame;
             public RacingBeacon Destination;
             public bool Missed;
+            public DateTime Started;
 
-            public RacerInfo (IMyPlayer racer, double distance, int rank, bool missed)
+            private TimeSpan? timeSpan;
+
+            public RacerInfo (IMyPlayer racer, double distance, int rank, bool missed, DateTime started)
             {
+                timeSpan = null;
+                Started = started;
                 Racer = racer;
                 Distance = distance;
                 Rank = rank;
                 RankUpFrame = 0;
                 Destination = null;
                 Missed = missed;
+            }
+
+            public void StopTimer()
+            {
+                timeSpan = DateTime.Now - Started;
             }
 
             public override bool Equals (object obj)
@@ -1373,6 +1548,31 @@ namespace RacingMod
             public override int GetHashCode ()
             {
                 return -913653116 + RacerId.GetHashCode();
+            }
+        }
+
+
+        class RacerDistanceComparer : IComparer<RacerInfo>
+        {
+            public int Compare (RacerInfo x, RacerInfo y)
+            {
+                int result = y.Distance.CompareTo(x.Distance);
+                if (result == 0)
+                    return 1;
+                else
+                    return result;
+            }
+        }
+
+        class RacerTimeComparer : IComparer<RacerInfo>
+        {
+            public int Compare (RacerInfo x, RacerInfo y)
+            {
+                int result = x.TimeElapsed.CompareTo(y.TimeElapsed);
+                if (result == 0)
+                    return 1;
+                else
+                    return result;
             }
         }
 
