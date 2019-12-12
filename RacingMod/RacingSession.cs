@@ -21,11 +21,15 @@ namespace RacingMod
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     public class RacingSession : MySessionComponentBase
     {
+        public int Runtime = 0;
+
         bool timeMode = false;
 
         int numLaps = 1;
 
         bool debug = false;
+
+        const string timerFormating = "mm\\:ss\\:ff";
 
         const int defaultMsgMs = 4000;
 
@@ -54,21 +58,18 @@ namespace RacingMod
         private const int rankUpTime = 90;
         private bool running = false;
 
-        private Dictionary<ulong, RacerInfo> previousRacerInfos = new Dictionary<ulong, RacerInfo>();
-        private readonly Dictionary<ulong, RacerInfo> finishes = new Dictionary<ulong, RacerInfo>();
-        readonly Dictionary<ulong, int> nextNode = new Dictionary<ulong, int>();
-        readonly Dictionary<ulong, int> laps = new Dictionary<ulong, int>();
-        readonly HashSet<ulong> inFinish = new HashSet<ulong>();
+        private Dictionary<ulong, StaticRacerInfo> staticRacerInfo = new Dictionary<ulong, StaticRacerInfo>();
+
+        private Dictionary<ulong, RacerInfo> finishers = new Dictionary<ulong, RacerInfo>();
         private readonly HashSet<ulong> activePlayers = new HashSet<ulong>();
+        private int numRacersPreviousTick = 0;
 
         readonly ConcurrentDictionary<ulong, HashSet<ulong>> nextPlayerRequests = new ConcurrentDictionary<ulong, HashSet<ulong>>();
         readonly ConcurrentDictionary<ulong, HashSet<ulong>> prevPlayerRequests = new ConcurrentDictionary<ulong, HashSet<ulong>>();
 
-        Dictionary<ulong, DateTime> timeStart = new Dictionary<ulong, DateTime>();
 
         private string hudHeader;
 
-        private int frameCount = 0;
         private const string headerColor = "<color=127,127,127>";
         const string colorWhite = "<color=white>";
         const string colorStationary = "<color=255,124,124>";
@@ -93,6 +94,7 @@ namespace RacingMod
 
         public RacingSession ()
         {
+            Instance = this;
             UpdateHeader();
         }
 
@@ -174,8 +176,8 @@ namespace RacingMod
             if (nodeDistances.Length == 0)
                 return;
 
-
-            nextNode.Clear();
+            foreach (StaticRacerInfo info in staticRacerInfo.Values)
+                info.NextNode = null;
             
             double cumulative = 0;
             nodeDistances [0] = 0;
@@ -214,7 +216,6 @@ namespace RacingMod
             }
 
             running = true;
-            Instance = this;
         }
 
         private void PlayerDisconnected (long playerId)
@@ -411,7 +412,30 @@ namespace RacingMod
 
                     if (MyAPIGateway.Session.IsServer)
                     {
-                        finishes.Clear();
+                        if(cmd.Length == 2)
+                        {
+                            ClearFinishers();
+                        }
+                        else if(cmd.Length == 3)
+                        {
+                            IMyPlayer result = GetPlayer(cmd [2]);
+                            if (result == null)
+                            {
+                                MyVisualScriptLogicProvider.SendChatMessage($"No racer was found with a name containing '{cmd [2]}'.", "rcd", p.IdentityId, "Red");
+                                return;
+                            }
+                            else
+                            {
+                                MyVisualScriptLogicProvider.SendChatMessage($"Removed {result.DisplayName} from the scoreboard.", "rcd", p.IdentityId, "Red");
+                                RemoveFinisher(result.SteamUserId);
+                            }
+                        }
+                        else
+                        {
+                            MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd clear [name]: Removes all or a specific racer from the board.", "rcd", p.IdentityId, "Red");
+                            return;
+
+                        }
                         FinishesUpdated();
                         MyVisualScriptLogicProvider.SendChatMessage("Cleared all finishers.", "rcd", p.IdentityId, "Red");
                     }
@@ -442,51 +466,6 @@ namespace RacingMod
                         redirect = true;
                     }
                     break;
-                case "cleartimers":
-                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
-                        return;
-
-                    if (MyAPIGateway.Session.IsServer)
-                    {
-                        MyVisualScriptLogicProvider.SendChatMessage("Cleared all race timers", "rcd", p.IdentityId, "Red");
-                        timeStart.Clear();
-                    }
-                    else
-                    {
-                        redirect = true;
-                    }
-                    break;
-                case "cleartimer":
-                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
-                        return;
-
-                    if(cmd.Length != 3)
-                    {
-                        MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd cleartimer <name>: Resets a specific racer's timer.", "rcd", p.IdentityId, "Red");
-                        return;
-                    }
-
-                    if (MyAPIGateway.Session.IsServer)
-                    {
-                        playersTemp.Clear();
-                        MyAPIGateway.Players.GetPlayers(playersTemp);
-                        IMyPlayer result = GetPlayer(cmd [2]);
-                        if(result == null)
-                        {
-                            MyVisualScriptLogicProvider.SendChatMessage($"No racer was found with a name containing '{cmd [2]}'.", "rcd", p.IdentityId, "Red");
-                        }
-                        else
-                        {
-                            MyVisualScriptLogicProvider.SendChatMessage($"Reset {result.DisplayName}'s race timer.", "rcd", p.IdentityId, "Red");
-                            timeStart.Remove(result.SteamUserId);
-                        }
-                        return;
-                    }
-                    else
-                    {
-                        redirect = true;
-                    }
-                    break;
                 case "grant":
                     if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
                         return;
@@ -509,7 +488,9 @@ namespace RacingMod
                         else
                         {
                             MyVisualScriptLogicProvider.SendChatMessage($"Reset {result.DisplayName}'s missing status.", "rcd", p.IdentityId, "Red");
-                            nextNode.Remove(result.SteamUserId);
+                            StaticRacerInfo info;
+                            if (StaticInfo(p, out info))
+                                info.NextNode = null;
                         }
                         return;
                     }
@@ -530,14 +511,31 @@ namespace RacingMod
             }
         }
 
+        private bool StaticInfo (IMyPlayer p, out StaticRacerInfo info)
+        {
+            if (staticRacerInfo.TryGetValue(p.SteamUserId, out info))
+                return true;
+            info = null;
+            return false;
+        }
+
+        private StaticRacerInfo StaticInfo(IMyPlayer p)
+        {
+            StaticRacerInfo info;
+            if (staticRacerInfo.TryGetValue(p.SteamUserId, out info))
+                return info;
+            info = new StaticRacerInfo(p);
+            staticRacerInfo.Add(p.SteamUserId, info);
+            return info;
+        }
+
         void ShowChatHelp(IMyPlayer p)
         {
             string s = "\nCommands:\n/rcd join: Joins the race.\n/rcd leave: Leaves the race.\n" +
                 "/rcd rejoin: Shortcut to leave and join the race.\n/rcd ui: Toggles the on screen UIs.";
             if (p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin)
-                s = "\nAdmin Commands:\n/rcd clear: Removes all finalists.\n" +
-                    "/rcd cleartimer <name>: Resets a specific racer's timer.\n/rcd cleartimers: Reset all racer timers.\n" +
-                    "/rcd grant <name>: Fixes a 'missing' error on the ui caused by a missed checkpoint." + s;
+                s = "\nAdmin Commands:\n/rcd clear [name]: Removes finalist(s).\n" +
+                    "/rcd grant <name>: Fixes a racer's 'missing' status.\n/rcd mode: Toggles timed mode." + s;
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Red");
         }
 
@@ -564,6 +562,7 @@ namespace RacingMod
             if (!running || MyAPIGateway.Session == null)
                 return;
 
+            Runtime++;
             try
             {
                 if (MyAPIGateway.Session.Player != null)
@@ -574,7 +573,6 @@ namespace RacingMod
                     ProcessValues();
                     BroadcastData(ActiveRacersText, packetMainId);
                     DrawDebug();
-                    frameCount++;
                 }
             }
             catch (Exception e)
@@ -627,10 +625,13 @@ namespace RacingMod
         {
             if (activePlayers.Add(p.SteamUserId))
             {
-                nextNode.Remove(p.SteamUserId);
-                inFinish.Remove(p.SteamUserId);
-                laps.Remove(p.SteamUserId);
-                if (finishes.Remove(p.SteamUserId))
+                StaticRacerInfo info = StaticInfo(p);
+                info.NextNode = null;
+                info.InFinish = false;
+                info.Laps = 0;
+                info.Timer.Reset(true);
+                info.PreviousTick = null;
+                if (!timeMode && RemoveFinisher(p.SteamUserId))
                     FinishesUpdated();
                 MyVisualScriptLogicProvider.ShowNotification("You have joined the race.", defaultMsgMs, "White", p.IdentityId);
                 return true;
@@ -642,13 +643,43 @@ namespace RacingMod
             }
         }
 
+        bool RemoveFinisher(ulong id)
+        {
+            if(finishers.Remove(id))
+            {
+                StaticRacerInfo info;
+                if (staticRacerInfo.TryGetValue(id, out info))
+                    info.BestTime = new TimeSpan(0);
+                return true;
+            }
+            return false;
+        }
+
+        void ClearFinishers()
+        {
+            foreach (ulong id in finishers.Keys)
+            {
+                StaticRacerInfo info;
+                if (staticRacerInfo.TryGetValue(id, out info))
+                    info.BestTime = new TimeSpan(0);
+            }
+            finishers.Clear();
+        }
+
         bool LeaveRace(IMyPlayer p)
         {
-            previousRacerInfos.Remove(p.SteamUserId);
+            StaticRacerInfo info;
+            if (StaticInfo(p, out info))
+            {
+                info.NextNode = null;
+                info.InFinish = false;
+                info.Laps = 0;
+                info.Timer.Reset(true);
+                info.PreviousTick = null;
+            }
+
             RemoveWaypoint(p.IdentityId);
-            nextNode.Remove(p.SteamUserId);
-            inFinish.Remove(p.SteamUserId);
-            laps.Remove(p.SteamUserId);
+
             if(activePlayers.Remove(p.SteamUserId))
             {
                 MyVisualScriptLogicProvider.ShowNotification("You have left the race.", defaultMsgMs, "White", p.IdentityId);
@@ -679,32 +710,32 @@ namespace RacingMod
             MyAPIGateway.Players.GetPlayers(playersTemp, IsPlayerActive);
             foreach (IMyPlayer p in playersTemp)
             {
-
+                StaticRacerInfo info = StaticInfo(p);
 
                 // Find the closest node
-                int currLaps = GetNumLaps(p);
+                //int currLaps = GetNumLaps(p);
                 bool missed;
                 double dist;
-                int? nextNode = GetNextNode(p, currLaps, out missed, out dist);
+                int? nextNode = GetNextNode(p, info, out missed, out dist);
 
                 if (!nextNode.HasValue)
-                    continue;
-
-                DateTime started;
-                if (!timeStart.TryGetValue(p.SteamUserId, out started))
                 {
-                    started = DateTime.Now;
-                    if (nextNode > 0 && nextNode < nodes.Count)
-                        timeStart [p.SteamUserId] = started;
+                    info.Timer.Stop();
+                    continue;
                 }
+
+                if (nextNode > 0 && nextNode < nodes.Count)
+                    info.Timer.Start();
+                else
+                    info.Timer.Stop();
                     
                 RacingBeacon destination = nodes[nextNode.Value];
 
-                if (inFinish.Contains(p.SteamUserId))
+                if (info.InFinish)
                 {
                     missed = false; // When racer has crossed the finish, the racer will be ahead of the first node
-                    if(finish == null || !finish.Contains(p))
-                        inFinish.Remove(p.SteamUserId);
+                    if (finish == null || !finish.Contains(p))
+                        info.InFinish = false;
                 }
 
                 // Check if racer is on the track
@@ -714,28 +745,33 @@ namespace RacingMod
                     if(nextNode == nodes.Count - 1 && finish != null && finish.Contains(p))
                     {
                         // If the closest node is the last node, a finish exists, and the grid is intersecting with the finish
-                        if (currLaps >= numLaps - 1)
+                        if (info.Laps >= numLaps - 1)
                         {
                             // The racer has finished all laps
-                            int rank = finishes.Count + 1;
-                            RacerInfo finishInfo = new RacerInfo(p, 0, rank, missed, started);
-                            finishInfo.StopTimer();
-                            finishes.Add(p.SteamUserId, finishInfo);
+                            int rank = finishers.Count + 1;
+                            RacerInfo finishInfo = new RacerInfo(p, 0, rank, missed);
+                            finishers[p.SteamUserId] = finishInfo;
+                            info.PreviousTick = finishInfo;
+                            info.Finish();
                             FinishesUpdated();
 
-                            MyVisualScriptLogicProvider.ShowNotificationToAll($"{p.DisplayName} just finished in position {rank}", defaultMsgMs, "White");
+                            if(timeMode)
+                                MyVisualScriptLogicProvider.ShowNotificationToAll($"{p.DisplayName} just finished with time {info.Timer.GetTime(timerFormating)}", defaultMsgMs, "White");
+                            else
+                                MyVisualScriptLogicProvider.ShowNotificationToAll($"{p.DisplayName} just finished in position {rank}", defaultMsgMs, "White");
                             LeaveRace(p);
                         }
                         else
                         { 
                             // The racer needs more laps
-                            if(inFinish.Add(p.SteamUserId))
+                            if(!info.InFinish)
                             {
-                                MyVisualScriptLogicProvider.ShowNotification($"Lap {currLaps + 2} / {numLaps}", defaultMsgMs, "White", p.IdentityId);
-                                laps [p.SteamUserId] = currLaps + 1;
+                                info.InFinish = true;
+                                MyVisualScriptLogicProvider.ShowNotification($"Lap {info.Laps + 2} / {numLaps}", defaultMsgMs, "White", p.IdentityId);
+                                info.Laps++;
                             }
-                            this.nextNode [p.SteamUserId] = 0;
-                            RacerInfo racer = new RacerInfo(p, dist, 0, missed, started)
+                            info.NextNode = 0;
+                            RacerInfo racer = new RacerInfo(p, dist, 0, missed)
                             {
                                 Destination = destination
                             };
@@ -744,7 +780,7 @@ namespace RacingMod
                     }
                     else
                     {
-                        RacerInfo racer = new RacerInfo(p, dist, 0, missed, started)
+                        RacerInfo racer = new RacerInfo(p, dist, 0, missed)
                         {
                             Destination = destination
                         };
@@ -762,28 +798,32 @@ namespace RacingMod
             BuildText(ranking);
         }
 
-        int? GetNextNode(IMyPlayer p, int laps, out bool missed, out double dist)
+        int? GetNextNode(IMyPlayer p, StaticRacerInfo info, out bool missed, out double dist)
         {
-            RacerInfo? previous = GetPreviousInfo(p);
+            //RacerInfo? previous = GetPreviousInfo(p);
 
-            if (previous.HasValue && GetCockpit(p) == null)
+            if (info.PreviousTick.HasValue && GetCockpit(p) == null)
             {
-                missed = previous.Value.Missed;
-                dist = previous.Value.Distance;
-                return previous.Value.Destination.Index;
+                missed = info.PreviousTick.Value.Missed;
+                dist = info.PreviousTick.Value.Distance;
+                return info.PreviousTick.Value.Destination.Index;
             }
 
             missed = false;
-            dist = laps * nodeDistances [nodes.Count - 1];
+            dist = info.Laps * nodeDistances [nodes.Count - 1];
 
             int nextNode;
-            bool isNew = !this.nextNode.TryGetValue(p.SteamUserId, out nextNode);
+            bool isNew = !info.NextNode.HasValue;//!this.nextNode.TryGetValue(p.SteamUserId, out nextNode);
             if (isNew)
             {
-                this.nextNode [p.SteamUserId] = 0;
+                info.NextNode = 0;
                 nextNode = 0;
                 if (numLaps > 1)
-                    MyVisualScriptLogicProvider.ShowNotification($"Lap {laps + 1} / {numLaps}", defaultMsgMs, "White", p.IdentityId);
+                    MyVisualScriptLogicProvider.ShowNotification($"Lap {info.Laps + 1} / {numLaps}", defaultMsgMs, "White", p.IdentityId);
+            }
+            else
+            {
+                nextNode = info.NextNode.Value;
             }
 
             int start;
@@ -847,7 +887,7 @@ namespace RacingMod
                 // On the track
                 if (isNew)
                 {
-                    this.nextNode [p.SteamUserId] = end;
+                    info.NextNode = end;
                     nextNode = end;
                 }
 
@@ -859,7 +899,7 @@ namespace RacingMod
                         // This should help prevent collisions from not being detected by attempting the check earlier
                         RacingBeacon node = nodes [end];
                         if(node.Type == RacingBeacon.BeaconType.CHECKPOINT && node.Contains(p))
-                            this.nextNode [p.SteamUserId] = end + 1;
+                            info.NextNode = end + 1;
                     }
 
                     dist += nodeDistances [start] + partial;
@@ -868,7 +908,7 @@ namespace RacingMod
                 else if (start == nextNode && NodeCleared(p, nextNode))
                 {
                     // Racer has moved past one node.
-                    this.nextNode [p.SteamUserId] = end;
+                    info.NextNode = end;
                     dist += nodeDistances [start] + partial;
                     return end;
                 }
@@ -877,8 +917,8 @@ namespace RacingMod
                     // Racer has moved past multiple nodes, clamp them.
                     missed = start >= nextNode;
 
-                    if (previous.HasValue)
-                        dist = previous.Value.Distance;
+                    if (info.PreviousTick.HasValue)
+                        dist = info.PreviousTick.Value.Distance;
                     else
                         dist += nodeDistances [nextNode];
                     return nextNode;
@@ -887,15 +927,15 @@ namespace RacingMod
 
         }
 
-        RacerInfo? GetPreviousInfo(IMyPlayer p)
+        /*RacerInfo? GetPreviousInfo(IMyPlayer p)
         {
             RacerInfo temp;
             if (previousRacerInfos.TryGetValue(p.SteamUserId, out temp))
                 return temp;
             return null;
-        }
+        }*/
 
-        int GetNumLaps(IMyPlayer p)
+        /*int GetNumLaps(IMyPlayer p)
         {
             int laps;
             if (this.laps.TryGetValue(p.SteamUserId, out laps))
@@ -909,7 +949,7 @@ namespace RacingMod
                 this.laps [p.SteamUserId] = 0;
                 return 0;
             }
-        }
+        }*/
 
         void Spectator()
         {
@@ -1147,32 +1187,37 @@ namespace RacingMod
         {
             // Build the final racer text
             tempSb.Clear();
-            if (finishes.Count > 0)
+
+            if (finishers.Count > 0)
             {
                 tempSb.Append(colorFinalist);
                 int i = 0;
-                IEnumerable<RacerInfo> finishers;
                 if(timeMode)
                 {
-                    SortedSet<RacerInfo> sorted = new SortedSet<RacerInfo>(new RacerTimeComparer());
-                    foreach (RacerInfo info in finishes.Values)
-                        sorted.Add(info);
-                    finishers = sorted;
+                    SortedSet<StaticRacerInfo> sorted = new SortedSet<StaticRacerInfo>(new RacerBestTimeComparer());
+                    foreach (ulong current in finishers.Keys)
+                        sorted.Add(staticRacerInfo [current]);
+
+                    foreach (StaticRacerInfo info in sorted)
+                    {
+                        i++;
+                        tempSb.Append(SetLength(i, numberWidth)).Append(' ');
+                        tempSb.Append(SetLength(info.Name, nameWidth)).Append(' ');
+                        tempSb.Append(info.BestTime.ToString("mm\\:ss\\:ff"));
+                        tempSb.AppendLine();
+                    }
                 }
                 else
                 {
-                    finishers = finishes.Values;
+                    foreach (RacerInfo current in finishers.Values)
+                    {
+                        i++;
+                        tempSb.Append(SetLength(i, numberWidth)).Append(' ');
+                        tempSb.Append(SetLength(current.Name, nameWidth));
+                        tempSb.AppendLine();
+                    }
                 }
 
-                foreach(RacerInfo current in finishers)
-                {
-                    i++;
-                    tempSb.Append(SetLength(i, numberWidth)).Append(' ');
-                    tempSb.Append(SetLength(current.Name, nameWidth));
-                    if (timeMode)
-                        tempSb.Append(' ').Append(current.TimeElapsed.ToString("mm\\:ss\\:ff"));
-                    tempSb.AppendLine();
-                }
                 tempSb.Length--;
                 tempSb.Append(colorWhite).AppendLine();
             }
@@ -1276,26 +1321,26 @@ namespace RacingMod
             // Build the active racer text
             ActiveRacersText.Clear();
 
-            if (ranking.Count == 0 && finishes.Count == 0)
+            if (ranking.Count == 0 && finishers.Count == 0)
             {
                 ActiveRacersText.Append("No racers in range.");
-                previousRacerInfos.Clear();
                 return;
             }
 
 
             ActiveRacersText.Append(hudHeader);
-            if (finishes.Count > 0)
+            if (finishers.Count > 0)
                 ActiveRacersText.Append(finalRacersString);
             
 
             if (ranking.Count > 0)
             {
-                Dictionary<ulong, RacerInfo> newPrevRacerInfos = new Dictionary<ulong, RacerInfo>(ranking.Count);
+                numRacersPreviousTick = 0;
+                //Dictionary<ulong, RacerInfo> newPrevRacerInfos = new Dictionary<ulong, RacerInfo>(ranking.Count);
 
                 bool drawWhite = false;
 
-                int i = finishes.Count + 1;
+                int i = finishers.Count + 1;
                 double previousDist = nodeDistances[nodes.Count - 1] * numLaps;
 
                 SendNextSpectatorResponse(ranking.Last().RacerId, ranking.First().Racer);
@@ -1305,6 +1350,7 @@ namespace RacingMod
                 IMyPlayer previousRacer = null;
                 foreach (RacerInfo racer in ranking)
                 {
+                    StaticRacerInfo staticInfo = StaticInfo(racer.Racer);
                     RacerInfo current = racer;
                     current.Rank = i;
 
@@ -1320,9 +1366,9 @@ namespace RacingMod
                     }
 
                     string drawnColor = null;
-                    RacerInfo previous;
-                    if (previousRacerInfos.TryGetValue(current.RacerId, out previous))
+                    if (staticInfo.PreviousTick.HasValue)
                     {
+                        RacerInfo previous = staticInfo.PreviousTick.Value;
                         RenderWaypoint(current, previous);
 
                         if (!Moved(current))
@@ -1330,16 +1376,16 @@ namespace RacingMod
                             // stationary
                             drawnColor = colorStationary;
                         }
-                        else if (previousRacerInfos.Count == ranking.Count && current.Rank < previous.Rank)
+                        else if (numRacersPreviousTick == ranking.Count && current.Rank < previous.Rank)
                         {
                             // just ranked up
-                            current.RankUpFrame = frameCount;
+                            current.RankUpFrame = Runtime;
                             drawnColor = colorRankUp;
                         }
                         else if (previous.RankUpFrame > 0)
                         {
                             // recently ranked up
-                            if (previous.RankUpFrame + rankUpTime > frameCount)
+                            if (previous.RankUpFrame + rankUpTime > Runtime)
                                 current.RankUpFrame = previous.RankUpFrame;
                             drawnColor = colorRankUp;
                         }
@@ -1376,7 +1422,7 @@ namespace RacingMod
                     {
                         if(timeMode)
                         {
-                            ActiveRacersText.Append(SetLength(current.TimeElapsed.ToString("mm\\:ss\\:ff"), distWidth));
+                            ActiveRacersText.Append(SetLength(staticInfo.Timer.GetTime("mm\\:ss\\:ff"), distWidth));
                         }
                         else
                         {
@@ -1385,25 +1431,19 @@ namespace RacingMod
                         }
                     }
 
-                    int lap;
-                    if (numLaps > 1 && laps.TryGetValue(current.RacerId, out lap))
+                    int lap = staticInfo.Laps;
+                    if (numLaps > 1)
                         ActiveRacersText.Append(' ').Append(lap + 1);
 
                     ActiveRacersText.AppendLine();
 
-                    newPrevRacerInfos [current.RacerId] = current;
+                    numRacersPreviousTick++;
+                    staticInfo.PreviousTick = current;
 
                     i++;
                     previousId = current.RacerId;
                     previousRacer = current.Racer;
                 }
-
-                previousRacerInfos = newPrevRacerInfos;
-
-            }
-            else
-            {
-                previousRacerInfos.Clear();
             }
 
             nextPlayerRequests.Clear();
@@ -1503,54 +1543,6 @@ namespace RacingMod
                 MyAPIGateway.Utilities.ShowNotification($"[ ERROR: {type.FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]", 10000, MyFontEnum.Red);
         }
 
-        struct RacerInfo
-        {
-            public IMyPlayer Racer;
-            public ulong RacerId => Racer.SteamUserId;
-            public double Distance;
-            public int Rank;
-            public string Name => Racer.DisplayName;
-            public TimeSpan TimeElapsed => timeSpan ?? (DateTime.Now - Started);
-            public int RankUpFrame;
-            public RacingBeacon Destination;
-            public bool Missed;
-            public DateTime Started;
-
-            private TimeSpan? timeSpan;
-
-            public RacerInfo (IMyPlayer racer, double distance, int rank, bool missed, DateTime started)
-            {
-                timeSpan = null;
-                Started = started;
-                Racer = racer;
-                Distance = distance;
-                Rank = rank;
-                RankUpFrame = 0;
-                Destination = null;
-                Missed = missed;
-            }
-
-            public void StopTimer()
-            {
-                timeSpan = DateTime.Now - Started;
-            }
-
-            public override bool Equals (object obj)
-            {
-                if(obj is RacerInfo)
-                {
-                    RacerInfo info = (RacerInfo)obj;
-                    return RacerId == info.RacerId;
-                }
-                return false;
-            }
-
-            public override int GetHashCode ()
-            {
-                return -913653116 + RacerId.GetHashCode();
-            }
-        }
-
 
         class RacerDistanceComparer : IComparer<RacerInfo>
         {
@@ -1564,11 +1556,18 @@ namespace RacingMod
             }
         }
 
-        class RacerTimeComparer : IComparer<RacerInfo>
+        class RacerTimeComparer : IComparer<RacerInfo>, IComparer<StaticRacerInfo>
         {
             public int Compare (RacerInfo x, RacerInfo y)
             {
-                int result = x.TimeElapsed.CompareTo(y.TimeElapsed);
+                var info1 = Instance.StaticInfo(x.Racer);
+                var info2 = Instance.StaticInfo(y.Racer);
+                return Compare(info1, info2);
+            }
+
+            public int Compare (StaticRacerInfo x, StaticRacerInfo y)
+            {
+                int result = x.Timer.GetTime().CompareTo(y.Timer.GetTime());
                 if (result == 0)
                     return 1;
                 else
@@ -1576,11 +1575,11 @@ namespace RacingMod
             }
         }
 
-        class DescendingComparer<T> : IComparer<T> where T : IComparable<T>
+        class RacerBestTimeComparer : IComparer<StaticRacerInfo>
         {
-            public int Compare (T x, T y)
+            public int Compare (StaticRacerInfo x, StaticRacerInfo y)
             {
-                int result = y.CompareTo(x);
+                int result = x.BestTime.CompareTo(y.BestTime);
                 if (result == 0)
                     return 1;
                 else
