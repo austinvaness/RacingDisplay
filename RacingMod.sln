@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.572
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29418.71
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RacingMod", "RacingMod\RacingMod.csproj", "{2330C536-6C13-4F50-B567-B1923896B2FC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Racing Display", "RacingMod\Racing Display.csproj", "{2330C536-6C13-4F50-B567-B1923896B2FC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
