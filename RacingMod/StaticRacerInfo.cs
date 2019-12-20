@@ -71,7 +71,7 @@ namespace RacingMod
                 paused = DateTime.Now;
         }
 
-        internal void Reset (bool paused = false)
+        public void Reset (bool paused = false)
         {
             start = DateTime.Now;
             if (paused)

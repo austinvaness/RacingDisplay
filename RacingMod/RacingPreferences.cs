@@ -13,8 +13,8 @@ namespace RacingMod
 
         }
 
-        MyKeys nextPlayer = MyKeys.OemOpenBrackets;
-        public MyKeys NextPlayer
+        Keybind nextPlayer = MyKeys.OemCloseBrackets;
+        public Keybind NextPlayer
         {
             get
             {
@@ -30,8 +30,8 @@ namespace RacingMod
             }
         }
 
-        MyKeys prevPlayer = MyKeys.OemCloseBrackets;
-        public MyKeys PrevPlayer
+        Keybind prevPlayer = MyKeys.OemOpenBrackets;
+        public Keybind PrevPlayer
         {
             get
             {
@@ -42,6 +42,40 @@ namespace RacingMod
                 if (value != prevPlayer)
                 {
                     prevPlayer = value;
+                    SaveXML();
+                }
+            }
+        }
+
+        Keybind hideHud = MyKeys.OemPlus;
+        public Keybind HideHud
+        {
+            get
+            {
+                return hideHud;
+            }
+            set
+            {
+                if (value != hideHud)
+                {
+                    hideHud = value;
+                    SaveXML();
+                }
+            }
+        }
+
+        Keybind lookAt = MyKeys.OemQuotes;
+        public Keybind LookAt
+        {
+            get
+            {
+                return lookAt;
+            }
+            set
+            {
+                if (value != lookAt)
+                {
+                    lookAt = value;
                     SaveXML();
                 }
             }

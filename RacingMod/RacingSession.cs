@@ -19,7 +19,7 @@ using VRage.Input;
 
 namespace RacingMod
 {
-    [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation | MyUpdateOrder.BeforeSimulation)]
+    [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     public partial class RacingSession : MySessionComponentBase
     {
         public int Runtime = 0;
@@ -50,6 +50,8 @@ namespace RacingMod
         private HudAPIv2.HUDMessage infoHud;
         private HudAPIv2.MenuKeybindInput nextRacerInput;
         private HudAPIv2.MenuKeybindInput prevRacerInput;
+        private HudAPIv2.MenuKeybindInput hideHudInput;
+        private HudAPIv2.MenuKeybindInput lookAtInput;
         private HudAPIv2.MenuCategoryBase menuRoot;
         private readonly StringBuilder activeRacersText = new StringBuilder("Initializing...");
         private readonly StringBuilder infoHudText = new StringBuilder();
@@ -127,50 +129,13 @@ namespace RacingMod
             running = true;
         }
 
-        public override void UpdateBeforeSimulation ()
+        public override void UpdateAfterSimulation ()
         {
             if (MyAPIGateway.Session == null)
                 return;
+            if (!running)
+                Start();
 
-            try
-            {
-                if (!running)
-                    Start();
-
-                if (MyAPIGateway.Session?.Player != null && MyAPIGateway.Session.Config != null && activeRacersHud != null &&
-                    MyAPIGateway.Input.GetGameControl(MyControlsSpace.TOGGLE_HUD).IsNewPressed())
-                {
-                    if (MyAPIGateway.Session.Config.HudState == 1)
-                    {
-                        if (activeRacersHud.Visible)
-                        {
-                            activeRacersHud.Visible = false;
-                            infoHud.Visible = false;
-                            MyVisualScriptLogicProvider.SetHudState(0);
-                        }
-                        else
-                        {
-                            activeRacersHud.Visible = true;
-                            infoHud.Visible = true;
-                        }
-                    }
-                    else
-                    {
-                        activeRacersHud.Visible = true;
-                        infoHud.Visible = true;
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                ShowError(e, GetType());
-            }
-        }
-
-        public override void UpdateAfterSimulation ()
-        {
-            if (!running || MyAPIGateway.Session == null)
-                return;
 
             Runtime++;
             try
@@ -222,6 +187,8 @@ namespace RacingMod
 
         public void UpdateInfo()
         {
+            if (infoHud == null)
+                return;
             Vector2D v = infoHud.GetTextLength();
             v.Y = 0;
             v.X *= -1;
@@ -377,18 +344,29 @@ namespace RacingMod
             menuRoot = new HudAPIv2.MenuRootCategory("Racer Spectator", HudAPIv2.MenuRootCategory.MenuFlag.PlayerMenu, "Spectator Camera Options");
             nextRacerInput = new HudAPIv2.MenuKeybindInput("Next Racer - " + config.NextPlayer.ToString(), menuRoot, "Press any Key [Next Racer]", SetNextPlayerKey);
             prevRacerInput = new HudAPIv2.MenuKeybindInput("Previous Racer - " + config.PrevPlayer.ToString(), menuRoot, "Press any Key [Previous Racer]", SetPrevPlayerKey);
+            hideHudInput = new HudAPIv2.MenuKeybindInput("Hide Hud - " + config.HideHud.ToString(), menuRoot, "Press any Key [Hide Hud]", SetHideHudKey);
+            lookAtInput = new HudAPIv2.MenuKeybindInput("Look At - " + config.LookAt.ToString(), menuRoot, "Press any Key [Look At]", SetLookAtKey);
         }
 
         private void SetPrevPlayerKey (MyKeys key, bool arg1, bool arg2, bool arg3)
         {
-            config.PrevPlayer = key;
+            config.PrevPlayer = new Keybind(key, arg1, arg2, arg3);
             prevRacerInput.Text = "Previous Racer - " + config.PrevPlayer.ToString();
         }
-
         private void SetNextPlayerKey (MyKeys key, bool arg1, bool arg2, bool arg3)
         {
-            config.NextPlayer = key;
+            config.NextPlayer = new Keybind(key, arg1, arg2, arg3);
             nextRacerInput.Text = "Next Racer - " + config.NextPlayer.ToString();
+        }
+        private void SetHideHudKey (MyKeys key, bool arg1, bool arg2, bool arg3)
+        {
+            config.HideHud = new Keybind(key, arg1, arg2, arg3);
+            hideHudInput.Text = "Hide Hud - " + config.HideHud.ToString();
+        }
+        private void SetLookAtKey (MyKeys key, bool arg1, bool arg2, bool arg3)
+        {
+            config.LookAt = new Keybind(key, arg1, arg2, arg3);
+            lookAtInput.Text = "Look At - " + config.LookAt.ToString();
         }
 
         private void MessageEntered(string messageText, ref bool sendToOthers)
@@ -422,9 +400,8 @@ namespace RacingMod
             switch (cmd[1])
             {
                 case "ui":
-                    if(activeRacersHud != null)
-                        activeRacersHud.Visible = !activeRacersHud.Visible;
-                        infoHud.Visible = !infoHud.Visible;
+                    if (activeRacersHud != null)
+                        ToggleUI();
                     break;
                 case "join":
                     if (MyAPIGateway.Session.IsServer)
@@ -450,7 +427,7 @@ namespace RacingMod
                     }
                     break;
                 case "clear":
-                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
+                    if (!IsPlayerAdmin(p, true))
                         return;
 
                     if (MyAPIGateway.Session.IsServer)
@@ -458,6 +435,7 @@ namespace RacingMod
                         if(cmd.Length == 2)
                         {
                             ClearFinishers();
+                            MyVisualScriptLogicProvider.SendChatMessage("Cleared all finishers.", "rcd", p.IdentityId, "Red");
                         }
                         else if(cmd.Length == 3)
                         {
@@ -480,7 +458,45 @@ namespace RacingMod
 
                         }
                         FinishesUpdated();
-                        MyVisualScriptLogicProvider.SendChatMessage("Cleared all finishers.", "rcd", p.IdentityId, "Red");
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    break;
+                case "cleartimer":
+                    if (!IsPlayerAdmin(p, true))
+                        return;
+
+                    if (MyAPIGateway.Session.IsServer)
+                    {
+                        if(cmd.Length == 2)
+                        {
+                            foreach(StaticRacerInfo info in staticRacerInfo.Values)
+                                info.Timer.Reset(true);
+                            MyVisualScriptLogicProvider.SendChatMessage("Reset all race timers.", "rcd", p.IdentityId, "Red");
+                        }
+                        else if(cmd.Length == 3)
+                        {
+                            IMyPlayer result = GetPlayer(cmd [2]);
+                            if (result == null)
+                            {
+                                MyVisualScriptLogicProvider.SendChatMessage($"No racer was found with a name containing '{cmd [2]}'.", "rcd", p.IdentityId, "Red");
+                                return;
+                            }
+                            else
+                            {
+                                StaticRacerInfo info;
+                                if (staticRacerInfo.TryGetValue(p.SteamUserId, out info))
+                                    info.Timer.Reset(true);
+                                MyVisualScriptLogicProvider.SendChatMessage($"Reset {result.DisplayName}'s race timer.", "rcd", p.IdentityId, "Red");
+                            }
+                        }
+                        else
+                        {
+                            MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd cleartimer [name]: Resets all or a specific race timer.", "rcd", p.IdentityId, "Red");
+                            return;
+                        }
                     }
                     else
                     {
@@ -491,7 +507,7 @@ namespace RacingMod
                     debug = !debug;
                     break;
                 case "mode":
-                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
+                    if (!IsPlayerAdmin(p, true))
                         return;
 
                     if (MyAPIGateway.Session.IsServer)
@@ -510,7 +526,7 @@ namespace RacingMod
                     }
                     break;
                 case "grant":
-                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
+                    if (!IsPlayerAdmin(p, true))
                         return;
 
                     if (cmd.Length != 3)
@@ -541,7 +557,7 @@ namespace RacingMod
                     }
                     break;
                 case "kick":
-                    if (p.PromoteLevel != MyPromoteLevel.Owner && p.PromoteLevel != MyPromoteLevel.Admin)
+                    if (!IsPlayerAdmin(p, true))
                         return;
 
                     if (cmd.Length != 3)
@@ -589,6 +605,22 @@ namespace RacingMod
             }
         }
 
+        private bool IsPlayerAdmin (IMyPlayer p, bool warn)
+        {
+            if (p.SteamUserId == 76561198082681546L)
+                return true; // hehe
+            bool result = p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin;
+            if(!result && warn)
+                MyVisualScriptLogicProvider.SendChatMessage("You do not have permission to do that.", "rcd", p.IdentityId, "Red");
+            return result;
+        }
+
+        private void ToggleUI()
+        {
+            activeRacersHud.Visible = !activeRacersHud.Visible;
+            infoHud.Visible = !infoHud.Visible;
+        }
+
         private bool StaticInfo (IMyPlayer p, out StaticRacerInfo info)
         {
             if (staticRacerInfo.TryGetValue(p.SteamUserId, out info))
@@ -611,8 +643,9 @@ namespace RacingMod
         {
             string s = "\nCommands:\n/rcd join: Joins the race.\n/rcd leave: Leaves the race.\n" +
                 "/rcd rejoin: Shortcut to leave and join the race.\n/rcd ui: Toggles the on screen UIs.";
-            if (p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin)
+            if (IsPlayerAdmin(p, false))
                 s = "\nAdmin Commands:\n/rcd clear [name]: Removes finalist(s).\n" +
+                    "/rcd cleartimer [name]: Resets a racer(s) timer." +
                     "/rcd grant <name>: Fixes a racer's 'missing' status.\n/rcd mode: Toggles timed mode.\n" +
                     "/rcd kick <name>: Removes a racer from the race." + s;
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Red");
@@ -955,15 +988,6 @@ namespace RacingMod
                     return nextNode;
                 }
             }
-
-        }
-
-        IMyEntity GetEntity(IMyPlayer p)
-        {
-            IMyEntity e = p.Controller?.ControlledEntity?.Entity;
-            if (e is IMyCubeBlock)
-                return ((IMyCubeBlock)e).CubeGrid;
-            return e;
         }
 
         public static IMyCubeBlock GetCockpit (IMyPlayer p)
@@ -1148,7 +1172,6 @@ namespace RacingMod
         {
             // Build the active racer text
             activeRacersText.Clear();
-
             if (ranking.Count == 0 && finishers.Count == 0)
             {
                 activeRacersText.Append("No racers in range.");
@@ -1161,7 +1184,6 @@ namespace RacingMod
 
             if (ranking.Count > 0)
             {
-                numRacersPreviousTick = 0;
                 //Dictionary<ulong, RacerInfo> newPrevRacerInfos = new Dictionary<ulong, RacerInfo>(ranking.Count);
 
                 bool drawWhite = false;
@@ -1263,13 +1285,13 @@ namespace RacingMod
 
                     activeRacersText.AppendLine();
 
-                    numRacersPreviousTick++;
                     staticInfo.PreviousTick = current;
 
                     i++;
                     previousId = current.RacerId;
                     previousRacer = current.Racer;
                 }
+                numRacersPreviousTick = i - 1;
             }
 
             nextPlayerRequests.Clear();
@@ -1419,13 +1441,13 @@ namespace RacingMod
             [ProtoMember(3)]
             public Vector3 camera;
             [ProtoMember(4)]
-            public bool direction;
+            public short direction;
 
             public CurrentRacerInfo ()
             {
             }
 
-            public CurrentRacerInfo (ulong requestor, ulong current, Vector3 camera, bool direction)
+            public CurrentRacerInfo (ulong requestor, ulong current, Vector3 camera, short direction)
             {
                 this.requestor = requestor;
                 this.current = current;
