@@ -1,18 +1,27 @@
-﻿using System;
+﻿using Sandbox.ModAPI;
+using System;
+using System.Xml.Serialization;
 using VRage.Game.ModAPI;
+using VRage.ModAPI;
 
 namespace RacingMod
 {
     public class StaticRacerInfo
     {
-        public RacerInfo? PreviousTick;
         public ulong Id;
+        public string Name;
+        public RacerInfo? PreviousTick;
         public Timer Timer;
         public int? NextNode;
         public bool InFinish;
         public int Laps = 0;
         public TimeSpan BestTime = new TimeSpan(0);
-        public string Name;
+        public DateTime FinishTime = new DateTime();
+
+        public StaticRacerInfo()
+        {
+            Timer = new Timer(true);
+        }
 
         public StaticRacerInfo(IMyPlayer p)
         {
@@ -26,30 +35,35 @@ namespace RacingMod
             TimeSpan span = Timer.GetTime();
             if (BestTime.Ticks == 0 || span < BestTime)
                 BestTime = span;
+            FinishTime = DateTime.Now;
+        }
+
+        public void RemoveFinish()
+        {
+            BestTime = new TimeSpan(0);
+            FinishTime = new DateTime();
         }
     }
 
     public class Timer
     {
-        DateTime start;
-        DateTime? paused;
+        private DateTime started;
+        private DateTime? paused;
 
         public Timer(bool paused = false)
         {
-            start = DateTime.Now;
+            started = DateTime.Now;
             if (paused)
-                this.paused = start;
+                this.paused = started;
             else
                 this.paused = null;
         }
 
-        public bool Started => !paused.HasValue;
-
         public TimeSpan GetTime()
         {
             if (paused.HasValue)
-                return paused.Value - start;
-            return DateTime.Now - start;
+                return paused.Value - started;
+            return DateTime.Now - started;
         }
         public string GetTime (string format)
         {
@@ -60,7 +74,7 @@ namespace RacingMod
         {
             if(paused.HasValue)
             {
-                start += DateTime.Now - paused.Value;
+                started += DateTime.Now - paused.Value;
                 paused = null;
             }
         }
@@ -73,9 +87,9 @@ namespace RacingMod
 
         public void Reset (bool paused = false)
         {
-            start = DateTime.Now;
+            started = DateTime.Now;
             if (paused)
-                this.paused = start;
+                this.paused = started;
             else
                 this.paused = null;
         }
@@ -92,11 +106,11 @@ namespace RacingMod
         public RacingBeacon Destination;
         public bool Missed;
 
-        public RacerInfo (IMyPlayer racer, double distance, int rank, bool missed)
+        public RacerInfo (IMyPlayer racer, double distance, bool missed)
         {
             Racer = racer;
             Distance = distance;
-            Rank = rank;
+            Rank = -1;
             RankUpFrame = 0;
             Destination = null;
             Missed = missed;
@@ -117,5 +131,4 @@ namespace RacingMod
             return -913653116 + RacerId.GetHashCode();
         }
     }
-
 }

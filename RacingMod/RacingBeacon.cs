@@ -24,14 +24,14 @@ namespace RacingMod
         public IMyBeacon Beacon { get; private set; } = null;
         public float NodeNumber { get; private set; } = float.NaN;
 
-        public bool Valid => !float.IsNaN(NodeNumber);
+        public bool Valid =>  Type == BeaconType.FINISH || !float.IsNaN(NodeNumber);
         public Vector3 Coords => Beacon.CubeGrid.WorldAABB.Center;
         public int Index = -1;
 
         public bool Contains(IMyPlayer p)
         {
             MatrixD transMatrix = MatrixD.Transpose(Beacon.CubeGrid.WorldMatrix);
-            IMyEntity e = RacingSession.GetCockpit(p)?.CubeGrid;
+            IMyEntity e = RacingTools.GetCockpit(p)?.CubeGrid;
             if (e == null)
                 e = p.Character;
 
@@ -64,7 +64,7 @@ namespace RacingMod
         {
             Beacon = Entity as IMyBeacon;
             
-            if (MyAPIGateway.Multiplayer.IsServer)
+            if (MyAPIGateway.Session.IsServer)
             {
                 // wait for the grid to fully load in
                 NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
@@ -118,7 +118,7 @@ namespace RacingMod
             }
             catch (Exception e)
             {
-                RacingSession.ShowError(e, GetType());
+                RacingTools.ShowError(e, GetType());
             }
         }
 
@@ -151,7 +151,7 @@ namespace RacingMod
             }
             catch(Exception e)
             {
-                RacingSession.ShowError(e, GetType());
+                RacingTools.ShowError(e, GetType());
             }
         }
 
@@ -167,7 +167,7 @@ namespace RacingMod
             }
             catch (Exception e)
             {
-                RacingSession.ShowError(e, GetType());
+                RacingTools.ShowError(e, GetType());
             }
         }
 

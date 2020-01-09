@@ -13,19 +13,19 @@ using VRage.Game;
 using VRage.Game.Components;
 using VRage.Utils;
 using Sandbox.Game.Entities;
+using VRage.Input;
+using ProtoBuf;
+using KlimeDraygo.RelativeSpectator.API;
 
 namespace RacingMod
 {
     public partial class RacingSession
     {
-        const ushort packetSpecRequest = 1357;
-        const ushort packetSpecResponse = 1358;
-        
         IMyPlayer followedPlayer;
+        bool hasFollower;
         Vector3D followedPos;
-        IMyEntity followedEntity;
+
         MySpectator SpecCam => MyAPIGateway.Session.CameraController as MySpectator;
-        const double maxCamDistance = 100;
 
         void Spectator ()
         {
@@ -38,67 +38,43 @@ namespace RacingMod
             if (!Spec.Enabled)
                 return;
 
-            if (followedPlayer != null && SpecCam != null && !MyAPIGateway.Session.IsCameraControlledObject)
+            if (followedPlayer != null)
             {
-                IMyEntity e = followedPlayer.Character;
-                IMyEntity curr = Spec.GetTarget();
-                if (e == null)
+                IMyEntity target = Spec.GetTarget();
+                IMyEntity character = followedPlayer.Character;
+
+                if (hasFollower)
                 {
-                    if (curr != null)
+                    // Character was within render distance
+                    if(character == null || target == null || target.EntityId != character.EntityId)
                     {
-                        ClearFollow();
-                        MyAPIGateway.Utilities.ShowNotification("Stopped spectating racer.", defaultMsgMs);
-                    }
-                    else if (followedPos == Vector3D.Zero)
-                    {
-                        ClearFollow();
-                        RequestNextRacer(new CurrentRacerInfo(MyAPIGateway.Session.Player.SteamUserId, followedPlayer.SteamUserId, SpecCam.Position, 0));
-                    }
-                    else
-                    {
-                        SpecCam.Position = followedPos;
-                        if(Runtime % 100 == 0)
-                            RequestNextRacer(new CurrentRacerInfo(MyAPIGateway.Session.Player.SteamUserId, followedPlayer.SteamUserId, SpecCam.Position, 0));
+                        RaceClear();
                     }
                 }
                 else
                 {
-                    if(curr == null)
+                    // Character has not yet been found
+                    if(target == null)
                     {
-                        if (followedEntity == null)
+                        // There is no target
+                        if(character == null)
                         {
-                            followedPos = Vector3D.Zero;
-                            followedEntity = e;
-                            if (followedEntity != null)
-                                SetTarget(e);
-                            infoHudText.Clear().Append(followedPlayer.DisplayName);
-                            UpdateInfo();
+                            // Character is still not in render distance
+                            SpecCam.Position = followedPos;
+                            if (Runtime % 100 == 0)
+                                RequestNextRacer(followedPlayer.SteamUserId, SpecCam.Position, 0);
                         }
                         else
                         {
-                            ClearFollow();
-                            MyAPIGateway.Utilities.ShowNotification("Stopped spectating racer.", defaultMsgMs);
+                            // Character is now within render distance
+                            Spec.SetTarget(character);
+                            hasFollower = true;
                         }
-                    }
-                    else if (curr.EntityId != followedEntity.EntityId)
-                    {
-                        ClearFollow();
-                        MyAPIGateway.Utilities.ShowNotification("Stopped spectating racer.", defaultMsgMs);
                     }
                     else
                     {
-                        if (followedPos != Vector3D.Zero)
-                        {
-                            followedPos = Vector3D.Zero;
-                            infoHudText.Clear().Append(followedPlayer.DisplayName);
-                            UpdateInfo();
-                        }
-
-                        if (followedEntity.EntityId != e.EntityId)
-                        {
-                            followedEntity = e;
-                            SetTarget(e);
-                        }
+                        // The target is not the current player
+                        RaceClear();
                     }
                 }
             }
@@ -110,67 +86,44 @@ namespace RacingMod
                 {
                     // Next
                     ulong currentId = 0;
-                    if (followedEntity != null)
+                    if (followedPlayer?.Character != null)
                         currentId = followedPlayer.SteamUserId;
-                    RequestNextRacer(new CurrentRacerInfo(MyAPIGateway.Session.Player.SteamUserId, currentId, SpecCam.Position, 1));
+                    RequestNextRacer(currentId, SpecCam.Position, 1);
                 }
                 else if (config.PrevPlayer.IsKeybindPressed())
                 {
                     // Previous
                     ulong currentId = 0;
-                    if (followedEntity != null)
+                    if (followedPlayer?.Character != null)
                         currentId = followedPlayer.SteamUserId;
-                    RequestNextRacer(new CurrentRacerInfo(MyAPIGateway.Session.Player.SteamUserId, currentId, SpecCam.Position, -1));
+                    RequestNextRacer(currentId, SpecCam.Position, -1);
                 }
-                else if (config.LookAt.IsKeybindPressed())
+                else if (MyAPIGateway.Input.IsNewKeyPressed(MyKeys.OemQuotes))
                 {
-                    FaceFollowed(true);
+                    Spec.SetMode(SpecCamAPI.CameraMode.None);
                 }
+                else if (MyAPIGateway.Input.IsNewKeyPressed(MyKeys.OemQuestion))
+                {
+                    Spec.SetTarget(null);
+                }
+                else if(MyAPIGateway.Input.IsNewKeyPressed(MyKeys.OemSemicolon))
+                {
+                    SpecCam.Position = Vector3D.Zero;
+                }
+                    
             }
         }
 
-        private void ClearFollow ()
+        private void SpecClear()
         {
-            infoHudText.Clear();
-            followedEntity = null;
+            Spec.SetMode(SpecCamAPI.CameraMode.None);
+            Spec.SetTarget(null);
+        }
+
+        private void RaceClear()
+        {
             followedPlayer = null;
-        }
-
-        private void SetTarget (IMyEntity e)
-        {
-            Spec.SetTarget(e);
-            FaceFollowed(false);
-        }
-
-        private void FaceFollowed (bool alwaysTurn)
-        {
-            IMyEntity e = Spec.GetTarget();
-            if (e != null && SpecCam != null)
-            {
-                // Clamp
-                Vector3D ePos = e.GetPosition();
-
-                Vector3D diff = SpecCam.Position - ePos;
-                double len2 = diff.LengthSquared();
-                if (len2 < 1)
-                    return;
-
-                if (len2 > (maxCamDistance * maxCamDistance))
-                    SpecCam.Position = ePos + ((diff / Math.Sqrt(len2)) * maxCamDistance);
-                else if(!alwaysTurn)
-                    return;
-
-                Vector3D? up = null;
-                MyPlanet planet = MyGamePruningStructure.GetClosestPlanet(ePos);
-                if (planet != null)
-                {
-                    MySphericalNaturalGravityComponent gravComp = planet.Components.Get<MyGravityProviderComponent>() as MySphericalNaturalGravityComponent;
-                    if (gravComp != null && gravComp.IsPositionInRange(ePos))
-                        up = ePos - planet.PositionComp.WorldAABB.Center;
-                }
-
-                SpecCam.SetTarget(ePos, up);
-            }
+            infoHudText.Clear();
         }
 
         /// <summary>
@@ -178,58 +131,70 @@ namespace RacingMod
         /// </summary>
         private void SetFollow (IMyPlayer p)
         {
-            SetFollow(p, p.GetPosition());
+            if (p == null)
+                RaceClear();
+            else
+                SetFollow(p, p.GetPosition());
         }
 
         private void SetFollow (ulong id, Vector3D pos)
         {
-            SetFollow(GetPlayer(id), pos);
+            SetFollow(RacingTools.GetPlayer(id), pos);
         }
 
         private void SetFollow (IMyPlayer p, Vector3D pos)
         {
-            if (p == null)
+            if (p == null || pos == Vector3D.Zero)
+            {
+                RaceClear();
                 return;
-
-            IMyEntity curr = Spec.GetTarget();
-            if(curr == null)
-            {
-                if(followedEntity != null)
-                {
-                    ClearFollow();
-                    return;
-                }
-            }
-            else
-            {
-                if(followedEntity == null || curr.EntityId != followedEntity.EntityId)
-                    return;
             }
 
-            infoHudText.Clear().Append(p.DisplayName).Append("\nloading");
+            infoHudText.Clear().Append(p.DisplayName);
             followedPlayer = p;
             followedPos = pos;
-            followedEntity = p.Character;
-
-            if (followedEntity == null)
-                Spec.SetTarget(null);
+            if (p.Character == null)
+            {
+                SpecClear();
+                hasFollower = false;
+            }
             else
-                SetTarget(followedEntity);
+            {
+                Spec.SetTarget(p.Character);
+                hasFollower = true;
+            }
 
             UpdateInfo();
         }
 
+
+        private void RequestNextRacer (ulong currentId, Vector3 cameraPos, sbyte direction)
+        {
+            CurrentRacerInfo info = new CurrentRacerInfo(MyAPIGateway.Session.Player.SteamUserId, currentId, cameraPos, direction);
+            if (MyAPIGateway.Session.IsServer)
+            {
+                AddSpecRequest(info);
+            }
+            else
+            {
+                byte [] data = MyAPIGateway.Utilities.SerializeToBinary(info);
+                MyAPIGateway.Multiplayer.SendMessageToServer(RacingConstants.packetSpecRequest, data);
+            }
+        }
 
         private void ReceiveSpecResponse (byte [] obj)
         {
             try
             {
                 NextRacerInfo info = MyAPIGateway.Utilities.SerializeFromBinary<NextRacerInfo>(obj);
-                SetFollow(info.steamId, info.position);
+                if (info.steamId == 0)
+                    RaceClear();
+                else
+                    SetFollow(info.steamId, info.position);
             }
             catch (Exception e)
             {
-                ShowError(e, GetType());
+                RacingTools.ShowError(e, GetType());
             }
         }
 
@@ -242,7 +207,7 @@ namespace RacingMod
                 }
                 catch (Exception e)
                 {
-                    ShowError(e, GetType());
+                    RacingTools.ShowError(e, GetType());
                 }
         }
 
@@ -250,11 +215,13 @@ namespace RacingMod
         {
             if(info.direction == 0)
             {
-                IMyPlayer p = GetPlayer(info.current);
-                if (p != null)
+                IMyPlayer p = RacingTools.GetPlayer(info.current);
+                if (p == null)
+                    SendNextRacerInfo(info.requestor);
+                else
                     SendNextRacerInfo(info.requestor, p, p.GetPosition());
             }
-            else if (info.current == 0 || GetPlayer(info.current) == null || !activePlayers.Contains(info.current))
+            else if (info.current == 0 || RacingTools.GetPlayer(info.current) == null || !activePlayers.Contains(info.current))
             {
                 IMyPlayer p;
                 if (GetClosestRacer(info.camera, out p))
@@ -309,6 +276,19 @@ namespace RacingMod
                 SendNextRacerInfo(id, newRacer, racerPos);
         }
 
+        private void SendNextRacerInfo(ulong requestor)
+        {
+            if (MyAPIGateway.Session.Player?.SteamUserId == requestor)
+            {
+                SetFollow(null);
+            }
+            else
+            {
+                byte [] data = MyAPIGateway.Utilities.SerializeToBinary(new NextRacerInfo(0, Vector3D.Zero));
+                MyAPIGateway.Multiplayer.SendMessageTo(RacingConstants.packetSpecResponse, data, requestor);
+            }
+        }
+
         private void SendNextRacerInfo(ulong requestor, IMyPlayer newRacer, Vector3 racerPos)
         {
             if (MyAPIGateway.Session.Player?.SteamUserId == requestor)
@@ -318,7 +298,51 @@ namespace RacingMod
             else
             {
                 byte [] data = MyAPIGateway.Utilities.SerializeToBinary(new NextRacerInfo(newRacer.SteamUserId, racerPos));
-                MyAPIGateway.Multiplayer.SendMessageTo(packetSpecResponse, data, requestor);
+                MyAPIGateway.Multiplayer.SendMessageTo(RacingConstants.packetSpecResponse, data, requestor);
+            }
+        }
+
+        [ProtoContract]
+        public class NextRacerInfo
+        {
+            [ProtoMember(1)]
+            public ulong steamId;
+            [ProtoMember(2)]
+            public Vector3 position;
+
+            public NextRacerInfo ()
+            {
+            }
+
+            public NextRacerInfo (ulong steamId, Vector3 position)
+            {
+                this.steamId = steamId;
+                this.position = position;
+            }
+        }
+
+        [ProtoContract]
+        public class CurrentRacerInfo
+        {
+            [ProtoMember(1)]
+            public ulong requestor;
+            [ProtoMember(2)]
+            public ulong current;
+            [ProtoMember(3)]
+            public Vector3 camera;
+            [ProtoMember(4)]
+            public sbyte direction;
+
+            public CurrentRacerInfo ()
+            {
+            }
+
+            public CurrentRacerInfo (ulong requestor, ulong current, Vector3 camera, sbyte direction)
+            {
+                this.requestor = requestor;
+                this.current = current;
+                this.camera = camera;
+                this.direction = direction;
             }
         }
     }

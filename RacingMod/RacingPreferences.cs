@@ -6,14 +6,13 @@ namespace RacingMod
 {
     public class RacingPreferences
     {
-        private const string FileLocation = "RacingDisplayPreferences.xml";
 
         public RacingPreferences()
         {
 
         }
 
-        Keybind nextPlayer = MyKeys.OemCloseBrackets;
+        private Keybind nextPlayer = MyKeys.OemCloseBrackets;
         public Keybind NextPlayer
         {
             get
@@ -25,12 +24,12 @@ namespace RacingMod
                 if(value != nextPlayer)
                 {
                     nextPlayer = value;
-                    SaveXML();
+                    SaveFile();
                 }
             }
         }
 
-        Keybind prevPlayer = MyKeys.OemOpenBrackets;
+        private Keybind prevPlayer = MyKeys.OemOpenBrackets;
         public Keybind PrevPlayer
         {
             get
@@ -42,12 +41,12 @@ namespace RacingMod
                 if (value != prevPlayer)
                 {
                     prevPlayer = value;
-                    SaveXML();
+                    SaveFile();
                 }
             }
         }
 
-        Keybind hideHud = MyKeys.OemPlus;
+        private Keybind hideHud = MyKeys.OemPlus;
         public Keybind HideHud
         {
             get
@@ -59,59 +58,39 @@ namespace RacingMod
                 if (value != hideHud)
                 {
                     hideHud = value;
-                    SaveXML();
+                    SaveFile();
                 }
             }
         }
 
-        Keybind lookAt = MyKeys.OemQuotes;
-        public Keybind LookAt
+        public void SaveFile ()
         {
-            get
-            {
-                return lookAt;
-            }
-            set
-            {
-                if (value != lookAt)
-                {
-                    lookAt = value;
-                    SaveXML();
-                }
-            }
-        }
-
-        public void SaveXML ()
-        {
-            var writer = MyAPIGateway.Utilities.WriteFileInLocalStorage(FileLocation, typeof(RacingPreferences));
+            var writer = MyAPIGateway.Utilities.WriteFileInLocalStorage(RacingConstants.playerFile, typeof(RacingPreferences));
             writer.Write(MyAPIGateway.Utilities.SerializeToXML(this));
             writer.Flush();
             writer.Close();
         }
 
-        public static RacingPreferences LoadXML (bool loadDefault = false)
+        public static RacingPreferences LoadFile ()
         {
-            if (!loadDefault)
+            try
             {
-                try
+                if (MyAPIGateway.Utilities.FileExistsInLocalStorage(RacingConstants.playerFile, typeof(RacingPreferences)))
                 {
-                    if (MyAPIGateway.Utilities.FileExistsInLocalStorage(FileLocation, typeof(RacingPreferences)))
-                    {
-                        var reader = MyAPIGateway.Utilities.ReadFileInLocalStorage(FileLocation, typeof(RacingPreferences));
-                        string xmlText = reader.ReadToEnd();
-                        reader.Close();
-                        RacingPreferences config = MyAPIGateway.Utilities.SerializeFromXML<RacingPreferences>(xmlText);
-                        if (config == null)
-                            throw new NullReferenceException("Failed to serialize from xml.");
-                        else
-                            return config;
-                    }
+                    var reader = MyAPIGateway.Utilities.ReadFileInLocalStorage(RacingConstants.playerFile, typeof(RacingPreferences));
+                    string xmlText = reader.ReadToEnd();
+                    reader.Close();
+                    RacingPreferences config = MyAPIGateway.Utilities.SerializeFromXML<RacingPreferences>(xmlText);
+                    if (config == null)
+                        throw new NullReferenceException("Failed to serialize from xml.");
+                    else
+                        return config;
                 }
-                catch { }
             }
+            catch { }
 
             RacingPreferences result = new RacingPreferences();
-            result.SaveXML();
+            result.SaveFile();
             return result;
         }
 
