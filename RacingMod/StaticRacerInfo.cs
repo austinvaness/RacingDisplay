@@ -1,8 +1,5 @@
-﻿using Sandbox.ModAPI;
-using System;
-using System.Xml.Serialization;
+﻿using System;
 using VRage.Game.ModAPI;
-using VRage.ModAPI;
 
 namespace RacingMod
 {

@@ -1,10 +1,4 @@
 ﻿using Draygo.API;
-using Sandbox.ModAPI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using VRage.Input;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
@@ -13,6 +7,7 @@ namespace RacingMod
 {
     public partial class RacingSession
     {
+        private bool hudReady = false;
         private HudAPIv2 textApi;
         private HudAPIv2.MenuRootCategory menuRoot;
         private HudAPIv2.MenuRootCategory adminRoot;
@@ -20,6 +15,7 @@ namespace RacingMod
         private HudAPIv2.HUDMessage infoHud;
         private HudAPIv2.MenuKeybindInput nextRacerInput;
         private HudAPIv2.MenuKeybindInput prevRacerInput;
+        private HudAPIv2.MenuKeybindInput stopSpecInput;
         private HudAPIv2.MenuKeybindInput hideHudInput;
         private HudAPIv2.MenuTextInput numLapsInput;
         private HudAPIv2.MenuItem timedModeInput;
@@ -36,7 +32,6 @@ namespace RacingMod
             adminRoot = new HudAPIv2.MenuRootCategory("Racing Display", HudAPIv2.MenuRootCategory.MenuFlag.AdminMenu, "Racing Display Settings");
             {
                 numLapsInput = new HudAPIv2.MenuTextInput("Laps - " + MapSettings.NumLaps, adminRoot, "Enter number of laps:", OnNumLapsChanged);
-                //numLapsInput = new HudAPIv2.MenuSliderInput("Laps - " + MapSettings.NumLaps, adminRoot, 0, "Number of laps:", OnNumLapsChanged, NumLapsInputToValue);
                 timedModeInput = new HudAPIv2.MenuItem("Timed Mode - " + BoolToString(MapSettings.TimedMode), adminRoot, OnTimedModeChanged);
                 onTrackStartInput = new HudAPIv2.MenuItem("Strict Start - " + BoolToString(MapSettings.StrictStart), adminRoot, OnTrackStartChanged);
             }
@@ -44,12 +39,14 @@ namespace RacingMod
             menuRoot = new HudAPIv2.MenuRootCategory("Race Spectator", HudAPIv2.MenuRootCategory.MenuFlag.PlayerMenu, "Spectator Settings");
             nextRacerInput = new HudAPIv2.MenuKeybindInput("Next Racer - " + config.NextPlayer.ToString(), menuRoot, "Press any Key [Next Racer]", SetNextPlayerKey);
             prevRacerInput = new HudAPIv2.MenuKeybindInput("Previous Racer - " + config.PrevPlayer.ToString(), menuRoot, "Press any Key [Previous Racer]", SetPrevPlayerKey);
+            stopSpecInput = new HudAPIv2.MenuKeybindInput("Stop Spectating - " + config.StopSpec.ToString(), menuRoot, "Press any Key [Stop Spectating]", SetStopSpecKey);
             hideHudInput = new HudAPIv2.MenuKeybindInput("Hide Hud - " + config.HideHud.ToString(), menuRoot, "Press any Key [Hide Hud]", SetHideHudKey);
+            hudReady = true;
         }
 
         public void UpdateUI_Spectator()
         {
-            if (textApi.Heartbeat)
+            if (hudReady)
             {
                 nextRacerInput.Text = "Next Racer - " + config.NextPlayer.ToString();
                 prevRacerInput.Text = "Previous Racer - " + config.PrevPlayer.ToString();
@@ -79,7 +76,7 @@ namespace RacingMod
         }
         public void UpdateUI_StrictStart()
         {
-            if(textApi.Heartbeat)
+            if(hudReady)
                 onTrackStartInput.Text = "Strict Start - " + BoolToString(MapSettings.StrictStart);
         }
 
@@ -91,14 +88,10 @@ namespace RacingMod
         }
         public void UpdateUI_TimedMode()
         {
-            if (textApi.Heartbeat)
+            if (hudReady)
                 timedModeInput.Text = "Timed Mode - " + BoolToString(MapSettings.TimedMode);
         }
 
-        /*private object NumLapsInputToValue (float n)
-        {
-            return (int)(n * (byte.MaxValue - 1) + 1);
-        }*/
         private void OnNumLapsChanged (string text)
         {
             int result;
@@ -111,11 +104,8 @@ namespace RacingMod
         }
         public void UpdateUI_NumLaps()
         {
-            if (textApi.Heartbeat)
-            {
+            if (hudReady)
                 numLapsInput.Text = "Laps - " + MapSettings.NumLaps;
-                //numLapsInput.InitialPercent = (float)(MapSettings.NumLaps - 1) / (byte.MaxValue - 1);
-            }
         }
 
         private void SetPrevPlayerKey (MyKeys key, bool arg1, bool arg2, bool arg3)
@@ -127,6 +117,11 @@ namespace RacingMod
         {
             config.NextPlayer = new Keybind(key, arg1, arg2, arg3);
             nextRacerInput.Text = "Next Racer - " + config.NextPlayer.ToString();
+        }
+        private void SetStopSpecKey (MyKeys key, bool arg1, bool arg2, bool arg3)
+        {
+            config.StopSpec = new Keybind(key, arg1, arg2, arg3);
+            stopSpecInput.Text = "Stop Spectating - " + config.StopSpec.ToString();
         }
         private void SetHideHudKey (MyKeys key, bool arg1, bool arg2, bool arg3)
         {

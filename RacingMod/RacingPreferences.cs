@@ -63,6 +63,23 @@ namespace RacingMod
             }
         }
 
+        private Keybind stopSpec = MyKeys.None;
+        public Keybind StopSpec
+        {
+            get
+            {
+                return stopSpec;
+            }
+            set
+            {
+                if (value != stopSpec)
+                {
+                    stopSpec = value;
+                    SaveFile();
+                }
+            }
+        }
+
         public void SaveFile ()
         {
             var writer = MyAPIGateway.Utilities.WriteFileInLocalStorage(RacingConstants.playerFile, typeof(RacingPreferences));

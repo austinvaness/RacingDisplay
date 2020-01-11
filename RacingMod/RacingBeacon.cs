@@ -64,7 +64,7 @@ namespace RacingMod
         {
             Beacon = Entity as IMyBeacon;
             
-            if (MyAPIGateway.Session.IsServer)
+            if (RacingConstants.IsServer)
             {
                 // wait for the grid to fully load in
                 NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;

@@ -73,7 +73,7 @@ namespace RacingMod
         public static void ShowError (Exception e, Type type)
         {
             MyLog.Default.WriteLineAndConsole($"ERROR in {type.FullName}: {e.Message}\n{e.StackTrace}");
-            if (MyAPIGateway.Session?.Player != null)
+            if (MyAPIGateway.Session != null && RacingConstants.IsDedicated)
                 MyAPIGateway.Utilities.ShowNotification($"[ ERROR: {type.FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]", 10000, MyFontEnum.Red);
         }
     }

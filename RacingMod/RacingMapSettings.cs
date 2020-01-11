@@ -1,14 +1,6 @@
 ﻿using Sandbox.ModAPI;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ProtoBuf;
-using VRage.Game.ModAPI;
-using VRage.Utils;
-using VRage.Serialization;
-using System.Xml.Serialization;
 
 namespace RacingMod
 {
@@ -82,7 +74,7 @@ namespace RacingMod
 
         public void SaveFile ()
         {
-            if (MyAPIGateway.Session.IsServer)
+            if (RacingConstants.IsServer)
             {
                 var writer = MyAPIGateway.Utilities.WriteFileInWorldStorage(RacingConstants.mapFile, typeof(RacingMapSettings));
                 writer.Write(MyAPIGateway.Utilities.SerializeToXML(this));
@@ -102,7 +94,7 @@ namespace RacingMod
         {
             try
             {
-                if (MyAPIGateway.Session.IsServer && MyAPIGateway.Utilities.FileExistsInWorldStorage(RacingConstants.mapFile, typeof(RacingMapSettings)))
+                if (RacingConstants.IsServer && MyAPIGateway.Utilities.FileExistsInWorldStorage(RacingConstants.mapFile, typeof(RacingMapSettings)))
                 {
                     var reader = MyAPIGateway.Utilities.ReadFileInWorldStorage(RacingConstants.mapFile, typeof(RacingMapSettings));
                     string xmlText = reader.ReadToEnd();
@@ -126,7 +118,7 @@ namespace RacingMod
 
         private void Sync(Packet p)
         {
-            if (MyAPIGateway.Session.IsServer)
+            if (RacingConstants.IsServer)
                 MyAPIGateway.Multiplayer.SendMessageToOthers(RacingConstants.packetSettings, MyAPIGateway.Utilities.SerializeToBinary(p));
             else
                 MyAPIGateway.Multiplayer.SendMessageToServer(RacingConstants.packetSettings, MyAPIGateway.Utilities.SerializeToBinary(p));
@@ -134,8 +126,8 @@ namespace RacingMod
 
         public enum PacketEnum : byte
         {
-            NumLaps = 0, 
-            TimedMode = 1, 
+            NumLaps = 0,
+            TimedMode = 1,
             StrictStart = 2
         }
 
@@ -146,6 +138,11 @@ namespace RacingMod
             private readonly byte type;
             [ProtoMember(2)]
             private readonly byte value;
+
+            public Packet()
+            {
+
+            }
 
             public Packet(PacketEnum type, bool value)
             {
@@ -190,7 +187,7 @@ namespace RacingMod
     {
         public override void SaveData ()
         {
-            if (MyAPIGateway.Session.IsServer && MapSettings != null)
+            if (RacingConstants.IsServer && MapSettings != null)
                 MapSettings.SaveFile();
         }
 
@@ -200,9 +197,8 @@ namespace RacingMod
             {
                 RacingMapSettings.Packet p = MyAPIGateway.Utilities.SerializeFromBinary<RacingMapSettings.Packet>(data);
                 p.Perform();
-                if (MyAPIGateway.Session.IsServer)
+                if (RacingConstants.IsServer)
                     MyAPIGateway.Multiplayer.SendMessageToOthers(RacingConstants.packetSettings, data);
-                UpdateUI_Admin();
             }
             catch(Exception e)
             {
@@ -214,7 +210,7 @@ namespace RacingMod
         {
             try
             {
-                if(MyAPIGateway.Session.IsServer)
+                if(RacingConstants.IsServer)
                 {
                     ulong id = BitConverter.ToUInt64(data, 0);
                     if (id != 0)

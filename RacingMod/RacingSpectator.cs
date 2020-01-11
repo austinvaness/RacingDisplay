@@ -5,15 +5,6 @@ using VRage;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRageMath;
-using System.Linq;
-using System.Text;
-using Draygo.API;
-using Sandbox.Game;
-using VRage.Game;
-using VRage.Game.Components;
-using VRage.Utils;
-using Sandbox.Game.Entities;
-using VRage.Input;
 using ProtoBuf;
 using KlimeDraygo.RelativeSpectator.API;
 
@@ -38,6 +29,12 @@ namespace RacingMod
             if (!Spec.Enabled)
                 return;
 
+            if (infoHud.Visible && MyAPIGateway.Session.IsCameraControlledObject)
+                infoHud.Visible = false;
+            else if (!infoHud.Visible && !MyAPIGateway.Session.IsCameraControlledObject)
+                infoHud.Visible = true;
+
+
             if (followedPlayer != null)
             {
                 IMyEntity target = Spec.GetTarget();
@@ -47,9 +44,7 @@ namespace RacingMod
                 {
                     // Character was within render distance
                     if(character == null || target == null || target.EntityId != character.EntityId)
-                    {
                         RaceClear();
-                    }
                 }
                 else
                 {
@@ -69,6 +64,8 @@ namespace RacingMod
                             // Character is now within render distance
                             Spec.SetTarget(character);
                             hasFollower = true;
+                            infoHudText.Clear().Append(followedPlayer.DisplayName);
+                            UpdateInfoHud();
                         }
                     }
                     else
@@ -82,7 +79,11 @@ namespace RacingMod
             if (SpecCam != null && !MyAPIGateway.Session.IsCameraControlledObject && !MyAPIGateway.Gui.ChatEntryVisible
                 && !MyAPIGateway.Gui.IsCursorVisible && MyAPIGateway.Gui.GetCurrentScreen == MyTerminalPageEnum.None)
             {
-                if (config.NextPlayer.IsKeybindPressed())
+                if (config.StopSpec.IsKeybindPressed())
+                {
+                    RaceClear();
+                }
+                else if (config.NextPlayer.IsKeybindPressed())
                 {
                     // Next
                     ulong currentId = 0;
@@ -98,19 +99,7 @@ namespace RacingMod
                         currentId = followedPlayer.SteamUserId;
                     RequestNextRacer(currentId, SpecCam.Position, -1);
                 }
-                else if (MyAPIGateway.Input.IsNewKeyPressed(MyKeys.OemQuotes))
-                {
-                    Spec.SetMode(SpecCamAPI.CameraMode.None);
-                }
-                else if (MyAPIGateway.Input.IsNewKeyPressed(MyKeys.OemQuestion))
-                {
-                    Spec.SetTarget(null);
-                }
-                else if(MyAPIGateway.Input.IsNewKeyPressed(MyKeys.OemSemicolon))
-                {
-                    SpecCam.Position = Vector3D.Zero;
-                }
-                    
+
             }
         }
 
@@ -155,6 +144,7 @@ namespace RacingMod
             followedPos = pos;
             if (p.Character == null)
             {
+                infoHudText.AppendLine().Append("loading");
                 SpecClear();
                 hasFollower = false;
             }
@@ -163,15 +153,14 @@ namespace RacingMod
                 Spec.SetTarget(p.Character);
                 hasFollower = true;
             }
-
-            UpdateInfo();
+            UpdateInfoHud();
         }
 
 
         private void RequestNextRacer (ulong currentId, Vector3 cameraPos, sbyte direction)
         {
             CurrentRacerInfo info = new CurrentRacerInfo(MyAPIGateway.Session.Player.SteamUserId, currentId, cameraPos, direction);
-            if (MyAPIGateway.Session.IsServer)
+            if (RacingConstants.IsServer)
             {
                 AddSpecRequest(info);
             }
@@ -187,10 +176,7 @@ namespace RacingMod
             try
             {
                 NextRacerInfo info = MyAPIGateway.Utilities.SerializeFromBinary<NextRacerInfo>(obj);
-                if (info.steamId == 0)
-                    RaceClear();
-                else
-                    SetFollow(info.steamId, info.position);
+                SetFollow(info.steamId, info.position);
             }
             catch (Exception e)
             {

@@ -1,14 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Sandbox.ModAPI;
+using VRage.Game;
 using VRageMath;
 
 namespace RacingMod
 {
     public static class RacingConstants
     {
+        public static bool IsServer => MyAPIGateway.Session.IsServer || MyAPIGateway.Session.OnlineMode == MyOnlineModeEnum.OFFLINE;
+        public static bool IsDedicated => IsServer && MyAPIGateway.Utilities.IsDedicated;
+        public static bool IsPlayer => !IsDedicated;
+
         public const ushort packetSettings = 45565;
         public const ushort packetSettingsInit = 45566;
         public const ushort packetMainId = 1337;

@@ -8,14 +8,12 @@ using Sandbox.ModAPI;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI;
-using VRage.ModAPI;
 using VRage.Utils;
 using VRageMath;
 using ProtoBuf;
 using System.Collections.Concurrent;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 using KlimeDraygo.RelativeSpectator.API;
-using VRage.Input;
 
 namespace RacingMod
 {
@@ -69,44 +67,41 @@ namespace RacingMod
 
         private void Start()
         {
-
-            try
-            {
+            if(textApi == null)
                 textApi = new HudAPIv2(CreateHudItems);
 
+            if(Spec == null)
                 Spec = new SpecCamAPI();
 
-                gateWaypointGps = MyAPIGateway.Session.GPS.Create(RacingConstants.gateWaypointName, RacingConstants.gateWaypointDescription, Vector3D.Zero, true).Hash;
+            if (RacingConstants.IsPlayer && MyAPIGateway.Session.Player == null)
+                return;
 
-                MyAPIGateway.Utilities.MessageEntered += MessageEntered;
-                if (MyAPIGateway.Session.IsServer)
-                {
-                    MyVisualScriptLogicProvider.RemoveGPSForAll(RacingConstants.gateWaypointName);
-                    MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetCmd, ReceiveCmd);
-                    MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSpecRequest, ReceiveSpecRequest);
-                    MapSettings = RacingMapSettings.LoadFile();
-                    UpdateUI_Admin();
-                }
-                else
-                {
-                    MyAPIGateway.Session.GPS.RemoveLocalGps(gateWaypointGps);
-                    MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetMainId, ReceiveActiveRacers);
-                    MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSpecResponse, ReceiveSpecResponse);
-                    MyAPIGateway.Multiplayer.SendMessageToServer(RacingConstants.packetSettingsInit, BitConverter.GetBytes(MyAPIGateway.Session.Player.SteamUserId));
-                }
-                MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSettings, ReceiveSettings);
-                MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSettingsInit, ReceiveSettingsInit);
+            gateWaypointGps = MyAPIGateway.Session.GPS.Create(RacingConstants.gateWaypointName, RacingConstants.gateWaypointDescription, Vector3D.Zero, true).Hash;
 
-                config = RacingPreferences.LoadFile();
-                UpdateUI_Spectator();
-
-                running = true;
-            }
-            catch(Exception e)
+            MyAPIGateway.Utilities.MessageEntered += MessageEntered;
+            if (RacingConstants.IsServer)
             {
-                Unregister();
-                RacingTools.ShowError(e, GetType());
+                MyVisualScriptLogicProvider.RemoveGPSForAll(RacingConstants.gateWaypointName);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetCmd, ReceiveCmd);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSpecRequest, ReceiveSpecRequest);
+                MapSettings = RacingMapSettings.LoadFile();
+                UpdateUI_Admin();
             }
+            else
+            {
+                MyAPIGateway.Session.GPS.RemoveLocalGps(gateWaypointGps);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetMainId, ReceiveActiveRacers);
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSpecResponse, ReceiveSpecResponse);
+                MyAPIGateway.Multiplayer.SendMessageToServer(RacingConstants.packetSettingsInit, BitConverter.GetBytes(MyAPIGateway.Session.Player.SteamUserId));
+            }
+            MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSettings, ReceiveSettings);
+            MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSettingsInit, ReceiveSettingsInit);
+
+            config = RacingPreferences.LoadFile();
+            UpdateUI_Spectator();
+
+            MyLog.Default.WriteLineAndConsole("Racing Display started.");
+            running = true;
         }
 
         public override void UpdateAfterSimulation ()
@@ -121,10 +116,10 @@ namespace RacingMod
             Runtime++;
             try
             {
-                if (MyAPIGateway.Session.Player != null)
+                if (RacingConstants.IsPlayer)
                     Spectator();
 
-                if (MyAPIGateway.Session.IsServer)
+                if (RacingConstants.IsServer)
                 {
                     ProcessValues();
                     BroadcastData(activeRacersText, RacingConstants.packetMainId);
@@ -136,12 +131,12 @@ namespace RacingMod
                 RacingTools.ShowError(e, GetType());
             }
         }
-        
-        private void Unregister()
+
+        protected override void UnloadData ()
         {
             MyAPIGateway.Utilities.MessageEntered -= MessageEntered;
 
-            if (MyAPIGateway.Session.IsServer)
+            if (RacingConstants.IsServer)
             {
                 MyAPIGateway.Multiplayer.UnregisterMessageHandler(RacingConstants.packetCmd, ReceiveCmd);
                 MyAPIGateway.Multiplayer.UnregisterMessageHandler(RacingConstants.packetSpecRequest, ReceiveSpecRequest);
@@ -153,13 +148,9 @@ namespace RacingMod
             }
             MyAPIGateway.Multiplayer.UnregisterMessageHandler(RacingConstants.packetSettings, ReceiveSettings);
             MyAPIGateway.Multiplayer.UnregisterMessageHandler(RacingConstants.packetSettingsInit, ReceiveSettingsInit);
-        }
-
-        protected override void UnloadData ()
-        {
-            Unregister();
 
             textApi?.Unload();
+            Spec?.Close();
 
             Instance = null;
         }
@@ -176,7 +167,7 @@ namespace RacingMod
             hudHeader = tempSb.ToString();
         }
 
-        public void UpdateInfo()
+        public void UpdateInfoHud()
         {
             if (infoHud == null)
                 return;
@@ -336,19 +327,19 @@ namespace RacingMod
                         ToggleUI();
                     break;
                 case "join":
-                    if (MyAPIGateway.Session.IsServer)
+                    if (RacingConstants.IsServer)
                         JoinRace(p);
                     else
                         redirect = true;
                     break;
                 case "leave":
-                    if (MyAPIGateway.Session.IsServer)
+                    if (RacingConstants.IsServer)
                         LeaveRace(p);
                     else
                         redirect = true;
                     break;
                 case "rejoin":
-                    if (MyAPIGateway.Session.IsServer)
+                    if (RacingConstants.IsServer)
                     {
                         LeaveRace(p);
                         JoinRace(p);
@@ -362,7 +353,7 @@ namespace RacingMod
                     if (!IsPlayerAdmin(p, true))
                         return;
 
-                    if (MyAPIGateway.Session.IsServer)
+                    if (RacingConstants.IsServer)
                     {
                         if(cmd.Length == 2)
                         {
@@ -400,7 +391,7 @@ namespace RacingMod
                     if (!IsPlayerAdmin(p, true))
                         return;
 
-                    if (MyAPIGateway.Session.IsServer)
+                    if (RacingConstants.IsServer)
                     {
                         if(cmd.Length == 2)
                         {
@@ -442,7 +433,7 @@ namespace RacingMod
                     if (!IsPlayerAdmin(p, true))
                         return;
 
-                    if (MyAPIGateway.Session.IsServer)
+                    if (RacingConstants.IsServer)
                     {
                         MapSettings.TimedMode = !MapSettings.TimedMode;
                         if(MapSettings.TimedMode)
@@ -460,7 +451,7 @@ namespace RacingMod
                     if (!IsPlayerAdmin(p, true))
                         return;
 
-                    if (MyAPIGateway.Session.IsServer)
+                    if (RacingConstants.IsServer)
                     {
                         MapSettings.StrictStart = !MapSettings.StrictStart;
                         if (MapSettings.StrictStart)
@@ -483,7 +474,7 @@ namespace RacingMod
                         return;
                     }
 
-                    if (MyAPIGateway.Session.IsServer)
+                    if (RacingConstants.IsServer)
                     {
                         IMyPlayer result = RacingTools.GetPlayer(cmd [2]);
                         if (result == null)
@@ -514,7 +505,7 @@ namespace RacingMod
                         return;
                     }
 
-                    if (MyAPIGateway.Session.IsServer)
+                    if (RacingConstants.IsServer)
                     {
                         IMyPlayer result = RacingTools.GetPlayer(cmd [2]);
                         if (result == null)
@@ -592,7 +583,7 @@ namespace RacingMod
                 "/rcd rejoin: Shortcut to leave and join the race.\n/rcd ui: Toggles the on screen UIs.";
             if (IsPlayerAdmin(p, false))
                 s = "\nAdmin Commands:\n/rcd clear [name]: Removes finalist(s).\n" +
-                    "/rcd cleartimer [name]: Resets a racer(s) timer." +
+                    "/rcd cleartimer [name]: Resets a racer(s) timer.\n" +
                     "/rcd grant <name>: Fixes a racer's 'missing' status.\n/rcd mode: Toggles timed mode.\n" +
                     "/rcd kick <name>: Removes a racer from the race.\n/rcd strictstart: Toggles if starting on the track is allowed." + s;
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Red");
