@@ -128,7 +128,8 @@ namespace RacingMod
         {
             NumLaps = 0,
             TimedMode = 1,
-            StrictStart = 2
+            StrictStart = 2,
+            MaxWheels = 3
         }
 
         [ProtoContract]

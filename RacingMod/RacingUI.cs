@@ -99,13 +99,13 @@ namespace RacingMod
             {
                 MapSettings.NumLaps = result;
                 UpdateUI_NumLaps();
-                UpdateHeader();
             }
         }
         public void UpdateUI_NumLaps()
         {
             if (hudReady)
                 numLapsInput.Text = "Laps - " + MapSettings.NumLaps;
+            UpdateHeader();
         }
 
         private void SetPrevPlayerKey (MyKeys key, bool arg1, bool arg2, bool arg3)

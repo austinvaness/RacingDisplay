@@ -495,6 +495,36 @@ namespace RacingMod
                         redirect = true;
                     }
                     break;
+                case "laps":
+                    if (!IsPlayerAdmin(p, true))
+                        return;
+
+                    if (cmd.Length != 3)
+                    {
+                        MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd laps <number>: Changes the number of laps.", "rcd", p.IdentityId, "Red");
+                        return;
+                    }
+
+                    if (RacingConstants.IsServer)
+                    {
+                        int laps;
+                        if (int.TryParse(cmd[2], out laps))
+                        {
+                            MapSettings.NumLaps = laps;
+                            UpdateUI_NumLaps();
+                            MyVisualScriptLogicProvider.SendChatMessage($"Number of laps is now {laps}.", "rcd", p.IdentityId, "Red");
+                        }
+                        else
+                        {
+                            MyVisualScriptLogicProvider.SendChatMessage($"'{cmd [2]}' is not a valid number.", "rcd", p.IdentityId, "Red");
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    break;
                 case "kick":
                     if (!IsPlayerAdmin(p, true))
                         return;
@@ -585,7 +615,8 @@ namespace RacingMod
                 s = "\nAdmin Commands:\n/rcd clear [name]: Removes finalist(s).\n" +
                     "/rcd cleartimer [name]: Resets a racer(s) timer.\n" +
                     "/rcd grant <name>: Fixes a racer's 'missing' status.\n/rcd mode: Toggles timed mode.\n" +
-                    "/rcd kick <name>: Removes a racer from the race.\n/rcd strictstart: Toggles if starting on the track is allowed." + s;
+                    "/rcd kick <name>: Removes a racer from the race.\n/rcd strictstart: Toggles if starting on the track is allowed.\n" +
+                    "/rcd laps <number>: Changes the number of laps." + s;
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Red");
         }
 
@@ -638,7 +669,7 @@ namespace RacingMod
                 int end;
                 double partial;
                 GetClosestSegment(p.GetPosition(), out start, out end, out partial);
-                if (start != -1 && end != 0)
+                if (end > 0 && end < nodes.Count)
                 {
                     MyVisualScriptLogicProvider.ShowNotification("Move behind the starting line before joining the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                     return false;

@@ -25,7 +25,7 @@ namespace RacingMod
         public float NodeNumber { get; private set; } = float.NaN;
 
         public bool Valid =>  Type == BeaconType.FINISH || !float.IsNaN(NodeNumber);
-        public Vector3 Coords => Beacon.CubeGrid.WorldAABB.Center;
+        public Vector3 Coords => Beacon?.CubeGrid?.WorldAABB.Center ?? Vector3.Zero;
         public int Index = -1;
 
         public bool Contains(IMyPlayer p)
@@ -50,7 +50,7 @@ namespace RacingMod
             if (vel == Vector3D.Zero)
                 return false;
 
-            Vector3D direction = Vector3D.TransformNormal(e.Physics.LinearVelocity / -59, transMatrix);
+            Vector3D direction = Vector3D.TransformNormal(e.Physics.LinearVelocity / -300, transMatrix);
             double speed = direction.Length();
             direction /= speed;
             float? result = Beacon.CubeGrid.LocalAABB.Intersects(new Ray(e.GetPosition(), direction));
