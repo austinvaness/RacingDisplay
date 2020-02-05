@@ -23,7 +23,7 @@ namespace RacingMod
             if (infoHud == null)
                 return;
 
-            if (activeRacersHud != null && config.HideHud.IsKeybindPressed())
+            if (activeRacersHud != null && config.HideHud.IsKeybindPressed() && !MyAPIGateway.Gui.ChatEntryVisible)
                 ToggleUI();
 
             if (!Spec.Enabled)
