@@ -152,6 +152,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RacingBeacon.cs" />
     <Compile Include="RacingConstants.cs" />
+    <Compile Include="RacingDisplayAPI.cs" />
     <Compile Include="RacingMapSettings.cs" />
     <Compile Include="RacingPreferences.cs" />
     <Compile Include="RacingSession.cs" />

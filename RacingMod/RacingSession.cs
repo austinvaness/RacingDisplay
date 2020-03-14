@@ -14,6 +14,7 @@ using ProtoBuf;
 using System.Collections.Concurrent;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 using KlimeDraygo.RelativeSpectator.API;
+using VRage;
 
 namespace RacingMod
 {
@@ -35,7 +36,7 @@ namespace RacingMod
         private readonly StringBuilder infoHudText = new StringBuilder();
         private string finalRacersString;
 
-
+        private bool initApi = false;
         private bool running = false;
 
         private readonly Dictionary<ulong, StaticRacerInfo> staticRacerInfo = new Dictionary<ulong, StaticRacerInfo>();
@@ -67,12 +68,6 @@ namespace RacingMod
 
         private void Start()
         {
-            if(textApi == null)
-                textApi = new HudAPIv2(CreateHudItems);
-
-            if(Spec == null)
-                Spec = new SpecCamAPI();
-
             if (RacingConstants.IsPlayer && MyAPIGateway.Session.Player == null)
                 return;
 
@@ -106,14 +101,30 @@ namespace RacingMod
 
         public override void UpdateAfterSimulation ()
         {
+            Runtime++;
+
             if (MyAPIGateway.Session == null)
                 return;
+
+            // Startup
+            if (textApi == null)
+                textApi = new HudAPIv2(CreateHudItems);
+
+            if (Spec == null)
+                Spec = new SpecCamAPI();
+
+            if (!initApi && RacingConstants.IsServer && Runtime >= 300)
+            {
+                MyAPIGateway.Utilities.SendModMessage(1708268562, new MyTuple<Func<ulong []>, Func<ulong, bool>>(ApiGetPlayers, ApiContainsPlayer));
+                initApi = true;
+            }
+
             if (!running)
                 Start();
             if (!running)
                 return;
+            // End startup
 
-            Runtime++;
             try
             {
                 if (RacingConstants.IsPlayer)
@@ -130,6 +141,22 @@ namespace RacingMod
             {
                 RacingTools.ShowError(e, GetType());
             }
+        }
+
+        /// <summary>
+        /// Used by the API to get a list of players.
+        /// </summary>
+        private ulong [] ApiGetPlayers ()
+        {
+            return activePlayers.ToArray();
+        }
+
+        /// <summary>
+        /// Used by the API to determine whether a player is active.
+        /// </summary>
+        private bool ApiContainsPlayer (ulong id)
+        {
+            return activePlayers.Contains(id);
         }
 
         protected override void UnloadData ()
