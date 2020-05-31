@@ -1,29 +1,64 @@
-﻿using System;
+﻿using Sandbox.Game;
+using System;
+using VRage;
 using VRage.Game.ModAPI;
 
 namespace RacingMod
 {
-    public class StaticRacerInfo
+    public class StaticRacerInfo : IEquatable<StaticRacerInfo>
     {
         public ulong Id;
+        public IMyPlayer Racer;
         public string Name;
-        public RacerInfo? PreviousTick;
         public Timer Timer;
-        public int? NextNode;
-        public bool InFinish;
+        public bool InStart;
+        public bool OnTrack;
         public int Laps = 0;
         public TimeSpan BestTime = new TimeSpan(0);
         public DateTime FinishTime = new DateTime();
+        public int RankUpFrame = 0;
+        public int Rank = 0;
+        /// <summary>
+        /// Distance from start
+        /// </summary>
+        public double Distance = 0;
+        public bool Missed = false;
+        public bool AutoJoin = false;
 
-        public StaticRacerInfo()
+        private int nextNode;
+        public int NextNode
         {
-            Timer = new Timer(true);
+            get
+            {
+                return nextNode;
+            }
+            set
+            {
+                SetNextNode(value);
+            }
+        }
+
+        public void SetNextNode (int value, bool force = false)
+        {
+            if (nextNode != value || force)
+            {
+                nextNode = value;
+                HideWaypoint();
+                MyVisualScriptLogicProvider.AddGPSObjective(RacingConstants.gateWaypointName, RacingConstants.gateWaypointDescription, RacingSession.Instance.Nodes.GetCoords(value),
+                    RacingConstants.gateWaypointColor, 0, Racer.IdentityId);
+            }
+        }
+
+        public void HideWaypoint()
+        {
+            MyVisualScriptLogicProvider.RemoveGPS(RacingConstants.gateWaypointName, Racer.IdentityId);
         }
 
         public StaticRacerInfo(IMyPlayer p)
         {
             Id = p.SteamUserId;
             Name = p.DisplayName;
+            Racer = p;
             Timer = new Timer(true);
         }
 
@@ -40,6 +75,35 @@ namespace RacingMod
             BestTime = new TimeSpan(0);
             FinishTime = new DateTime();
         }
+
+        public void Reset()
+        {
+            NextNode = 0;
+            InStart = false;
+            OnTrack = false;
+            Laps = 0;
+            Timer.Reset(true);
+            Rank = 0;
+            Distance = 0;
+            Missed = false;
+            AutoJoin = false;
+        }
+
+        public override bool Equals (object obj)
+        {
+            StaticRacerInfo info = obj as StaticRacerInfo;
+            return info != null && Id == info.Id;
+        }
+
+        public override int GetHashCode ()
+        {
+            return 2108858624 + Id.GetHashCode();
+        }
+
+        public bool Equals (StaticRacerInfo other)
+        {
+            return other != null && Id == other.Id;
+        }
     }
 
     public class Timer
@@ -47,9 +111,11 @@ namespace RacingMod
         private DateTime started;
         private DateTime? paused;
 
+        private DateTime Now => RacingSession.Instance.Runtime;
+
         public Timer(bool paused = false)
         {
-            started = DateTime.Now;
+            started = Now;
             if (paused)
                 this.paused = started;
             else
@@ -60,7 +126,7 @@ namespace RacingMod
         {
             if (paused.HasValue)
                 return paused.Value - started;
-            return DateTime.Now - started;
+            return Now - started;
         }
         public string GetTime (string format)
         {
@@ -71,7 +137,7 @@ namespace RacingMod
         {
             if(paused.HasValue)
             {
-                started += DateTime.Now - paused.Value;
+                started += Now - paused.Value;
                 paused = null;
             }
         }
@@ -79,53 +145,16 @@ namespace RacingMod
         public void Stop()
         {
             if(!paused.HasValue)
-                paused = DateTime.Now;
+                paused = Now;
         }
 
         public void Reset (bool paused = false)
         {
-            started = DateTime.Now;
+            started = Now;
             if (paused)
                 this.paused = started;
             else
                 this.paused = null;
-        }
-    }
-
-    public struct RacerInfo
-    {
-        public IMyPlayer Racer;
-        public ulong RacerId => Racer.SteamUserId;
-        public double Distance;
-        public int Rank;
-        public string Name => Racer.DisplayName;
-        public int RankUpFrame;
-        public RacingBeacon Destination;
-        public bool Missed;
-
-        public RacerInfo (IMyPlayer racer, double distance, bool missed)
-        {
-            Racer = racer;
-            Distance = distance;
-            Rank = -1;
-            RankUpFrame = 0;
-            Destination = null;
-            Missed = missed;
-        }
-
-        public override bool Equals (object obj)
-        {
-            if (obj is RacerInfo)
-            {
-                RacerInfo info = (RacerInfo)obj;
-                return RacerId == info.RacerId;
-            }
-            return false;
-        }
-
-        public override int GetHashCode ()
-        {
-            return -913653116 + RacerId.GetHashCode();
         }
     }
 }

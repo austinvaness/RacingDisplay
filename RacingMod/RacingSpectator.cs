@@ -56,7 +56,7 @@ namespace RacingMod
                         {
                             // Character is still not in render distance
                             SpecCam.Position = followedPos;
-                            if (Runtime % 100 == 0)
+                            if (Runticks % 100 == 0)
                                 RequestNextRacer(followedPlayer.SteamUserId, SpecCam.Position, 0);
                         }
                         else
@@ -286,6 +286,29 @@ namespace RacingMod
                 byte [] data = MyAPIGateway.Utilities.SerializeToBinary(new NextRacerInfo(newRacer.SteamUserId, racerPos));
                 MyAPIGateway.Multiplayer.SendMessageTo(RacingConstants.packetSpecResponse, data, requestor);
             }
+        }
+
+
+        /// <summary>
+        /// Use ONLY on server, not client!
+        /// </summary>
+        bool GetClosestRacer (Vector3D position, out IMyPlayer closest)
+        {
+            double minDistance = double.PositiveInfinity;
+            closest = null;
+
+            playersTemp.Clear();
+            MyAPIGateway.Players.GetPlayers(playersTemp, (p) => activePlayers.Contains(p.SteamUserId));
+            foreach (IMyPlayer p in playersTemp)
+            {
+                double dist = Vector3D.DistanceSquared(p.GetPosition(), position);
+                if (dist < minDistance)
+                {
+                    closest = p;
+                    minDistance = dist;
+                }
+            }
+            return closest != null;
         }
 
         [ProtoContract]

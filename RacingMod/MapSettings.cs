@@ -32,9 +32,14 @@ namespace RacingMod
                 {
                     numLaps = (byte)value;
                     Sync(new Packet(PacketEnum.NumLaps, numLaps));
+                    if(LoopedChanged != null)
+                        LoopedChanged.Invoke(Looped);
+                    if (NumLapsChanged != null)
+                        NumLapsChanged.Invoke(value);
                 }
             }
         }
+        public event Action<int> NumLapsChanged;
 
         [ProtoMember(2)]
         private bool timedMode = false;
@@ -50,9 +55,12 @@ namespace RacingMod
                 {
                     timedMode = value;
                     Sync(new Packet(PacketEnum.TimedMode, timedMode));
+                    if (TimedModeChanged != null)
+                        TimedModeChanged.Invoke(value);
                 }
             }
         }
+        public event Action<bool> TimedModeChanged;
 
         [ProtoMember(3)]
         private bool strictStart = true;
@@ -68,9 +76,37 @@ namespace RacingMod
                 {
                     strictStart = value;
                     Sync(new Packet(PacketEnum.StrictStart, strictStart));
+                    if (StrictStartChanged != null)
+                        StrictStartChanged.Invoke(value);
                 }
             }
         }
+        public event Action<bool> StrictStartChanged;
+
+
+        [ProtoMember(4)]
+        private bool looped = false;
+        /// <summary>
+        /// If true, the start line is the finish line with only 1 lap.
+        /// </summary>
+        public bool Looped
+        {
+            get
+            {
+                return numLaps > 1 || looped;
+            }
+            set
+            {
+                if (value != looped)
+                {
+                    looped = value;
+                    Sync(new Packet(PacketEnum.Looped, strictStart));
+                    if (LoopedChanged != null)
+                        LoopedChanged.Invoke(Looped);
+                }
+            }
+        }
+        public event Action<bool> LoopedChanged;
 
         public void SaveFile ()
         {
@@ -86,8 +122,28 @@ namespace RacingMod
         public void Copy(RacingMapSettings config)
         {
             numLaps = config.numLaps;
+            if (NumLapsChanged != null)
+                NumLapsChanged.Invoke(numLaps);
+
             timedMode = config.timedMode;
+            if (TimedModeChanged != null)
+                TimedModeChanged.Invoke(timedMode);
+
             strictStart = config.strictStart;
+            if (StrictStartChanged != null)
+                StrictStartChanged.Invoke(strictStart);
+
+            looped = config.looped;
+            if (LoopedChanged != null)
+                LoopedChanged.Invoke(looped);
+        }
+
+        public void Unload()
+        {
+            NumLapsChanged = null;
+            TimedModeChanged = null;
+            StrictStartChanged = null;
+            LoopedChanged = null;
         }
 
         public static RacingMapSettings LoadFile ()
@@ -128,7 +184,8 @@ namespace RacingMod
         {
             NumLaps = 0,
             TimedMode = 1,
-            StrictStart = 2
+            StrictStart = 2,
+            Looped = 3
         }
 
         [ProtoContract]
@@ -166,17 +223,26 @@ namespace RacingMod
                 {
                     case PacketEnum.NumLaps:
                         config.numLaps = value;
-                        RacingSession.Instance.UpdateUI_NumLaps();
+                        if (config.NumLapsChanged != null)
+                            config.NumLapsChanged.Invoke(value);
                         break;
                     case PacketEnum.TimedMode:
                         bool b1 = value == 1;
                         config.timedMode = b1;
-                        RacingSession.Instance.UpdateUI_TimedMode();
+                        if (config.TimedModeChanged != null)
+                            config.TimedModeChanged.Invoke(b1);
                         break;
                     case PacketEnum.StrictStart:
                         bool b2 = value == 1;
                         config.strictStart = b2;
-                        RacingSession.Instance.UpdateUI_StrictStart();
+                        if (config.StrictStartChanged != null)
+                            config.StrictStartChanged.Invoke(b2);
+                        break;
+                    case PacketEnum.Looped:
+                        bool b3 = value == 1;
+                        config.looped = b3;
+                        if (config.LoopedChanged != null)
+                            config.LoopedChanged.Invoke(b3);
                         break;
                 }
             }
@@ -225,7 +291,6 @@ namespace RacingMod
                     if (config != null)
                         MapSettings.Copy(config);
                 }
-                UpdateUI_Admin();
             }
             catch (Exception e)
             {

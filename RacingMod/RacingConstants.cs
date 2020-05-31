@@ -1,4 +1,5 @@
 ﻿using Sandbox.ModAPI;
+using System;
 using VRage.Game;
 using VRageMath;
 
@@ -9,6 +10,11 @@ namespace RacingMod
         public static bool IsServer => MyAPIGateway.Session.IsServer || MyAPIGateway.Session.OnlineMode == MyOnlineModeEnum.OFFLINE;
         public static bool IsDedicated => IsServer && MyAPIGateway.Utilities.IsDedicated;
         public static bool IsPlayer => !IsDedicated;
+
+        // One second = 10,000,000 ticks
+        public static TimeSpan oneTick = new TimeSpan((long)(MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS * 10000000));
+
+        public const long ModMessageId = 1708268562;
 
         public const ushort packetSettings = 45565;
         public const ushort packetSettingsInit = 45566;
@@ -41,6 +47,10 @@ namespace RacingMod
         public static Color gateWaypointColor = new Color(0, 255, 255); // nodes and cleared checkpoints
         public const string gateWaypointName = "Waypoint";
         public const string gateWaypointDescription = "The next waypoint to guide you through the race.";
+
+        public const int apiRaceStarted = 0;
+        public const int apiFinishers = 1;
+        public const int apiLaps = 2;
 
     }
 }

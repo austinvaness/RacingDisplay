@@ -1,4 +1,5 @@
 ﻿using Draygo.API;
+using System;
 using VRage.Input;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
@@ -20,6 +21,7 @@ namespace RacingMod
         private HudAPIv2.MenuTextInput numLapsInput;
         private HudAPIv2.MenuItem timedModeInput;
         private HudAPIv2.MenuItem onTrackStartInput;
+        private HudAPIv2.MenuItem loopedInput;
 
         private Vector2D activeHudPosition = new Vector2D(-0.95, 0.90);
         private Vector2D infoHudPosition = new Vector2D(1, 1);
@@ -32,8 +34,13 @@ namespace RacingMod
             adminRoot = new HudAPIv2.MenuRootCategory("Racing Display", HudAPIv2.MenuRootCategory.MenuFlag.AdminMenu, "Racing Display Settings");
             {
                 numLapsInput = new HudAPIv2.MenuTextInput("Laps - " + MapSettings.NumLaps, adminRoot, "Enter number of laps:", OnNumLapsChanged);
+                MapSettings.NumLapsChanged += UpdateUI_NumLaps;
                 timedModeInput = new HudAPIv2.MenuItem("Timed Mode - " + BoolToString(MapSettings.TimedMode), adminRoot, OnTimedModeChanged);
+                MapSettings.TimedModeChanged += UpdateUI_TimedMode;
                 onTrackStartInput = new HudAPIv2.MenuItem("Strict Start - " + BoolToString(MapSettings.StrictStart), adminRoot, OnTrackStartChanged);
+                MapSettings.StrictStartChanged += UpdateUI_StrictStart;
+                loopedInput = new HudAPIv2.MenuItem("Looped - " + BoolToString(MapSettings.Looped), adminRoot, OnLoopedChanged, MapSettings.NumLaps == 1);
+                MapSettings.LoopedChanged += UpdateUI_Looped;
             }
 
             menuRoot = new HudAPIv2.MenuRootCategory("Race Spectator", HudAPIv2.MenuRootCategory.MenuFlag.PlayerMenu, "Spectator Settings");
@@ -54,13 +61,6 @@ namespace RacingMod
             }
         }
 
-        public void UpdateUI_Admin()
-        {
-            UpdateUI_NumLaps();
-            UpdateUI_TimedMode();
-            UpdateUI_StrictStart();
-        }
-
         private string BoolToString (bool b)
         {
             if (b)
@@ -72,40 +72,44 @@ namespace RacingMod
         private void OnTrackStartChanged ()
         {
             MapSettings.StrictStart = !MapSettings.StrictStart;
-            UpdateUI_StrictStart();
         }
-        public void UpdateUI_StrictStart()
+        public void UpdateUI_StrictStart(bool strict)
         {
             if(hudReady)
-                onTrackStartInput.Text = "Strict Start - " + BoolToString(MapSettings.StrictStart);
+                onTrackStartInput.Text = "Strict Start - " + BoolToString(strict);
         }
 
         private void OnTimedModeChanged ()
         {
             MapSettings.TimedMode = !MapSettings.TimedMode;
-            UpdateUI_TimedMode();
-            FinishersUpdated();
         }
-        public void UpdateUI_TimedMode()
+        public void UpdateUI_TimedMode(bool timed)
         {
             if (hudReady)
-                timedModeInput.Text = "Timed Mode - " + BoolToString(MapSettings.TimedMode);
+                timedModeInput.Text = "Timed Mode - " + BoolToString(timed);
         }
 
         private void OnNumLapsChanged (string text)
         {
             int result;
             if(int.TryParse(text, out result))
-            {
                 MapSettings.NumLaps = result;
-                UpdateUI_NumLaps();
-            }
         }
-        public void UpdateUI_NumLaps()
+        public void UpdateUI_NumLaps(int laps)
         {
             if (hudReady)
-                numLapsInput.Text = "Laps - " + MapSettings.NumLaps;
-            UpdateHeader();
+                numLapsInput.Text = "Laps - " + laps;
+            loopedInput.Interactable = laps == 1;
+        }
+
+        private void OnLoopedChanged ()
+        {
+            MapSettings.Looped = !MapSettings.Looped;
+        }
+        public void UpdateUI_Looped (bool looped)
+        {
+            if (hudReady)
+                loopedInput.Text = "Looped - " + BoolToString(looped);
         }
 
         private void SetPrevPlayerKey (MyKeys key, bool arg1, bool arg2, bool arg3)

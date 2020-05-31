@@ -2,11 +2,13 @@
 
 namespace RacingMod
 {
-
-    class RacerDistanceComparer : IComparer<RacerInfo>
+    
+    class RacerDistanceComparer : IComparer<StaticRacerInfo>
     {
-        public int Compare (RacerInfo x, RacerInfo y)
+        public int Compare (StaticRacerInfo x, StaticRacerInfo y)
         {
+            if (x.Equals(y))
+                return 0;
             int result = y.Distance.CompareTo(x.Distance);
             if (result == 0)
                 return 1;
@@ -19,11 +21,12 @@ namespace RacingMod
     {
         public int Compare (StaticRacerInfo x, StaticRacerInfo y)
         {
+            if (x.Equals(y))
+                return 0;
             int result = x.FinishTime.CompareTo(y.FinishTime);
-            if (result == 0)
-                return 1;
-            else
+            if (result != 0)
                 return result;
+            return 1;
         }
     }
 
@@ -31,11 +34,12 @@ namespace RacingMod
     {
         public int Compare (StaticRacerInfo x, StaticRacerInfo y)
         {
+            if (x.Equals(y))
+                return 0;
             int result = x.BestTime.CompareTo(y.BestTime);
-            if (result == 0)
-                return 1;
-            else
+            if (result != 0)
                 return result;
+            return 1;
         }
     }
 }
