@@ -45,9 +45,24 @@ namespace RacingMod
                     break;
                 case "join":
                     if (RacingConstants.IsServer)
-                        JoinRace(p);
+                    {
+                        if(cmd.Length > 2 && IsPlayerAdmin(p, false))
+                        {
+                            IMyPlayer temp = RacingTools.GetPlayer(cmd [2]);
+                            if (temp == null)
+                                ShowAdminMsg(p, $"No racer was found with a name containing '{cmd [2]}'.");
+                            else
+                                JoinRace(temp);
+                        }
+                        else
+                        {
+                            JoinRace(p);
+                        }
+                    }
                     else
+                    {
                         redirect = true;
+                    }
                     break;
                 case "leave":
                     if (RacingConstants.IsServer)
@@ -76,14 +91,14 @@ namespace RacingMod
 
                             StaticRacerInfo info = GetStaticInfo(p);
                             if (info.AutoJoin)
-                                MyVisualScriptLogicProvider.ShowNotification("You will leave the race after finishing.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
+                                ShowMsg(p, "You will leave the race after finishing.");
                             else
-                                MyVisualScriptLogicProvider.ShowNotification("Your timer will reset after finishing.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
+                                ShowMsg(p, "Your timer will reset after finishing.");
                             info.AutoJoin = !info.AutoJoin;
                         }
                         else
                         {
-                            MyVisualScriptLogicProvider.ShowNotification("Auto join only works for timed races.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
+                            ShowMsg(p, "Auto join only works for timed races.");
                         }
                     }
                     else
@@ -100,25 +115,25 @@ namespace RacingMod
                         if (cmd.Length == 2)
                         {
                             finishers.Clear();
-                            MyVisualScriptLogicProvider.SendChatMessage("Cleared all finishers.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, "Cleared all finishers.");
                         }
                         else if (cmd.Length == 3)
                         {
                             StaticRacerInfo info;
                             if (!GetStaticInfo(cmd[2], out info))
                             {
-                                MyVisualScriptLogicProvider.SendChatMessage($"No racer was found with a name containing '{cmd [2]}'.", "rcd", p.IdentityId, "Red");
+                                ShowAdminMsg(p, $"No racer was found with a name containing '{cmd [2]}'.");
                                 return;
                             }
                             else
                             {
-                                MyVisualScriptLogicProvider.SendChatMessage($"Removed {info.Name} from the finalists.", "rcd", p.IdentityId, "Red");
+                                ShowAdminMsg(p, $"Removed {info.Name} from the finalists.");
                                 finishers.Remove(info);
                             }
                         }
                         else
                         {
-                            MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd clear [name]: Removes all or a specific racer from finalists.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, "Usage:\n/rcd clear [name]: Removes all or a specific racer from finalists.");
                             return;
 
                         }
@@ -138,7 +153,7 @@ namespace RacingMod
                         {
                             foreach (StaticRacerInfo info in staticRacerInfo.Values)
                                 info.Timer.Reset(true);
-                            MyVisualScriptLogicProvider.SendChatMessage("Reset all race timers.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, "Reset all race timers.");
                         }
                         else if (cmd.Length == 3)
                         {
@@ -146,18 +161,18 @@ namespace RacingMod
                             if (GetStaticInfo(cmd[2], out info) && info.OnTrack)
                             {
                                 info.Timer.Reset(true);
-                                MyVisualScriptLogicProvider.SendChatMessage($"Reset {info.Name}'s race timer.", "rcd", p.IdentityId, "Red");
+                                ShowAdminMsg(p, $"Reset {info.Name}'s race timer.");
                                 
                             }
                             else
                             {
-                                MyVisualScriptLogicProvider.SendChatMessage($"No racer was found with a name containing '{cmd [2]}'.", "rcd", p.IdentityId, "Red");
+                                ShowAdminMsg(p, $"No active racer was found with a name containing '{cmd [2]}'.");
                                 return;
                             }
                         }
                         else
                         {
-                            MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd cleartimer [name]: Resets all or a specific race timer.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, "Usage:\n/rcd cleartimer [name]: Resets all or a specific race timer.");
                             return;
                         }
                     }
@@ -168,7 +183,7 @@ namespace RacingMod
                     break;
                 case "debug":
                     if(!RacingConstants.IsServer)
-                        MyVisualScriptLogicProvider.SendChatMessage("Debug view only works for the server host.", "rcd", p.IdentityId, "Red");
+                        ShowAdminMsg(p, "Debug view only works for the server host.");
                     debug = !debug;
                     break;
                 case "mode":
@@ -179,9 +194,9 @@ namespace RacingMod
                     {
                         MapSettings.TimedMode = !MapSettings.TimedMode;
                         if (MapSettings.TimedMode)
-                            MyVisualScriptLogicProvider.SendChatMessage("Mode is now timed.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, "Mode is now timed.");
                         else
-                            MyVisualScriptLogicProvider.SendChatMessage("Mode is now normal.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, "Mode is now normal.");
                     }
                     else
                     {
@@ -196,9 +211,9 @@ namespace RacingMod
                     {
                         MapSettings.StrictStart = !MapSettings.StrictStart;
                         if (MapSettings.StrictStart)
-                            MyVisualScriptLogicProvider.SendChatMessage("Starting on the track is no longer allowed.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, "Starting on the track is no longer allowed.");
                         else
-                            MyVisualScriptLogicProvider.SendChatMessage("Starting on the track is now allowed.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, "Starting on the track is now allowed.");
                     }
                     else
                     {
@@ -211,7 +226,7 @@ namespace RacingMod
 
                     if (cmd.Length != 3)
                     {
-                        MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd grant <name>: Fixes a 'missing' error on the ui.", "rcd", p.IdentityId, "Red");
+                        ShowAdminMsg(p, "Usage:\n/rcd grant <name>: Fixes a 'missing' error on the ui.");
                         return;
                     }
 
@@ -220,12 +235,12 @@ namespace RacingMod
                         StaticRacerInfo info;
                         if (GetStaticInfo(cmd[2], out info) && info.OnTrack)
                         {
-                            MyVisualScriptLogicProvider.SendChatMessage($"Reset {info.Name}'s missing status.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, $"Reset {info.Name}'s missing status.");
                             Nodes.ResetPosition(info);
                         }
                         else
                         {
-                            MyVisualScriptLogicProvider.SendChatMessage($"No racer was found with a name containing '{cmd [2]}'.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, $"No racer was found with a name containing '{cmd [2]}'.");
                         }
                         return;
                     }
@@ -240,7 +255,7 @@ namespace RacingMod
 
                     if (cmd.Length != 3)
                     {
-                        MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd laps <number>: Changes the number of laps.", "rcd", p.IdentityId, "Red");
+                        ShowAdminMsg(p, "Usage:\n/rcd laps <number>: Changes the number of laps.");
                         return;
                     }
 
@@ -250,11 +265,11 @@ namespace RacingMod
                         if (int.TryParse(cmd [2], out laps))
                         {
                             MapSettings.NumLaps = laps;
-                            MyVisualScriptLogicProvider.SendChatMessage($"Number of laps is now {laps}.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, $"Number of laps is now {laps}.");
                         }
                         else
                         {
-                            MyVisualScriptLogicProvider.SendChatMessage($"'{cmd [2]}' is not a valid number.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, $"'{cmd [2]}' is not a valid number.");
                         }
                         return;
                     }
@@ -269,7 +284,7 @@ namespace RacingMod
 
                     if (cmd.Length != 3)
                     {
-                        MyVisualScriptLogicProvider.SendChatMessage("Usage:\n/rcd kick <name>: Removes a player from the race.", "rcd", p.IdentityId, "Red");
+                        ShowAdminMsg(p, "Usage:\n/rcd kick <name>: Removes a player from the race.");
                         return;
                     }
 
@@ -278,19 +293,19 @@ namespace RacingMod
                         IMyPlayer result = RacingTools.GetPlayer(cmd [2]);
                         if (result == null)
                         {
-                            MyVisualScriptLogicProvider.SendChatMessage($"No racer was found with a name containing '{cmd [2]}'.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, $"No racer was found with a name containing '{cmd [2]}'.");
                         }
                         else
                         {
                             if (activePlayers.Contains(result.SteamUserId))
                             {
-                                MyVisualScriptLogicProvider.SendChatMessage($"Removed {result.DisplayName} from the race.", "rcd", p.IdentityId, "Red");
+                                ShowAdminMsg(p, $"Removed {result.DisplayName} from the race.");
                                 LeaveRace(result);
-                                MyVisualScriptLogicProvider.ShowNotification("You have been kicked from the race.", RacingConstants.defaultMsgMs, "White", result.IdentityId);
+                                ShowMsg(result, "You have been kicked from the race.");
                             }
                             else
                             {
-                                MyVisualScriptLogicProvider.SendChatMessage($"{result.DisplayName} is not in the race.", "rcd", p.IdentityId, "Red");
+                                ShowAdminMsg(p, $"{result.DisplayName} is not in the race.");
                             }
                         }
                         return;
@@ -308,7 +323,7 @@ namespace RacingMod
                     {
                         foreach(IMyTimerBlock t in StartTimers)
                             t.Trigger();
-                        MyVisualScriptLogicProvider.SendChatMessage($"Started {StartTimers.Count} timers.", "rcd", p.IdentityId, "Red");
+                        ShowAdminMsg(p, $"Started {StartTimers.Count} timers.");
                         RacingTools.SendAPIMessage(RacingConstants.apiRaceStarted); // API: Race started
                     }
                     else
@@ -324,16 +339,68 @@ namespace RacingMod
                     {
                         if(MapSettings.NumLaps > 1)
                         {
-                            MyVisualScriptLogicProvider.SendChatMessage("Race tracks with more than one lap are always looped.", "rcd", p.IdentityId, "Red");
+                            ShowAdminMsg(p, "Race tracks with more than one lap are always looped.");
                         }
                         else
                         {
                             MapSettings.Looped = !MapSettings.Looped;
                             if (MapSettings.Looped)
-                                MyVisualScriptLogicProvider.SendChatMessage("The race track is now looped.", "rcd", p.IdentityId, "Red");
+                                ShowAdminMsg(p, "The race track is now looped.");
                             else
-                                MyVisualScriptLogicProvider.SendChatMessage("The race track is no longer looped.", "rcd", p.IdentityId, "Red");
+                                ShowAdminMsg(p, "The race track is no longer looped.");
                         }
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    break;
+                case "finish":
+                    if (!IsPlayerAdmin(p, true))
+                        return;
+
+                    if (cmd.Length < 3 || cmd.Length > 4)
+                    {
+                        ShowAdminMsg(p, "Usage:\n/rcd finish <name> [position]: Adds a finisher to the list.");
+                        return;
+                    }
+
+                    if (RacingConstants.IsServer)
+                    {
+                        IMyPlayer result = RacingTools.GetPlayer(cmd [2]);
+                        if (result == null)
+                        {
+                            ShowAdminMsg(p, $"No racer was found with a name containing '{cmd [2]}'.");
+                        }
+                        else
+                        {
+                            StaticRacerInfo info = GetStaticInfo(result);
+                            info.Finish();
+                            LeaveRace(result);
+                            if (cmd.Length == 4)
+                            {
+                                int index;
+                                if (!int.TryParse(cmd [3], out index))
+                                {
+                                    ShowAdminMsg(p, $"Error, {cmd [3]} is not a number.");
+                                    return;
+                                }
+                                index--;
+                                if (index < 0 || index > finishers.Count)
+                                {
+                                    ShowAdminMsg(p, $"Error, {cmd [3]} must be between 1 and {finishers.Count + 1}.");
+                                    return;
+                                }
+                                finishers.Add(info, index);
+                            }
+                            else
+                            {
+                                finishers.Add(info);
+                            }
+
+                            ShowAdminMsg(p, $"Added {result.DisplayName} to the finishers list.");
+                        }
+                        return;
                     }
                     else
                     {
@@ -362,8 +429,18 @@ namespace RacingMod
                 return true;
             bool result = p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin;
             if (!result && warn)
-                MyVisualScriptLogicProvider.SendChatMessage("You do not have permission to do that.", "rcd", p.IdentityId, "Red");
+                MyVisualScriptLogicProvider.SendChatMessage("You do not have permission to do that.");
             return result;
+        }
+
+        private void ShowAdminMsg(IMyPlayer p, string msg)
+        {
+            MyVisualScriptLogicProvider.SendChatMessage(msg, "rcd", p.IdentityId, "Red");
+        }
+
+        private void ShowMsg(IMyPlayer p, string msg)
+        {
+            MyVisualScriptLogicProvider.ShowNotification(msg, RacingConstants.defaultMsgMs, "White", p.IdentityId);
         }
 
         void ShowChatHelp (IMyPlayer p)
@@ -373,7 +450,7 @@ namespace RacingMod
                 "/rcd autojoin: Rejoin a timed race after it has been completed.";
             if (IsPlayerAdmin(p, false))
                 s += "\nTo view admin commands:\n/rcd admin";
-            MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Red");
+            MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Blue");
         }
 
         void ShowAdminHelp (IMyPlayer p)
@@ -384,8 +461,8 @@ namespace RacingMod
                     "/rcd grant <name>: Fixes a racer's 'missing' status.\n/rcd mode: Toggles timed mode.\n" +
                     "/rcd kick <name>: Removes a racer from the race.\n/rcd strictstart: Toggles if starting on the track is allowed.\n" +
                     "/rcd laps <number>: Changes the number of laps.\n/rcd looped: Toggles if the track is looped.\n" +
-                    "/rcd timers: Triggers all timers prefixed with [racetimer].";
-            MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Red");
+                    "/rcd timers: Triggers all timers prefixed with [racetimer].\n/rcd finish <name> [position]: Force a racer to finish.";
+            MyVisualScriptLogicProvider.SendChatMessage(s, "rcd admin", p.IdentityId, "Red");
         }
 
 

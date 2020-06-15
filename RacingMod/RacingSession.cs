@@ -5,14 +5,11 @@ using System.Text;
 using Draygo.API;
 using Sandbox.Game;
 using Sandbox.ModAPI;
-using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI;
 using VRage.Utils;
 using VRageMath;
-using ProtoBuf;
 using System.Collections.Concurrent;
-using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 using KlimeDraygo.RelativeSpectator.API;
 using VRage;
 using SpaceEngineers.Game.ModAPI;
@@ -59,7 +56,6 @@ namespace RacingMod
         private readonly StringBuilder tempSb = new StringBuilder();
 
         RacingPreferences config = new RacingPreferences();
-
 
         public RacingSession ()
         {
@@ -527,7 +523,7 @@ namespace RacingMod
                             else if (info.RankUpFrame > 0)
                             {
                                 // recently ranked up
-                                if (info.RankUpFrame + RacingConstants.rankUpTime <= Runticks)
+                                if (info.RankUpFrame + RacingConstants.rankUpTime > Runticks)
                                     drawnColor = RacingConstants.colorRankUp;
                                 else
                                     info.RankUpFrame = 0;

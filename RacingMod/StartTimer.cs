@@ -2,10 +2,6 @@
 using Sandbox.ModAPI;
 using SpaceEngineers.Game.ModAPI;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using VRage.Game.Components;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;

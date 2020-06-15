@@ -1,10 +1,6 @@
-﻿using Sandbox.ModAPI;
-using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace RacingMod
 {
@@ -13,15 +9,11 @@ namespace RacingMod
         private readonly StringBuilder tempSb = new StringBuilder();
         private string finalString;
         private RacingMapSettings MapSettings => RacingSession.Instance.MapSettings;
-        private SortedSet<StaticRacerInfo> finishers;
+        private readonly List<StaticRacerInfo> finishers = new List<StaticRacerInfo>();
 
         public FinishList()
         {
             MapSettings.TimedModeChanged += TimedModeChanged;
-            if (MapSettings.TimedMode)
-                finishers = new SortedSet<StaticRacerInfo>(new RacerBestTimeComparer());
-            else
-                finishers = new SortedSet<StaticRacerInfo>(new RacerRankComparer());
         }
 
         public int Count => finishers.Count;
@@ -30,6 +22,19 @@ namespace RacingMod
         {
             finishers.Remove(info);
             finishers.Add(info);
+            FinishersModifed();
+        }
+
+        public void Add(StaticRacerInfo info, int index)
+        {
+            int current = finishers.IndexOf(info);
+            if(current > 0)
+            {
+                finishers.RemoveAt(current);
+                if (current < index)
+                    index--;
+            }
+            finishers.Insert(index, info);
             FinishersModifed();
         }
 
@@ -59,28 +64,24 @@ namespace RacingMod
 
         private void TimedModeChanged (bool timed)
         {
-            SortedSet<StaticRacerInfo> temp;
-            if(timed)
-                temp = new SortedSet<StaticRacerInfo>(new RacerBestTimeComparer());
-            else
-                temp = new SortedSet<StaticRacerInfo>(new RacerRankComparer());
-            foreach (StaticRacerInfo info in finishers)
-                temp.Add(info);
-            finishers = temp;
             FinishersModifed();
         }
 
         // Build the final racer text
         private void FinishersModifed ()
         {
-            tempSb.Clear();
+            tempSb.Clear().Append(RacingConstants.colorFinalist);
+
+            IEnumerable<StaticRacerInfo> temp;
+            if (MapSettings.TimedMode)
+                temp = new SortedSet<StaticRacerInfo>(finishers, new RacerBestTimeComparer());
+            else
+                temp = finishers;
 
             if (finishers.Count > 0)
             {
-                tempSb.Append(RacingConstants.colorFinalist);
-
                 int i = 0;
-                foreach (StaticRacerInfo info in finishers)
+                foreach (StaticRacerInfo info in temp)
                 {
                     i++;
                     tempSb.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');

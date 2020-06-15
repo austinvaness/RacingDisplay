@@ -28,7 +28,7 @@ namespace RacingMod
         public static IMyPlayer GetPlayer (string name)
         {
             name = name.ToLower();
-            List<IMyPlayer> temp = new List<IMyPlayer>(1);
+            List<IMyPlayer> temp = new List<IMyPlayer>();
             MyAPIGateway.Players.GetPlayers(temp, (p) => p.DisplayName.ToLower().Contains(name));
             return temp.FirstOrDefault();
         }
