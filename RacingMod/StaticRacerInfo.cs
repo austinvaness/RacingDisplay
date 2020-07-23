@@ -1,8 +1,10 @@
-﻿using Sandbox.Game;
+﻿using avaness.RacingMod.Paths;
+using Sandbox.Game;
+using Sandbox.ModAPI;
 using System;
 using VRage.Game.ModAPI;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     public class StaticRacerInfo : IEquatable<StaticRacerInfo>
     {
@@ -14,7 +16,6 @@ namespace RacingMod
         public bool OnTrack;
         public int Laps = 0;
         public TimeSpan BestTime = new TimeSpan(0);
-        public DateTime FinishTime = new DateTime();
         public int RankUpFrame = 0;
         public int Rank = 0;
         /// <summary>
@@ -23,6 +24,7 @@ namespace RacingMod
         public double Distance = 0;
         public bool Missed = false;
         public bool AutoJoin = false;
+        public IRaceRecorder Recorder { get; private set; }
 
         private int nextNode;
         public int NextNode
@@ -36,6 +38,7 @@ namespace RacingMod
                 SetNextNode(value);
             }
         }
+
 
         public void SetNextNode (int value, bool force = false)
         {
@@ -61,18 +64,24 @@ namespace RacingMod
             Timer = new Timer(true);
         }
 
-        public void Finish()
+        /// <summary>
+        /// Returns true if the new time was used.
+        /// </summary>
+        public bool MarkTime()
         {
             TimeSpan span = Timer.GetTime();
+            Recorder?.EndTrack();
             if (BestTime.Ticks == 0 || span < BestTime)
+            {
                 BestTime = span;
-            FinishTime = DateTime.Now;
+                return true;
+            }
+            return false;
         }
 
         public void RemoveFinish()
         {
             BestTime = new TimeSpan(0);
-            FinishTime = new DateTime();
         }
 
         public void Reset()
@@ -86,6 +95,17 @@ namespace RacingMod
             Distance = 0;
             Missed = false;
             AutoJoin = false;
+        }
+
+        public void CreateRecorder()
+        {
+            if (Recorder == null)
+            {
+                if (Id == MyAPIGateway.Session.Player?.SteamUserId)
+                    Recorder = RacingSession.Instance.Recorder = new ClientRaceRecorder();
+                else
+                    Recorder = new ServerRaceRecorder(Racer);
+            }
         }
 
         public override bool Equals (object obj)

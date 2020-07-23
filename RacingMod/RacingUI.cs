@@ -3,7 +3,7 @@ using VRage.Input;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     public partial class RacingSession
     {

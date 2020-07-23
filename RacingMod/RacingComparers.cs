@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
-    class RacerDistanceComparer : IComparer<StaticRacerInfo>
+    public class RacerDistanceComparer : IComparer<StaticRacerInfo>
     {
         public int Compare (StaticRacerInfo x, StaticRacerInfo y)
         {
@@ -16,7 +16,7 @@ namespace RacingMod
         }
     }
 
-    class RacerBestTimeComparer : IComparer<StaticRacerInfo>
+    public class RacerBestTimeComparer : IComparer<StaticRacerInfo>
     {
         public int Compare (StaticRacerInfo x, StaticRacerInfo y)
         {

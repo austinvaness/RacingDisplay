@@ -6,7 +6,7 @@ using VRage.Game.Components;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
 
     [MyEntityComponentDescriptor(typeof(MyObjectBuilder_TimerBlock), false)]

@@ -2,7 +2,7 @@
 using System;
 using VRage.Input;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     public class RacingPreferences
     {

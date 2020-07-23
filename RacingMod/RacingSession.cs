@@ -13,8 +13,9 @@ using System.Collections.Concurrent;
 using KlimeDraygo.RelativeSpectator.API;
 using VRage;
 using SpaceEngineers.Game.ModAPI;
+using avaness.RacingMod.Paths;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     public partial class RacingSession : MySessionComponentBase
@@ -26,7 +27,11 @@ namespace RacingMod
         public readonly NodeManager Nodes;
         public readonly HashSet<IMyTimerBlock> StartTimers = new HashSet<IMyTimerBlock>();
         public bool Enabled { get; private set; } = true;
-        bool racersNeedUpdating = false;
+
+        public ClientRaceRecorder Recorder;
+
+
+        private bool racersNeedUpdating = false;
 
         bool debug = false;
 
@@ -39,13 +44,13 @@ namespace RacingMod
         private readonly Dictionary<ulong, StaticRacerInfo> staticRacerInfo = new Dictionary<ulong, StaticRacerInfo>();
         private SortedSet<StaticRacerInfo> previousTick = new SortedSet<StaticRacerInfo>();
 
-        FinishList finishers;
+        private FinishList finishers;
         private readonly HashSet<ulong> activePlayers = new HashSet<ulong>();
 
         readonly ConcurrentDictionary<ulong, HashSet<ulong>> nextPlayerRequests = new ConcurrentDictionary<ulong, HashSet<ulong>>();
         readonly ConcurrentDictionary<ulong, HashSet<ulong>> prevPlayerRequests = new ConcurrentDictionary<ulong, HashSet<ulong>>();
 
-        SpecCamAPI Spec;
+        private SpecCamAPI Spec;
 
         private string hudHeader;
 
@@ -55,7 +60,7 @@ namespace RacingMod
         private readonly List<IMyPlayer> playersTemp = new List<IMyPlayer>();
         private readonly StringBuilder tempSb = new StringBuilder();
 
-        RacingPreferences config = new RacingPreferences();
+        private RacingPreferences config = new RacingPreferences();
 
         public RacingSession ()
         {
@@ -81,6 +86,7 @@ namespace RacingMod
                 MapSettings.Copy(RacingMapSettings.LoadFile());
                 finishers = new FinishList();
                 MapSettings.NumLapsChanged += NumLapsChanged;
+                MapSettings.LoopedChanged += LoopedChanged;
             }
             else
             {
@@ -88,6 +94,7 @@ namespace RacingMod
                 MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetMainId, ReceiveActiveRacers);
                 MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSpecResponse, ReceiveSpecResponse);
                 MyAPIGateway.Multiplayer.SendMessageToServer(RacingConstants.packetSettingsInit, BitConverter.GetBytes(MyAPIGateway.Session.Player.SteamUserId));
+                MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetRec, ServerRaceRecorder.Packet.Received);
             }
             MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSettings, ReceiveSettings);
             MyAPIGateway.Multiplayer.RegisterMessageHandler(RacingConstants.packetSettingsInit, ReceiveSettingsInit);
@@ -133,7 +140,10 @@ namespace RacingMod
             try
             {
                 if (RacingConstants.IsPlayer)
+                {
+                    Recorder?.Update();
                     Spectator();
+                }
 
                 if (RacingConstants.IsServer)
                 {
@@ -219,6 +229,8 @@ namespace RacingMod
             {
                 MyAPIGateway.Multiplayer.UnregisterMessageHandler(RacingConstants.packetMainId, ReceiveActiveRacers);
                 MyAPIGateway.Multiplayer.UnregisterMessageHandler(RacingConstants.packetSpecResponse, ReceiveSpecResponse);
+                MyAPIGateway.Multiplayer.UnregisterMessageHandler(RacingConstants.packetRec, ServerRaceRecorder.Packet.Received);
+
             }
             MyAPIGateway.Multiplayer.UnregisterMessageHandler(RacingConstants.packetSettings, ReceiveSettings);
             MyAPIGateway.Multiplayer.UnregisterMessageHandler(RacingConstants.packetSettingsInit, ReceiveSettingsInit);
@@ -232,6 +244,7 @@ namespace RacingMod
                 MapSettings.StrictStartChanged -= UpdateUI_StrictStart;
                 MapSettings.NumLapsChanged -= NumLapsChanged;
                 MapSettings.NumLapsChanged -= UpdateHeader;
+                MapSettings.LoopedChanged -= LoopedChanged;
                 MapSettings.Unload();
                 Nodes.Unload();
             }
@@ -369,9 +382,9 @@ namespace RacingMod
             return activePlayers.Contains(p.SteamUserId) && p.Character?.Physics != null;
         }
 
-        bool JoinRace (IMyPlayer p)
+        bool JoinRace (IMyPlayer p, bool force = false)
         {
-            if (MapSettings.StrictStart)
+            if (!force && MapSettings.StrictStart)
             {
                 if (Nodes.OnTrack(p))
                 {
@@ -401,6 +414,7 @@ namespace RacingMod
         {
             StaticRacerInfo info = GetStaticInfo(p);
             info.Reset();
+            info.Recorder?.LeftTrack();
 
             info.AutoJoin = false;
             info.HideWaypoint();
@@ -438,20 +452,8 @@ namespace RacingMod
                 if(state != NodeManager.RacerState.On)
                 {
                     finishers.Add(info);
-                    if (MapSettings.TimedMode)
-                    {
-                        string time;
-                        if (state == NodeManager.RacerState.Reset) // Workaround because timer is reset with auto join. TODO: fix
-                            time = info.BestTime.ToString(RacingConstants.timerFormating);
-                        else
-                            time = info.Timer.GetTime(RacingConstants.timerFormating);
-                        MyVisualScriptLogicProvider.ShowNotificationToAll($"{p.DisplayName} just finished with time {time}", RacingConstants.defaultMsgMs, "White");
-
-                    }
-                    else
-                    {
+                    if (!MapSettings.TimedMode)
                         MyVisualScriptLogicProvider.ShowNotificationToAll($"{p.DisplayName} just finished in position {finishers.Count}", RacingConstants.defaultMsgMs, "White");
-                    }
                     if (state == NodeManager.RacerState.Finish)
                         LeaveRace(p);
                 }
@@ -629,7 +631,14 @@ namespace RacingMod
                 if (Nodes.Count < 2 || !Nodes.ResetPosition(info))
                     LeaveRace(info.Racer);
             }
+            ClearAllRecorders();
             racersNeedUpdating = false;
+        }
+
+        private void ClearAllRecorders()
+        {
+            foreach(StaticRacerInfo info in staticRacerInfo.Values)
+                info.Recorder?.ClearData();
         }
 
         private void NumLapsChanged (int laps)
@@ -641,6 +650,12 @@ namespace RacingMod
                 StaticRacerInfo info = GetStaticInfo(id);
                 info.Laps = Math.Min(info.Laps, laps - 1);
             }
+            ClearAllRecorders();
+        }
+
+        private void LoopedChanged(bool looped)
+        {
+            ClearAllRecorders();
         }
     }
 }

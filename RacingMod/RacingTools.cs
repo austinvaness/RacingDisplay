@@ -7,7 +7,7 @@ using VRage.Game.ModAPI;
 using VRage.Utils;
 using VRageMath;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     public static class RacingTools
     {

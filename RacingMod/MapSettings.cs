@@ -2,7 +2,7 @@
 using System;
 using ProtoBuf;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     [ProtoContract]
     public class RacingMapSettings

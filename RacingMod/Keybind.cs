@@ -2,7 +2,7 @@
 using VRage.Input;
 
 // In part from Relative Spectator v2, Keybind.cs
-namespace RacingMod
+namespace avaness.RacingMod
 {
 	public struct Keybind
 	{

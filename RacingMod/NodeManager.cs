@@ -9,7 +9,7 @@ using VRage.Utils;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     public class NodeManager : IEnumerable<RacingBeacon>
     {
@@ -66,19 +66,20 @@ namespace RacingMod
             GetClosestSegment(p.GetPosition(), out start, out end, out partial);
             return end > 0 && end < nodes.Count;
         }
-        public void RegisterNode (RacingBeacon node)
+
+        public bool RegisterNode (RacingBeacon node)
         {
             if (!node.Valid || node.Type == RacingBeacon.BeaconType.IGNORED)
-                return;
+                return true;
 
             if (!RacingTools.AddSorted(nodes, node))
             {
                 // checkpoint with this id already existed
-                node.Beacon.CustomData = GenerateNodeNumber(node.Coords).ToString();
-                return;
+                return false;
             }
 
             RebuildNodeInformation();
+            return true;
         }
 
         public void RemoveNode (RacingBeacon node)
@@ -88,31 +89,6 @@ namespace RacingMod
                 nodes.RemoveAt(index);
 
             RebuildNodeInformation();
-        }
-
-        /// <summary>
-        /// Generates a node number for the given position.
-        /// </summary>
-        /// <param name="nodePos">The position to use to generate the node number.</param>
-        /// <returns>0 if there are no nodes, node number + 1 if there is one node, otherwise halfway between the next and previous nodes.</returns>
-        public float GenerateNodeNumber(Vector3D nodePos)
-        {
-            if (nodes.Count == 0)
-                return 0;
-            
-            if (nodes.Count == 1)
-                return nodes [0].NodeNumber + 1;
-
-            int start, end;
-            double partial;
-            GetClosestSegment(nodePos, out start, out end, out partial);
-
-            if (end == 0)
-                return Start.NodeNumber - 1;
-            else if (end == nodes.Count)
-                return End.NodeNumber + 1;
-            else
-                return (nodes [start].NodeNumber + nodes [end].NodeNumber) / 2;
         }
 
         /// <summary>
@@ -332,6 +308,8 @@ namespace RacingMod
             info.Timer.Reset(false);
             info.OnTrack = true;
             info.InStart = false;
+            if(info.Recorder != null && mapSettings.TimedMode)
+                info.Recorder.StartTrack();
             if (resetPos)
             {
                 ResetPosition(info);
@@ -358,17 +336,20 @@ namespace RacingMod
                 if (start < 0 || end == nodes.Count)
                 {
                     // Between last node and finish/start
-                    if (nextNode == nodes.Count - 1 && CheckpointCleared(info.Racer, nodes.Count - 1))
+                    if (nextNode == nodes.Count - 1 && NodeCleared(info.Racer, nodes.Count - 1))
                         info.NextNode = 0;
                     if(nextNode > 0)
                     {
-                        info.Missed = true;
+                        if(nextNode > 1)
+                            info.Missed = true;
                         info.Distance = lapDistance + nodeDistances [nextNode];
                     }
                     else
                     {
                         info.Missed = false;
                         info.Distance = lapDistance + nodeDistances.Last() + LastSegDistance(info.Racer);
+                        if(nextNode == 0 && Start.Contains(info.Racer))
+                            return RacerLapped(info, lapDistance);
                     }
                 }
                 else
@@ -540,7 +521,12 @@ namespace RacingMod
             if (info.Laps >= mapSettings.NumLaps)
             {
                 info.Laps = 0;
-                info.Finish();
+                if (info.MarkTime() && mapSettings.TimedMode)
+                {
+                    string time = info.BestTime.ToString(RacingConstants.timerFormating);
+                    MyVisualScriptLogicProvider.ShowNotificationToAll($"{info.Racer.DisplayName} just finished with time {time}", RacingConstants.defaultMsgMs, "White");
+                }
+
                 if (mapSettings.TimedMode && info.AutoJoin)
                 {
                     NewOnTrack(info, false);

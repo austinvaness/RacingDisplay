@@ -3,7 +3,7 @@ using System;
 using VRage.Game;
 using VRageMath;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     public static class RacingConstants
     {
@@ -22,6 +22,7 @@ namespace RacingMod
         public const ushort packetCmd = 1339;
         public const ushort packetSpecRequest = 1357;
         public const ushort packetSpecResponse = 1358;
+        public const ushort packetRec = 1338;
 
         public const string mapFile = "RacingDisplayConfig.xml";
         public const string playerFile = "RacingDisplayPreferences.xml";
@@ -44,13 +45,19 @@ namespace RacingMod
         public const string colorRankUp = "<color=124,255,154>";
         public const string colorFinalist = "<color=140,255,255>";
 
-        public static Color gateWaypointColor = new Color(0, 255, 255); // nodes and cleared checkpoints
+        public static Color ghostWaypointColor = new Color(0, 0, 255);
+        public static string ghostId => "BestTime" + MyAPIGateway.Session.Player.SteamUserId;
+        public static string ghostName = "Best Time";
+        public static string ghostDescription = "The path of your best time.";
+        public static Color gateWaypointColor = new Color(0, 255, 255);
         public const string gateWaypointName = "Waypoint";
         public const string gateWaypointDescription = "The next waypoint to guide you through the race.";
 
         public const int apiRaceStarted = 0;
         public const int apiFinishers = 1;
         public const int apiLaps = 2;
+
+        public const string finishCompatNum = "10000";
 
     }
 }

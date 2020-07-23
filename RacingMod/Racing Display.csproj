@@ -148,6 +148,10 @@
   <ItemGroup>
     <Compile Include="FinishManager.cs" />
     <Compile Include="NodeManager.cs" />
+    <Compile Include="Paths\IRaceRecorder.cs" />
+    <Compile Include="Paths\PathRecorder.cs" />
+    <Compile Include="Paths\ClientRaceRecorder.cs" />
+    <Compile Include="Paths\ServerRaceRecorder.cs" />
     <Compile Include="RacingCommands.cs" />
     <Compile Include="RacingComparers.cs" />
     <Compile Include="HudAPIv2.cs" />
@@ -191,6 +195,11 @@ echo AssemblyInfo.cs &gt; exclude.txt
 echo obj &gt;&gt; exclude.txt
 mkdir "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)"
 xcopy "*.cs" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)" /Y /S /exclude:exclude.txt
-xcopy "Workshop\*.*" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" /Y /S</PostBuildEvent>
+xcopy "Workshop\*.*" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" /Y /S
+exit
+set wid=1734942993
+set src=%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)
+(robocopy "%25src%25" "%25UserProfile%25\Desktop\DevServer\Instance\content\244850\%25wid%25" /MIR /NJH /NJS) ^&amp; IF %25ERRORLEVEL%25 LSS 8 SET ERRORLEVEL = 0
+(robocopy "%25src%25" "%25ProgramFiles(x86)%25\Steam\steamapps\workshop\content\244850\%25wid%25" /MIR /NJH /NJS) ^&amp; IF %25ERRORLEVEL%25 LSS 8 SET ERRORLEVEL = 0</PostBuildEvent>
   </PropertyGroup>
 </Project>

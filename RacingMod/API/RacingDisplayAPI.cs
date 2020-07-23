@@ -2,7 +2,7 @@ using Sandbox.ModAPI;
 using System;
 using VRage;
 
-namespace RacingMod.API
+namespace avaness.RacingMod.API
 {
     class RacingDisplayAPI
     {

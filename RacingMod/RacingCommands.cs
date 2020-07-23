@@ -1,11 +1,12 @@
-﻿using ProtoBuf;
+﻿using avaness.RacingMod.Paths;
+using ProtoBuf;
 using Sandbox.Game;
 using Sandbox.ModAPI;
 using SpaceEngineers.Game.ModAPI;
 using System;
 using VRage.Game.ModAPI;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     public partial class RacingSession
     {
@@ -43,6 +44,7 @@ namespace RacingMod
                     if (activeRacersHud != null)
                         ToggleUI();
                     break;
+                case "j":
                 case "join":
                     if (RacingConstants.IsServer)
                     {
@@ -52,7 +54,7 @@ namespace RacingMod
                             if (temp == null)
                                 ShowAdminMsg(p, $"No racer was found with a name containing '{cmd [2]}'.");
                             else
-                                JoinRace(temp);
+                                JoinRace(temp, true);
                         }
                         else
                         {
@@ -64,6 +66,7 @@ namespace RacingMod
                         redirect = true;
                     }
                     break;
+                case "l":
                 case "leave":
                     if (RacingConstants.IsServer)
                         LeaveRace(p);
@@ -81,6 +84,7 @@ namespace RacingMod
                         redirect = true;
                     }
                     break;
+                case "aj":
                 case "autojoin":
                     if(RacingConstants.IsServer)
                     {
@@ -116,6 +120,7 @@ namespace RacingMod
                         {
                             finishers.Clear();
                             ShowAdminMsg(p, "Cleared all finishers.");
+                            ClearAllRecorders();
                         }
                         else if (cmd.Length == 3)
                         {
@@ -128,6 +133,7 @@ namespace RacingMod
                             else
                             {
                                 ShowAdminMsg(p, $"Removed {info.Name} from the finalists.");
+                                info.Recorder?.ClearData();
                                 finishers.Remove(info);
                             }
                         }
@@ -136,44 +142,6 @@ namespace RacingMod
                             ShowAdminMsg(p, "Usage:\n/rcd clear [name]: Removes all or a specific racer from finalists.");
                             return;
 
-                        }
-                    }
-                    else
-                    {
-                        redirect = true;
-                    }
-                    break;
-                case "cleartimer":
-                    if (!IsPlayerAdmin(p, true))
-                        return;
-
-                    if (RacingConstants.IsServer)
-                    {
-                        if (cmd.Length == 2)
-                        {
-                            foreach (StaticRacerInfo info in staticRacerInfo.Values)
-                                info.Timer.Reset(true);
-                            ShowAdminMsg(p, "Reset all race timers.");
-                        }
-                        else if (cmd.Length == 3)
-                        {
-                            StaticRacerInfo info;
-                            if (GetStaticInfo(cmd[2], out info) && info.OnTrack)
-                            {
-                                info.Timer.Reset(true);
-                                ShowAdminMsg(p, $"Reset {info.Name}'s race timer.");
-                                
-                            }
-                            else
-                            {
-                                ShowAdminMsg(p, $"No active racer was found with a name containing '{cmd [2]}'.");
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            ShowAdminMsg(p, "Usage:\n/rcd cleartimer [name]: Resets all or a specific race timer.");
-                            return;
                         }
                     }
                     else
@@ -375,8 +343,7 @@ namespace RacingMod
                         else
                         {
                             StaticRacerInfo info = GetStaticInfo(result);
-                            info.Finish();
-                            LeaveRace(result);
+                            LeaveRace(result, false);
                             if (cmd.Length == 4)
                             {
                                 int index;
@@ -411,6 +378,35 @@ namespace RacingMod
                     if (IsPlayerAdmin(p, false))
                         ShowAdminHelp(p);
                     return;
+                case "recorder":
+                case "record":
+                case "rec":
+                    if (RacingConstants.IsServer)
+                    {
+                        if(MapSettings.TimedMode)
+                        {
+                            StaticRacerInfo info = GetStaticInfo(p);
+                            if (info.Recorder == null)
+                            {
+                                ShowMsg(p, "Your best time is now being recorded.");
+                                info.CreateRecorder();
+                            }
+                            else
+                            {
+                                ShowMsg(p, "Your recorder is already active.");
+                            }
+                        }
+                        else
+                        {
+                            ShowMsg(p, "Recording only works in timed mode.");
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        redirect = true;
+                    }
+                    break;
                 default:
                     ShowChatHelp(p);
                     return;
@@ -447,7 +443,8 @@ namespace RacingMod
         {
             string s = "\nCommands:\n/rcd join: Joins the race.\n/rcd leave: Leaves the race.\n" +
                 "/rcd rejoin: Shortcut to leave and join the race.\n/rcd ui: Toggles the on screen UIs.\n" +
-                "/rcd autojoin: Rejoin a timed race after it has been completed.";
+                "/rcd autojoin: Rejoin a timed race after it has been completed.\n" +
+                "/rcd record: Start recording your fastest path in timed races.";
             if (IsPlayerAdmin(p, false))
                 s += "\nTo view admin commands:\n/rcd admin";
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Blue");
@@ -455,9 +452,8 @@ namespace RacingMod
 
         void ShowAdminHelp (IMyPlayer p)
         {
-            string s = "\nAdmin Commands:\n/rcd start: Starts the race.\n" +
+            string s = "\nAdmin Commands:\n" +
                     "/rcd clear [name]: Removes finalist(s).\n" +
-                    "/rcd cleartimer [name]: Resets a racer(s) timer.\n" +
                     "/rcd grant <name>: Fixes a racer's 'missing' status.\n/rcd mode: Toggles timed mode.\n" +
                     "/rcd kick <name>: Removes a racer from the race.\n/rcd strictstart: Toggles if starting on the track is allowed.\n" +
                     "/rcd laps <number>: Changes the number of laps.\n/rcd looped: Toggles if the track is looped.\n" +

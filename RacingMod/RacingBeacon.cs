@@ -10,7 +10,7 @@ using VRage.Utils;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     [MyEntityComponentDescriptor(typeof(MyObjectBuilder_Beacon), false)]
     public class RacingBeacon : MyGameLogicComponent, IComparable<RacingBeacon>, IEquatable<RacingBeacon>
@@ -32,7 +32,6 @@ namespace RacingMod
         public bool Valid => !float.IsNaN(NodeNumber);
         public Vector3 Coords => multiBeaconMode ? Beacon.GetPosition() : Beacon.CubeGrid.WorldAABB.Center;
 
-        private bool events = true;
         private bool multiBeaconMode = false;
 
         public bool Contains (IMyPlayer p)
@@ -192,7 +191,7 @@ namespace RacingMod
                             Beacon.CustomName = "[Checkpoint]" + Beacon.CustomName.Substring(8);
                         else
                             Beacon.CustomName = "[Checkpoint]";
-                        Beacon.CustomData = (float.MaxValue * 0.5f).ToString();
+                        Beacon.CustomData = RacingConstants.finishCompatNum;
                         finishCompatibility = false;
                     }
 
@@ -232,13 +231,12 @@ namespace RacingMod
                 else
                     Type = BeaconType.IGNORED;
 
-                if (Type != BeaconType.IGNORED && !Valid)
-                    GenerateNodeNumber();
-
                 if (Type != oldType)
                 {
                     if (oldType != BeaconType.IGNORED)
                         RacingSession.Instance.Nodes.RemoveNode(this);
+                    else
+                        OnCustomDataChanged(block);
 
                     if (Type != BeaconType.IGNORED)
                         RacingSession.Instance.Nodes.RegisterNode(this);
@@ -252,40 +250,36 @@ namespace RacingMod
 
         public void OnCustomDataChanged (IMyTerminalBlock block)
         {
-            if (!events)
+            if (Type == BeaconType.IGNORED)
                 return;
-            events = false;
+            block.CustomDataChanged -= OnCustomDataChanged;
             try
             {
+                RacingSession.Instance.Nodes.RemoveNode(this);
+
                 float newNodeNumber;
                 if (float.TryParse(block.CustomData, out newNodeNumber))
-                    UpdateNodeNumber(newNodeNumber);
-                else if(Type != BeaconType.IGNORED)
-                    GenerateNodeNumber();
+                {
+                    NodeNumber = newNodeNumber;
+                    if (!RacingSession.Instance.Nodes.RegisterNode(this))
+                        ClearNumber();
+                }
+                else
+                {
+                    ClearNumber();
+                }
             }
             catch (Exception e)
             {
                 RacingTools.ShowError(e, GetType());
             }
-            events = true;
+            block.CustomDataChanged += OnCustomDataChanged;
         }
 
-        private void UpdateNodeNumber (float newNodeNumber)
+        private void ClearNumber()
         {
-            NodeNumber = newNodeNumber;
-            events = false;
-            Beacon.CustomData = newNodeNumber.ToString();
-            events = true;
-            if (Type != BeaconType.IGNORED)
-            {
-                RacingSession.Instance.Nodes.RemoveNode(this);
-                RacingSession.Instance.Nodes.RegisterNode(this);
-            }
-        }
-
-        private void GenerateNodeNumber()
-        {
-            UpdateNodeNumber(RacingSession.Instance.Nodes.GenerateNodeNumber(Coords));
+            Beacon.CustomData = "";
+            NodeNumber = float.NaN;
         }
 
         public int CompareTo (RacingBeacon other)

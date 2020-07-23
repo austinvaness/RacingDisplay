@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     public class FinishList : IEnumerable<StaticRacerInfo>
     {

@@ -8,7 +8,7 @@ using VRageMath;
 using ProtoBuf;
 using KlimeDraygo.RelativeSpectator.API;
 
-namespace RacingMod
+namespace avaness.RacingMod
 {
     public partial class RacingSession
     {

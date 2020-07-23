@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using VRage;
 using VRage.ModAPI;
 
-namespace RacingMod.API
+namespace avaness.RacingMod.API
 {
     class RacingDisplayAPI
     {
