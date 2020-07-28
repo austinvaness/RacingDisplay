@@ -163,6 +163,9 @@ namespace avaness.RacingMod
 
         public void DrawDebug ()
         {
+            if (nodes.Count == 0)
+                return;
+
             Vector4 color1 = new Color(255, 255, 255, 1).ToVector4();
             Vector4 color2 = Color.White.ToVector4();
             MyStringId mat = MyStringId.GetOrCompute("Square");
@@ -191,9 +194,10 @@ namespace avaness.RacingMod
                 }
             }
 
-            if(nodes.Count > 0)
+            Start.DrawDebug();
+
+            if (nodes.Count > 1)
             {
-                nodes.First().DrawDebug();
                 foreach (RacingBeacon b in nodes.Skip(1))
                 {
                     if(b.Type == RacingBeacon.BeaconType.CHECKPOINT)
