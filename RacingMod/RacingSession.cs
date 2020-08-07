@@ -149,14 +149,27 @@ namespace avaness.RacingMod
                 {
                     ProcessValues();
                     BroadcastData(activeRacersText, RacingConstants.packetMainId);
-                    if(debug)
+                    if(debug && MyAPIGateway.Session.Player != null)
+                    {
                         Nodes.DrawDebug();
+                        DebugStats();
+                    }
+                }
+                else if(debug)
+                {
+                    DebugStats();
                 }
             }
             catch (Exception e)
             {
                 RacingTools.ShowError(e, GetType());
             }
+        }
+
+        private void DebugStats()
+        {
+            if (Recorder != null)
+                Recorder.Debug();
         }
 
         private void UpdatingStarted ()
@@ -299,7 +312,7 @@ namespace avaness.RacingMod
         {
             try
             {
-                string data = Encoding.ASCII.GetString(obj);
+                string data = Encoding.UTF8.GetString(obj);
                 sb.Clear();
                 sb.Append(data);
             }
@@ -364,7 +377,7 @@ namespace avaness.RacingMod
 
         private void BroadcastData (StringBuilder sb, ushort packetId)
         {
-            byte [] data = Encoding.ASCII.GetBytes(sb.ToString());
+            byte [] data = Encoding.UTF8.GetBytes(sb.ToString());
 
             List<IMyPlayer> players = new List<IMyPlayer>();
             MyAPIGateway.Players.GetPlayers(players);

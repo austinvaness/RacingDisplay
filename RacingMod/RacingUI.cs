@@ -1,4 +1,5 @@
 ﻿using Draygo.API;
+using avaness.RacingMod.Font;
 using VRage.Input;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
@@ -27,7 +28,9 @@ namespace avaness.RacingMod
 
         private void CreateHudItems ()
         {
-            activeRacersHud = new HudAPIv2.HUDMessage(activeRacersText, activeHudPosition, HideHud: false, Font: "monospace", Blend: BlendTypeEnum.PostPP);
+            new HudAPIFont(RacingConstants.fontData, RacingConstants.fontId).CreateFont();
+
+            activeRacersHud = new HudAPIv2.HUDMessage(activeRacersText, activeHudPosition, HideHud: false, Font: RacingConstants.fontId, Blend: BlendTypeEnum.PostPP);
             infoHud = new HudAPIv2.HUDMessage(infoHudText, infoHudPosition, HideHud: true, Blend: BlendTypeEnum.PostPP);
 
             adminRoot = new HudAPIv2.MenuRootCategory("Racing Display", HudAPIv2.MenuRootCategory.MenuFlag.AdminMenu, "Racing Display Settings");

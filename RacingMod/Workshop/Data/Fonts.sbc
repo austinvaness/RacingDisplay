@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Fonts>
+    <Font>
+      <Id>
+        <TypeId>FontDefinition</TypeId>
+        <SubtypeId>FreeMono_Racing</SubtypeId>
+      </Id>
+      <Default>false</Default>
+      <Path>Fonts\FreeMono_Racing\FontDataRacePA.xml</Path>
+    </Font>
+  </Fonts>
+</Definitions>

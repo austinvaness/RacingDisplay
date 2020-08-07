@@ -1,4 +1,5 @@
 ﻿using Sandbox.ModAPI;
+using System.Text;
 using VRage.Game.ModAPI;
 
 namespace avaness.RacingMod.Paths
@@ -17,6 +18,20 @@ namespace avaness.RacingMod.Paths
         public ClientRaceRecorder()
         {
 
+        }
+
+        public void Debug()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("Storage - ");
+            if (recPlay == null)
+                sb.Append("null");
+            else
+                recPlay.Debug(sb, false, rec);
+            sb.AppendLine();
+            sb.Append("Temp - ");
+            recTemp.Debug(sb, rec, false);
+            MyAPIGateway.Utilities.ShowNotification(sb.ToString(), 16);
         }
 
         public void Update()

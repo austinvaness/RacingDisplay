@@ -4,6 +4,7 @@ using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
@@ -23,6 +24,22 @@ namespace avaness.RacingMod.Paths
         private List<IMyCubeGrid> playbackGroup;
 
         private const int maxData = 108000; // about 30 minutes at 60tps
+
+        public void Debug(StringBuilder sb, bool rec, bool play)
+        {
+            if (data.Count == 0)
+                sb.Append("Recorder is empty.");
+            else if (runtime == 0 || (!rec && !play))
+                sb.Append("Recorder is idle. (").Append(data.Count).Append(" frames)");
+            else if (play)
+                sb.Append("Playback: ").Append(playbackTick).Append('/').Append(data.Count);
+            else if (rec)
+            {
+                float density = ((float)data.Count / runtime) * 100;
+                sb.Append("Recording: ").Append(runtime).Append(' ')
+                    .Append(Math.Round(density, 2, MidpointRounding.AwayFromZero)).Append('%');
+            }
+        }
 
         public void Record(IMyCubeGrid grid)
         {

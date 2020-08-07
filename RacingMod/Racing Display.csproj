@@ -147,6 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FinishManager.cs" />
+    <Compile Include="Font\HudAPIFont.cs" />
     <Compile Include="NodeManager.cs" />
     <Compile Include="Paths\IRaceRecorder.cs" />
     <Compile Include="Paths\PathRecorder.cs" />
@@ -171,15 +172,24 @@
     <Compile Include="StaticRacerInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Font\FontDataRacePA-0.png" />
+    <Content Include="Font\FontDataRacePA-1.png" />
     <Content Include="Workshop-Test\thumb.jpg" />
+    <Content Include="Workshop\Fonts\FreeMono_Racing\FontDataRacePA-0.dds" />
+    <Content Include="Workshop\Fonts\FreeMono_Racing\FontDataRacePA-1.dds" />
+    <Content Include="Workshop\Fonts\FreeMono_Racing\FontDataRacePA.xml" />
     <Content Include="Workshop\metadata.mod" />
     <Content Include="Workshop-Main\thumb.jpg" />
     <Content Include="Workshop\thumb.jpg" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
+    <None Include="Font\FontDataRacePA-0.pdn" />
+    <None Include="Font\FontDataRacePA-1.pdn" />
     <None Include="Workshop-Main\modinfo.sbmi" />
     <None Include="Workshop-Test\modinfo.sbmi" />
+    <None Include="Workshop\Data\Fonts.sbc" />
+    <None Include="Workshop\Data\TransparentMaterials2.sbc" />
     <None Include="Workshop\modinfo.sbmi" />
   </ItemGroup>
   <ItemGroup>
