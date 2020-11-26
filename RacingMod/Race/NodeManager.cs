@@ -9,7 +9,7 @@ using VRage.Utils;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
-namespace avaness.RacingMod
+namespace avaness.RacingMod.Race
 {
     public class NodeManager : IEnumerable<RacingBeacon>
     {
@@ -18,14 +18,16 @@ namespace avaness.RacingMod
             On, Finish, Reset
         }
 
-        RacingMapSettings mapSettings;
+        private readonly RacingMapSettings mapSettings;
+        private readonly Track race;
         private readonly List<RacingBeacon> nodes = new List<RacingBeacon>();
         private double [] nodeDistances = { };
         private double startEndDist;
 
-        public NodeManager(RacingMapSettings mapSettings)
+        public NodeManager(RacingMapSettings mapSettings, Track race)
         {
             this.mapSettings = mapSettings;
+            this.race = race;
             mapSettings.LoopedChanged += MapSettings_LoopedChanged;
         }
 
@@ -216,7 +218,7 @@ namespace avaness.RacingMod
             if (nodeDistances.Length == 0)
                 return;
 
-            RacingSession.Instance.InvalidateRacerNodes();
+            race.UpdateAllRacerNodes();
 
             double cumulative = 0;
             nodeDistances [0] = 0;

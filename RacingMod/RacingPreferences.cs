@@ -12,38 +12,9 @@ namespace avaness.RacingMod
 
         }
 
-        private Keybind nextPlayer = MyKeys.OemCloseBrackets;
-        public Keybind NextPlayer
+        public void Unload()
         {
-            get
-            {
-                return nextPlayer;
-            }
-            set
-            {
-                if(value != nextPlayer)
-                {
-                    nextPlayer = value;
-                    SaveFile();
-                }
-            }
-        }
-
-        private Keybind prevPlayer = MyKeys.OemOpenBrackets;
-        public Keybind PrevPlayer
-        {
-            get
-            {
-                return prevPlayer;
-            }
-            set
-            {
-                if (value != prevPlayer)
-                {
-                    prevPlayer = value;
-                    SaveFile();
-                }
-            }
+            OnHideHudChanged = null;
         }
 
         private Keybind hideHud = MyKeys.OemPlus;
@@ -59,26 +30,12 @@ namespace avaness.RacingMod
                 {
                     hideHud = value;
                     SaveFile();
+                    if (OnHideHudChanged != null)
+                        OnHideHudChanged.Invoke(value);
                 }
             }
         }
-
-        private Keybind stopSpec = MyKeys.None;
-        public Keybind StopSpec
-        {
-            get
-            {
-                return stopSpec;
-            }
-            set
-            {
-                if (value != stopSpec)
-                {
-                    stopSpec = value;
-                    SaveFile();
-                }
-            }
-        }
+        public event Action<Keybind> OnHideHudChanged;
 
         public void SaveFile ()
         {
@@ -111,6 +68,11 @@ namespace avaness.RacingMod
             return result;
         }
 
-
+        public void Copy(RacingPreferences racingPreferences)
+        {
+            hideHud = racingPreferences.hideHud;
+            if (OnHideHudChanged != null)
+                OnHideHudChanged.Invoke(hideHud);
+        }
     }
 }

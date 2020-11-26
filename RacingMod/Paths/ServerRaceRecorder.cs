@@ -102,8 +102,7 @@ namespace avaness.RacingMod.Paths
                 }
                 else
                 {
-                    byte[] data = MyAPIGateway.Utilities.SerializeToBinary<ServerRaceRecorder.Packet>(this);
-                    MyAPIGateway.Multiplayer.SendMessageTo(RacingConstants.packetRec, data, steamId);
+                    RacingSession.Instance.Net.SendTo(RacingConstants.packetRec, this, steamId);
                 }
             }
         }

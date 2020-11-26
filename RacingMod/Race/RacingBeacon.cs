@@ -10,7 +10,7 @@ using VRage.Utils;
 using VRageMath;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 
-namespace avaness.RacingMod
+namespace avaness.RacingMod.Race
 {
     [MyEntityComponentDescriptor(typeof(MyObjectBuilder_Beacon), false)]
     public class RacingBeacon : MyGameLogicComponent, IComparable<RacingBeacon>, IEquatable<RacingBeacon>
@@ -195,18 +195,15 @@ namespace avaness.RacingMod
                         finishCompatibility = false;
                     }
 
-                    // update once to initialize
                     OnCustomDataChanged(Beacon);
                     OnCustomNameChanged(Beacon);
                 }
                 else
                 {
-                    // we only want to be active for static grids
                     Beacon.CustomNameChanged -= OnCustomNameChanged;
                     Beacon.CustomDataChanged -= OnCustomDataChanged;
                 }
 
-                // done waiting, bail out of here for good
                 NeedsUpdate = MyEntityUpdateEnum.EACH_10TH_FRAME;
             }
             catch (Exception e)

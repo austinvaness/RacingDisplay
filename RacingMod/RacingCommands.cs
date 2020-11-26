@@ -1,15 +1,61 @@
 ﻿using avaness.RacingMod.Paths;
+using avaness.RacingMod.Race;
+using avaness.RacingMod.Racers;
 using ProtoBuf;
 using Sandbox.Game;
 using Sandbox.ModAPI;
 using SpaceEngineers.Game.ModAPI;
 using System;
+using System.Collections.Generic;
+using System.Text;
 using VRage.Game.ModAPI;
 
 namespace avaness.RacingMod
 {
-    public partial class RacingSession
+    public class RacingCommands
     {
+        private readonly Track race;
+        private readonly RacingMapSettings mapSettings;
+        private readonly NodeManager nodes;
+        private readonly FinishList finishers;
+        private readonly RacerStorage racers;
+
+        public RacingCommands(Track race)
+        {
+            this.race = race;
+            mapSettings = race.MapSettings;
+            nodes = race.Nodes;
+            finishers = race.Finishers;
+            racers = race.Racers;
+
+            MyAPIGateway.Utilities.MessageEntered += MessageEntered;
+
+            if (RacingConstants.IsServer)
+                RacingSession.Instance.Net.Register(RacingConstants.packetCmd, ReceiveCmd);
+        }
+
+        public void Unload()
+        {
+            RacingSession.Instance.Net.Unregister(RacingConstants.packetCmd);
+            MyAPIGateway.Utilities.MessageEntered -= MessageEntered;
+        }
+
+        private void ReceiveCmd(byte[] obj)
+        {
+            try
+            {
+                CommandInfo cmd = MyAPIGateway.Utilities.SerializeFromBinary<CommandInfo>(obj);
+                IMyPlayer p = RacingTools.GetPlayer(cmd.steamId);
+                bool temp = false;
+                if (p != null)
+                    ProcessCommand(p, cmd.cmd, ref temp);
+            }
+            catch (Exception e)
+            {
+                RacingTools.ShowError(e, GetType());
+            }
+        }
+
         private void MessageEntered (string messageText, ref bool sendToOthers)
         {
             try
@@ -40,25 +86,44 @@ namespace avaness.RacingMod
             }
             switch (cmd [1])
             {
-                case "ui":
-                    if (activeRacersHud != null)
-                        ToggleUI();
-                    break;
                 case "j":
                 case "join":
                     if (RacingConstants.IsServer)
                     {
                         if(cmd.Length > 2 && IsPlayerAdmin(p, false))
                         {
-                            IMyPlayer temp = RacingTools.GetPlayer(cmd [2]);
-                            if (temp == null)
-                                ShowAdminMsg(p, $"No racer was found with a name containing '{cmd [2]}'.");
+                            string arg;
+                            if (cmd.Length > 3)
+                            {
+                                StringBuilder sb = new StringBuilder(cmd[2]);
+                                for (int i = 3; i < cmd.Length; i++)
+                                    sb.Append(' ').Append(cmd[i]);
+                                arg = sb.ToString();
+                            }
                             else
-                                JoinRace(temp, true);
+                            {
+                                arg = cmd[2];
+                            }
+
+                            if(arg.Equals("all", StringComparison.OrdinalIgnoreCase))
+                            {
+                                List<IMyPlayer> players = new List<IMyPlayer>();
+                                MyAPIGateway.Players.GetPlayers(players);
+                                foreach(IMyPlayer temp in players)
+                                    race.JoinRace(temp);
+                            }
+                            else
+                            {
+                                IMyPlayer temp = RacingTools.GetPlayer(arg);
+                                if (temp == null)
+                                    ShowAdminMsg(p, $"No racer was found with a name containing '{arg}'.");
+                                else
+                                    race.JoinRace(temp, true);
+                            }
                         }
                         else
                         {
-                            JoinRace(p);
+                            race.JoinRace(p);
                         }
                     }
                     else
@@ -69,15 +134,15 @@ namespace avaness.RacingMod
                 case "l":
                 case "leave":
                     if (RacingConstants.IsServer)
-                        LeaveRace(p);
+                        race.LeaveRace(p);
                     else
                         redirect = true;
                     break;
                 case "rejoin":
                     if (RacingConstants.IsServer)
                     {
-                        LeaveRace(p, false);
-                        JoinRace(p);
+                        race.LeaveRace(p, false);
+                        race.JoinRace(p);
                     }
                     else
                     {
@@ -88,12 +153,12 @@ namespace avaness.RacingMod
                 case "autojoin":
                     if(RacingConstants.IsServer)
                     {
-                        if(MapSettings.TimedMode)
+                        if(mapSettings.TimedMode)
                         {
-                            if (!activePlayers.Contains(p.SteamUserId) && !JoinRace(p))
+                            if (!race.Contains(p.SteamUserId) && !race.JoinRace(p))
                                 return;
 
-                            StaticRacerInfo info = GetStaticInfo(p);
+                            StaticRacerInfo info = racers.GetStaticInfo(p);
                             if (info.AutoJoin)
                                 ShowMsg(p, "You will leave the race after finishing.");
                             else
@@ -120,12 +185,12 @@ namespace avaness.RacingMod
                         {
                             finishers.Clear();
                             ShowAdminMsg(p, "Cleared all finishers.");
-                            ClearAllRecorders();
+                            racers.ClearRecorders();
                         }
                         else if (cmd.Length == 3)
                         {
                             StaticRacerInfo info;
-                            if (!GetStaticInfo(cmd[2], out info))
+                            if (!racers.GetStaticInfo(cmd[2], out info))
                             {
                                 ShowAdminMsg(p, $"No racer was found with a name containing '{cmd [2]}'.");
                                 return;
@@ -152,7 +217,7 @@ namespace avaness.RacingMod
                 case "debug":
                     if(!RacingConstants.IsServer)
                         ShowAdminMsg(p, "Debug view only works for the server host.");
-                    debug = !debug;
+                    race.ToggleDebug();
                     break;
                 case "mode":
                     if (!IsPlayerAdmin(p, true))
@@ -160,8 +225,8 @@ namespace avaness.RacingMod
 
                     if (RacingConstants.IsServer)
                     {
-                        MapSettings.TimedMode = !MapSettings.TimedMode;
-                        if (MapSettings.TimedMode)
+                        mapSettings.TimedMode = !mapSettings.TimedMode;
+                        if (mapSettings.TimedMode)
                             ShowAdminMsg(p, "Mode is now timed.");
                         else
                             ShowAdminMsg(p, "Mode is now normal.");
@@ -177,8 +242,8 @@ namespace avaness.RacingMod
 
                     if (RacingConstants.IsServer)
                     {
-                        MapSettings.StrictStart = !MapSettings.StrictStart;
-                        if (MapSettings.StrictStart)
+                        mapSettings.StrictStart = !mapSettings.StrictStart;
+                        if (mapSettings.StrictStart)
                             ShowAdminMsg(p, "Starting on the track is no longer allowed.");
                         else
                             ShowAdminMsg(p, "Starting on the track is now allowed.");
@@ -201,10 +266,10 @@ namespace avaness.RacingMod
                     if (RacingConstants.IsServer)
                     {
                         StaticRacerInfo info;
-                        if (GetStaticInfo(cmd[2], out info) && info.OnTrack)
+                        if (racers.GetStaticInfo(cmd[2], out info) && info.OnTrack)
                         {
                             ShowAdminMsg(p, $"Reset {info.Name}'s missing status.");
-                            Nodes.ResetPosition(info);
+                            nodes.ResetPosition(info);
                         }
                         else
                         {
@@ -232,7 +297,7 @@ namespace avaness.RacingMod
                         int laps;
                         if (int.TryParse(cmd [2], out laps))
                         {
-                            MapSettings.NumLaps = laps;
+                            mapSettings.NumLaps = laps;
                             ShowAdminMsg(p, $"Number of laps is now {laps}.");
                         }
                         else
@@ -265,10 +330,10 @@ namespace avaness.RacingMod
                         }
                         else
                         {
-                            if (activePlayers.Contains(result.SteamUserId))
+                            if (race.Contains(result.SteamUserId))
                             {
                                 ShowAdminMsg(p, $"Removed {result.DisplayName} from the race.");
-                                LeaveRace(result);
+                                race.LeaveRace(result);
                                 ShowMsg(result, "You have been kicked from the race.");
                             }
                             else
@@ -289,10 +354,7 @@ namespace avaness.RacingMod
 
                     if(RacingConstants.IsServer)
                     {
-                        foreach(IMyTimerBlock t in StartTimers)
-                            t.Trigger();
-                        ShowAdminMsg(p, $"Started {StartTimers.Count} timers.");
-                        RacingTools.SendAPIMessage(RacingConstants.apiRaceStarted); // API: Race started
+                        ShowAdminMsg(p, $"Started {RacingSession.Instance.TriggerTimers()} timers.");
                     }
                     else
                     {
@@ -305,14 +367,14 @@ namespace avaness.RacingMod
 
                     if (RacingConstants.IsServer)
                     {
-                        if(MapSettings.NumLaps > 1)
+                        if(mapSettings.NumLaps > 1)
                         {
                             ShowAdminMsg(p, "Race tracks with more than one lap are always looped.");
                         }
                         else
                         {
-                            MapSettings.Looped = !MapSettings.Looped;
-                            if (MapSettings.Looped)
+                            mapSettings.Looped = !mapSettings.Looped;
+                            if (mapSettings.Looped)
                                 ShowAdminMsg(p, "The race track is now looped.");
                             else
                                 ShowAdminMsg(p, "The race track is no longer looped.");
@@ -342,8 +404,8 @@ namespace avaness.RacingMod
                         }
                         else
                         {
-                            StaticRacerInfo info = GetStaticInfo(result);
-                            LeaveRace(result, false);
+                            StaticRacerInfo info = racers.GetStaticInfo(result);
+                            race.LeaveRace(result, false);
                             if (cmd.Length == 4)
                             {
                                 int index;
@@ -383,9 +445,9 @@ namespace avaness.RacingMod
                 case "rec":
                     if (RacingConstants.IsServer)
                     {
-                        if(MapSettings.TimedMode)
+                        if(mapSettings.TimedMode)
                         {
-                            StaticRacerInfo info = GetStaticInfo(p);
+                            StaticRacerInfo info = racers.GetStaticInfo(p);
                             if (info.Recorder == null)
                             {
                                 ShowMsg(p, "Your best time is now being recorded.");
@@ -413,10 +475,7 @@ namespace avaness.RacingMod
             }
 
             if (redirect)
-            {
-                byte [] data = MyAPIGateway.Utilities.SerializeToBinary(new CommandInfo(command, p.SteamUserId));
-                MyAPIGateway.Multiplayer.SendMessageToServer(RacingConstants.packetCmd, data);
-            }
+                RacingSession.Instance.Net.SendToServer(RacingConstants.packetCmd, new CommandInfo(command, p.SteamUserId));
         }
 
         private bool IsPlayerAdmin (IMyPlayer p, bool warn)
@@ -442,7 +501,7 @@ namespace avaness.RacingMod
         void ShowChatHelp (IMyPlayer p)
         {
             string s = "\nCommands:\n/rcd join: Joins the race.\n/rcd leave: Leaves the race.\n" +
-                "/rcd rejoin: Shortcut to leave and join the race.\n/rcd ui: Toggles the on screen UIs.\n" +
+                "/rcd rejoin: Shortcut to leave and join the race.\n" +
                 "/rcd autojoin: Rejoin a timed race after it has been completed.\n" +
                 "/rcd record: Start recording your fastest path in timed races.";
             if (IsPlayerAdmin(p, false))
@@ -461,7 +520,6 @@ namespace avaness.RacingMod
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd admin", p.IdentityId, "Red");
         }
 
-
         [ProtoContract]
         public class CommandInfo
         {
@@ -470,16 +528,15 @@ namespace avaness.RacingMod
             [ProtoMember(2)]
             public ulong steamId;
 
-            public CommandInfo ()
+            public CommandInfo()
             {
             }
 
-            public CommandInfo (string cmd, ulong steamId)
+            public CommandInfo(string cmd, ulong steamId)
             {
                 this.cmd = cmd;
                 this.steamId = steamId;
             }
         }
-
     }
 }

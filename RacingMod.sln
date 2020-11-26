@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.29418.71
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Racing Display", "RacingMod\Racing Display.csproj", "{2330C536-6C13-4F50-B567-B1923896B2FC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APITest", "APITest\APITest.csproj", "{3481323F-B5FB-4258-8CBB-D29E275E7E3C}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,18 +27,6 @@ Global
 		{2330C536-6C13-4F50-B567-B1923896B2FC}.Release|x64.Build.0 = Release|x64
 		{2330C536-6C13-4F50-B567-B1923896B2FC}.Release|x86.ActiveCfg = Release|x86
 		{2330C536-6C13-4F50-B567-B1923896B2FC}.Release|x86.Build.0 = Release|x86
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Debug|x64.Build.0 = Debug|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Debug|x86.Build.0 = Debug|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Release|x64.ActiveCfg = Release|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Release|x64.Build.0 = Release|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Release|x86.ActiveCfg = Release|Any CPU
-		{3481323F-B5FB-4258-8CBB-D29E275E7E3C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

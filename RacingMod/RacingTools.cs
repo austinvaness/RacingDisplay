@@ -76,10 +76,5 @@ namespace avaness.RacingMod
             if (MyAPIGateway.Session?.Player != null)
                 MyAPIGateway.Utilities.ShowNotification($"[ ERROR: {type.FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]", 16, MyFontEnum.Red);
         }
-
-        public static void SendAPIMessage(object data)
-        {
-            MyAPIGateway.Utilities.SendModMessage(RacingConstants.ModMessageId, data);
-        }
     }
 }

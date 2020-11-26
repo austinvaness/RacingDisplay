@@ -10,7 +10,7 @@
     <ProjectGuid>{2330C536-6C13-4F50-B567-B1923896B2FC}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>RacingMod</RootNamespace>
+    <RootNamespace>avaness.RacingMod</RootNamespace>
     <AssemblyName>RacingMod</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -146,30 +146,32 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FinishManager.cs" />
+    <Compile Include="Race\FinishManager.cs" />
     <Compile Include="Font\HudAPIFont.cs" />
-    <Compile Include="NodeManager.cs" />
+    <Compile Include="Hud\InfoHud.cs" />
+    <Compile Include="Hud\MapSettingsMenu.cs" />
+    <Compile Include="Net\Networking.cs" />
+    <Compile Include="Race\NodeManager.cs" />
     <Compile Include="Paths\IRaceRecorder.cs" />
     <Compile Include="Paths\PathRecorder.cs" />
     <Compile Include="Paths\ClientRaceRecorder.cs" />
     <Compile Include="Paths\ServerRaceRecorder.cs" />
+    <Compile Include="Race\Track.cs" />
+    <Compile Include="Racers\RacerStorage.cs" />
     <Compile Include="RacingCommands.cs" />
     <Compile Include="RacingComparers.cs" />
-    <Compile Include="HudAPIv2.cs" />
+    <Compile Include="Hud\HudAPIv2.cs" />
     <Compile Include="Keybind.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RacingBeacon.cs" />
+    <Compile Include="Race\RacingBeacon.cs" />
     <Compile Include="RacingConstants.cs" />
-    <Compile Include="API\RacingDisplayAPI.cs" />
     <Compile Include="MapSettings.cs" />
     <Compile Include="RacingPreferences.cs" />
     <Compile Include="RacingSession.cs" />
-    <Compile Include="RacingSpectator.cs" />
     <Compile Include="RacingTools.cs" />
-    <Compile Include="RacingUI.cs" />
-    <Compile Include="SpecCamAPI.cs" />
+    <Compile Include="Hud\RacingHud.cs" />
     <Compile Include="StartTimer.cs" />
-    <Compile Include="StaticRacerInfo.cs" />
+    <Compile Include="Racers\StaticRacerInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Font\FontDataRacePA-0.png" />
@@ -207,7 +209,7 @@ mkdir "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectNa
 xcopy "*.cs" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)" /Y /S /exclude:exclude.txt
 xcopy "Workshop\*.*" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" /Y /S
 exit
-set wid=1734942993
+set wid=1708268562
 set src=%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)
 (robocopy "%25src%25" "%25UserProfile%25\Desktop\DevServer\Instance\content\244850\%25wid%25" /MIR /NJH /NJS) ^&amp; IF %25ERRORLEVEL%25 LSS 8 SET ERRORLEVEL = 0
 (robocopy "%25src%25" "%25ProgramFiles(x86)%25\Steam\steamapps\workshop\content\244850\%25wid%25" /MIR /NJH /NJS) ^&amp; IF %25ERRORLEVEL%25 LSS 8 SET ERRORLEVEL = 0</PostBuildEvent>

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace avaness.RacingMod
+namespace avaness.RacingMod.Race
 {
     public class FinishList : IEnumerable<StaticRacerInfo>
     {
@@ -94,7 +94,6 @@ namespace avaness.RacingMod
                 tempSb.Length--;
                 tempSb.Append(RacingConstants.colorWhite).AppendLine();
             }
-            RacingTools.SendAPIMessage(RacingConstants.apiFinishers);
             finalString = tempSb.ToString();
         }
 

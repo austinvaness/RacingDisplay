@@ -16,13 +16,11 @@ namespace avaness.RacingMod
 
         public const long ModMessageId = 1708268562;
 
-        public const ushort packetSettings = 45565;
-        public const ushort packetSettingsInit = 45566;
-        public const ushort packetMainId = 1337;
-        public const ushort packetCmd = 1339;
-        public const ushort packetSpecRequest = 1357;
-        public const ushort packetSpecResponse = 1358;
-        public const ushort packetRec = 1338;
+        public const byte packetMainId = 0;
+        public const byte packetCmd = 1;
+        public const byte packetSettings = 2;
+        public const byte packetSettingsInit = 3;
+        public const byte packetRec = 4;
 
         public const string mapFile = "RacingDisplayConfig.xml";
         public const string playerFile = "RacingDisplayPreferences.xml";
@@ -52,10 +50,6 @@ namespace avaness.RacingMod
         public static Color gateWaypointColor = new Color(0, 255, 255);
         public const string gateWaypointName = "Waypoint";
         public const string gateWaypointDescription = "The next waypoint to guide you through the race.";
-
-        public const int apiRaceStarted = 0;
-        public const int apiFinishers = 1;
-        public const int apiLaps = 2;
 
         public const string finishCompatNum = "10000";
 

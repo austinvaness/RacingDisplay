@@ -175,9 +175,9 @@ namespace avaness.RacingMod
         private void Sync(Packet p)
         {
             if (RacingConstants.IsServer)
-                MyAPIGateway.Multiplayer.SendMessageToOthers(RacingConstants.packetSettings, MyAPIGateway.Utilities.SerializeToBinary(p));
+                RacingSession.Instance.Net.SendToOthers(RacingConstants.packetSettings, p);
             else
-                MyAPIGateway.Multiplayer.SendMessageToServer(RacingConstants.packetSettings, MyAPIGateway.Utilities.SerializeToBinary(p));
+                RacingSession.Instance.Net.SendToOthers(RacingConstants.packetSettings, p);
         }
 
         public enum PacketEnum : byte
@@ -245,56 +245,6 @@ namespace avaness.RacingMod
                             config.LoopedChanged.Invoke(b3);
                         break;
                 }
-            }
-        }
-    }
-
-    public partial class RacingSession
-    {
-        public override void SaveData ()
-        {
-            if (RacingConstants.IsServer && MapSettings != null)
-                MapSettings.SaveFile();
-        }
-
-        private void ReceiveSettings (byte [] data)
-        {
-            try
-            {
-                RacingMapSettings.Packet p = MyAPIGateway.Utilities.SerializeFromBinary<RacingMapSettings.Packet>(data);
-                p.Perform();
-                if (RacingConstants.IsServer)
-                    MyAPIGateway.Multiplayer.SendMessageToOthers(RacingConstants.packetSettings, data);
-            }
-            catch(Exception e)
-            {
-                RacingTools.ShowError(e, GetType());
-            }
-        }
-
-        private void ReceiveSettingsInit (byte [] data)
-        {
-            try
-            {
-                if(RacingConstants.IsServer)
-                {
-                    ulong id = BitConverter.ToUInt64(data, 0);
-                    if (id != 0)
-                    {
-                        byte [] config = MyAPIGateway.Utilities.SerializeToBinary(MapSettings);
-                        MyAPIGateway.Multiplayer.SendMessageTo(RacingConstants.packetSettingsInit, config, id);
-                    }
-                }
-                else
-                {
-                    RacingMapSettings config = MyAPIGateway.Utilities.SerializeFromBinary<RacingMapSettings>(data);
-                    if (config != null)
-                        MapSettings.Copy(config);
-                }
-            }
-            catch (Exception e)
-            {
-                RacingTools.ShowError(e, GetType());
             }
         }
     }
