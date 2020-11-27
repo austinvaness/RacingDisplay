@@ -110,7 +110,10 @@ namespace avaness.RacingMod
                                 List<IMyPlayer> players = new List<IMyPlayer>();
                                 MyAPIGateway.Players.GetPlayers(players);
                                 foreach(IMyPlayer temp in players)
-                                    race.JoinRace(temp);
+                                {
+                                    if(!race.Contains(temp.SteamUserId))
+                                        race.JoinRace(temp);
+                                }
                             }
                             else
                             {
