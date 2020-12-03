@@ -21,6 +21,7 @@ namespace avaness.RacingMod
         public const byte packetSettings = 2;
         public const byte packetSettingsInit = 3;
         public const byte packetRec = 4;
+        public const byte packetBeaconSettings = 5;
 
         public const string mapFile = "RacingDisplayConfig.xml";
         public const string playerFile = "RacingDisplayPreferences.xml";
@@ -51,7 +52,9 @@ namespace avaness.RacingMod
         public const string gateWaypointName = "Waypoint";
         public const string gateWaypointDescription = "The next waypoint to guide you through the race.";
 
-        public const string finishCompatNum = "10000";
+        public const float finishCompatNum = 10000;
+
+        public static Guid beaconStorage = new Guid("77E1A8DB-DC82-45A9-87F1-F1A0D86F24DB");
 
         public const string fontId = "FreeMono_Racing";
         public const string fontData = @"

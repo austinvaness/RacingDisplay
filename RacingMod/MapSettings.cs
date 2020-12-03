@@ -1,6 +1,7 @@
 ﻿using Sandbox.ModAPI;
 using System;
 using ProtoBuf;
+using VRage.Utils;
 
 namespace avaness.RacingMod
 {
@@ -100,7 +101,7 @@ namespace avaness.RacingMod
                 if (value != looped)
                 {
                     looped = value;
-                    Sync(new Packet(PacketEnum.Looped, strictStart));
+                    Sync(new Packet(PacketEnum.Looped, looped));
                     if (LoopedChanged != null)
                         LoopedChanged.Invoke(Looped);
                 }
@@ -177,7 +178,7 @@ namespace avaness.RacingMod
             if (RacingConstants.IsServer)
                 RacingSession.Instance.Net.SendToOthers(RacingConstants.packetSettings, p);
             else
-                RacingSession.Instance.Net.SendToOthers(RacingConstants.packetSettings, p);
+                RacingSession.Instance.Net.SendToServer(RacingConstants.packetSettings, p);
         }
 
         public enum PacketEnum : byte

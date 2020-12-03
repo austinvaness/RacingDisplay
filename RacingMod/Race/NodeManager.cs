@@ -1,4 +1,5 @@
-﻿using Sandbox.Game;
+﻿using avaness.RacingMod.Beacon;
+using Sandbox.Game;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -38,7 +39,7 @@ namespace avaness.RacingMod.Race
 
         public Vector3D GetCoords (int index)
         {
-            return nodes [index].Coords;
+            return nodes [index].GetCoords();
         }
 
         private RacingBeacon End => nodes.Last();
@@ -71,9 +72,6 @@ namespace avaness.RacingMod.Race
 
         public bool RegisterNode (RacingBeacon node)
         {
-            if (!node.Valid || node.Type == RacingBeacon.BeaconType.IGNORED)
-                return true;
-
             if (!RacingTools.AddSorted(nodes, node))
             {
                 // checkpoint with this id already existed
@@ -113,12 +111,12 @@ namespace avaness.RacingMod.Race
 
             int closest = 0;
             long minDistanceGrid = nodes [0].Beacon.CubeGrid.EntityId;
-            double minDistance2 = Vector3D.DistanceSquared(nodes [0].Coords, position);
+            double minDistance2 = Vector3D.DistanceSquared(nodes [0].GetCoords(), position);
 
             for (int i = 1; i < nodes.Count; i++)
             {
-                Vector3D node = nodes [i].Coords;
-                Vector3D segment = nodes [i - 1].Coords - node;
+                Vector3D node = nodes [i].GetCoords();
+                Vector3D segment = nodes [i - 1].GetCoords() - node;
                 double segmentLen = segment.Length();
                 if (segmentLen <= 0)
                     continue;
@@ -174,8 +172,8 @@ namespace avaness.RacingMod.Race
 
             for (int i = 1; i < nodes.Count; i++)
             {
-                Vector3D origin = nodes [i - 1].Coords;
-                Vector3 direction = nodes [i].Coords - origin;
+                Vector3D origin = nodes [i - 1].GetCoords();
+                Vector3 direction = nodes [i].GetCoords() - origin;
                 float len = direction.Length();
                 if (len <= 0)
                     continue;
@@ -185,8 +183,8 @@ namespace avaness.RacingMod.Race
             }
             if(mapSettings.Looped)
             {
-                Vector3D origin = End.Coords;
-                Vector3 direction = Start.Coords - origin;
+                Vector3D origin = End.GetCoords();
+                Vector3 direction = Start.GetCoords() - origin;
                 float len = direction.Length();
                 if (len > 0)
                 {
@@ -202,7 +200,7 @@ namespace avaness.RacingMod.Race
             {
                 foreach (RacingBeacon b in nodes.Skip(1))
                 {
-                    if(b.Type == RacingBeacon.BeaconType.CHECKPOINT)
+                    if(b.IsCheckpoint)
                         b.DrawDebug();
                 }
             }
@@ -211,7 +209,7 @@ namespace avaness.RacingMod.Race
         private void RebuildNodeInformation ()
         {
             // rebuild position cache
-            Vector3 [] nodePositions = nodes.Select(b => b.Coords).ToArray();
+            Vector3D [] nodePositions = nodes.Select(b => b.GetCoords()).ToArray();
 
             // rebuild distance cache
             nodeDistances = new double [nodePositions.Length];
@@ -226,11 +224,11 @@ namespace avaness.RacingMod.Race
             for (int i = 1; i < nodePositions.Length; i++)
             {
                 Vector3D v = nodePositions [i];
-                cumulative += Vector3.Distance(prev, v);
+                cumulative += Vector3D.Distance(prev, v);
                 nodeDistances [i] = cumulative;
                 prev = nodePositions [i];
             }
-            startEndDist = Vector3.Distance(Start.Coords, End.Coords);
+            startEndDist = Vector3D.Distance(Start.GetCoords(), End.GetCoords());
             if (mapSettings.Looped)
                 cumulative += startEndDist;
             TotalDistance = cumulative;
@@ -485,8 +483,8 @@ namespace avaness.RacingMod.Race
 
         private double LastSegDistance (IMyPlayer racer)
         {
-            Vector3D lastCoords = End.Coords;
-            Vector3D guide = Start.Coords - lastCoords;
+            Vector3D lastCoords = End.GetCoords();
+            Vector3D guide = Start.GetCoords() - lastCoords;
             double distance = guide.LengthSquared();
             if (distance <= 0)
                 return 0;
@@ -507,7 +505,7 @@ namespace avaness.RacingMod.Race
         private bool CheckpointCleared (IMyPlayer p, int index)
         {
             RacingBeacon node = nodes [index];
-            return node.Type == RacingBeacon.BeaconType.CHECKPOINT && node.Contains(p);
+            return node.IsCheckpoint && node.Contains(p);
         }
 
         /// <summary>
@@ -516,7 +514,7 @@ namespace avaness.RacingMod.Race
         private bool NodeCleared (IMyPlayer p, int index)
         {
             RacingBeacon node = nodes [index];
-            return node.Type == RacingBeacon.BeaconType.NODE || node.Contains(p);
+            return !node.IsCheckpoint || node.Contains(p);
         }
 
         private RacerState RacerLapped(StaticRacerInfo info, double lapDistance)

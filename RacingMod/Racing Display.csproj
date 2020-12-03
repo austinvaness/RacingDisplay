@@ -146,6 +146,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Beacon\BeaconControls.cs" />
+    <Compile Include="Beacon\BeaconStorage.cs" />
+    <Compile Include="Beacon\BeaconType.cs" />
     <Compile Include="Race\FinishManager.cs" />
     <Compile Include="Font\HudAPIFont.cs" />
     <Compile Include="Hud\InfoHud.cs" />
@@ -163,7 +166,7 @@
     <Compile Include="Hud\HudAPIv2.cs" />
     <Compile Include="Keybind.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Race\RacingBeacon.cs" />
+    <Compile Include="Beacon\RacingBeacon.cs" />
     <Compile Include="RacingConstants.cs" />
     <Compile Include="MapSettings.cs" />
     <Compile Include="RacingPreferences.cs" />
@@ -190,6 +193,7 @@
     <None Include="Font\FontDataRacePA-1.pdn" />
     <None Include="Workshop-Main\modinfo.sbmi" />
     <None Include="Workshop-Test\modinfo.sbmi" />
+    <None Include="Workshop\Data\EntityComponents.sbc" />
     <None Include="Workshop\Data\Fonts.sbc" />
     <None Include="Workshop\Data\TransparentMaterials2.sbc" />
     <None Include="Workshop\modinfo.sbmi" />
@@ -209,7 +213,7 @@ mkdir "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectNa
 xcopy "*.cs" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)" /Y /S /exclude:exclude.txt
 xcopy "Workshop\*.*" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" /Y /S
 exit
-set wid=1708268562
+set wid=1734942993
 set src=%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)
 (robocopy "%25src%25" "%25UserProfile%25\Desktop\DevServer\Instance\content\244850\%25wid%25" /MIR /NJH /NJS) ^&amp; IF %25ERRORLEVEL%25 LSS 8 SET ERRORLEVEL = 0
 (robocopy "%25src%25" "%25ProgramFiles(x86)%25\Steam\steamapps\workshop\content\244850\%25wid%25" /MIR /NJH /NJS) ^&amp; IF %25ERRORLEVEL%25 LSS 8 SET ERRORLEVEL = 0</PostBuildEvent>

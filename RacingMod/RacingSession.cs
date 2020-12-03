@@ -81,6 +81,7 @@ namespace avaness.RacingMod
             }
             Net.Register(RacingConstants.packetSettings, ReceiveSettings);
             Net.Register(RacingConstants.packetSettingsInit, ReceiveSettingsInit);
+            Beacon.BeaconStorage.Register();
 
             config.Copy(RacingPreferences.LoadFile());
 

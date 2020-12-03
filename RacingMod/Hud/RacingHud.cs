@@ -96,9 +96,9 @@ namespace avaness.RacingMod.Hud
             activeRacersHud.Visible = !activeRacersHud.Visible;
         }
 
-        private void SetHideHudKey (MyKeys key, bool arg1, bool arg2, bool arg3)
+        private void SetHideHudKey (MyKeys key, bool shift, bool ctrl, bool alt)
         {
-            config.HideHud = new Keybind(key, arg1, arg2, arg3);
+            config.HideHud = new Keybind(key, shift, ctrl, alt);
         }
         private void UpdateHideHud(Keybind keybind)
         {

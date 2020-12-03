@@ -7,6 +7,7 @@ namespace avaness.RacingMod.Net
 {
     public class Network
     {
+        private const bool debug = false;
         private const ushort packetId = 1337;
 
         private readonly Dictionary<byte, Action<byte[]>> receivers = new Dictionary<byte, Action<byte[]>>();
@@ -37,6 +38,8 @@ namespace avaness.RacingMod.Net
         /// </summary>
         public byte[] Prep<T>(byte id, T obj) where T : class
         {
+            if (debug && id != 0)
+                MyLog.Default.WriteLineAndConsole($"Prepped packet of {typeof(T)} with id {id}");
             return GetData(id, obj);
         }
 
@@ -48,16 +51,24 @@ namespace avaness.RacingMod.Net
 
         public void SendTo<T>(byte id, T obj, ulong player) where T : class
         {
+            if (debug && id != 0)
+                MyLog.Default.WriteLineAndConsole($"Sent {typeof(T)} packet with id {id} to {player}");
             MyAPIGateway.Multiplayer.SendMessageTo(packetId, GetData(id, obj), player);
         }
 
         public void SendToServer<T>(byte id, T obj) where T : class
         {
+            if (debug && id != 0)
+                MyLog.Default.WriteLineAndConsole($"Sent {typeof(T)} packet with id {id} to Server");
             MyAPIGateway.Multiplayer.SendMessageToServer(packetId, GetData(id, obj));
         }
 
         public void SendToOthers<T>(byte id, T obj) where T : class
         {
+            if (!RacingConstants.IsServer)
+                throw new Exception();
+            if (debug && id != 0)
+                MyLog.Default.WriteLineAndConsole($"Sent {typeof(T)} packet with id {id} to Clients");
             MyAPIGateway.Multiplayer.SendMessageToOthers(packetId, GetData(id, obj));
         }
 
@@ -83,9 +94,16 @@ namespace avaness.RacingMod.Net
             Action<byte[]> func;
             if (receivers.TryGetValue(id, out func))
             {
+                if (debug && id != 0)
+                    MyLog.Default.WriteLineAndConsole($"Received packet with id {id}.");
+
                 byte[] newData = new byte[data.Length - 1];
                 Array.Copy(data, 1, newData, 0, newData.Length);
                 func.Invoke(newData);
+            }
+            else if (debug && id != 0)
+            { 
+                MyLog.Default.WriteLineAndConsole($"Received packet with id {id}, but no receiver exists.");
             }
         }
     }

@@ -268,7 +268,7 @@ namespace avaness.RacingMod.Race
                         activeRacersText.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');
 
                     // <num> <name>
-                    activeRacersText.Append(RacingTools.SetLength(info.Name, RacingConstants.nameWidth)).Append(' ');
+                    activeRacersText.Append(info.Name).Append(' ');
 
                     // <num> <name> <distance>
                     string dist;
@@ -292,11 +292,17 @@ namespace avaness.RacingMod.Race
                             previousDist = info.Distance;
                         }
                     }
-                    activeRacersText.Append(RacingTools.SetLength(dist, RacingConstants.distWidth));
 
-                    int lap = info.Laps;
-                    if (info.OnTrack && MapSettings.NumLaps > 1)
+                    if(info.OnTrack && MapSettings.NumLaps > 1)
+                    {
+                        activeRacersText.Append(RacingTools.SetLength(dist, RacingConstants.distWidth));
+                        int lap = info.Laps;
                         activeRacersText.Append(' ').Append(lap + 1);
+                    }
+                    else
+                    {
+                        activeRacersText.Append(dist);
+                    }
 
                     activeRacersText.AppendLine();
 

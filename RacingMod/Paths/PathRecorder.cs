@@ -173,7 +173,9 @@ namespace avaness.RacingMod.Paths
 
             public GridInfo(IMyCubeGrid grid)
             {
-                SetInfo(MyAPIGateway.GridGroups.GetGroup(grid, GridLinkTypeEnum.Physical));
+                List<IMyCubeGrid> grids = new List<IMyCubeGrid>();
+                MyAPIGateway.GridGroups.GetGroup(grid, GridLinkTypeEnum.Physical, grids);
+                SetInfo(grids);
             }
 
             private void SetInfo(List<IMyCubeGrid> grids)
@@ -197,7 +199,8 @@ namespace avaness.RacingMod.Paths
 
             public bool Changed(IMyCubeGrid grid, out bool positionOnly)
             {
-                List<IMyCubeGrid> grids = MyAPIGateway.GridGroups.GetGroup(grid, GridLinkTypeEnum.Physical);
+                List<IMyCubeGrid> grids = new List<IMyCubeGrid>();
+                MyAPIGateway.GridGroups.GetGroup(grid, GridLinkTypeEnum.Physical, grids);
                 if (grids.Count != id.Length)
                 {
                     positionOnly = false;
@@ -248,7 +251,8 @@ namespace avaness.RacingMod.Paths
             {
                 Runtime = runtime;
 
-                List<IMyCubeGrid> grids = MyAPIGateway.GridGroups.GetGroup(grid, GridLinkTypeEnum.Physical);
+                List<IMyCubeGrid> grids = new List<IMyCubeGrid>();
+                MyAPIGateway.GridGroups.GetGroup(grid, GridLinkTypeEnum.Physical, grids);
                 if(saveBuilder)
                 {
                     newGrid = grids.Select(GridToBuilder).ToArray();
