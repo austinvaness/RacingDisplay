@@ -64,6 +64,7 @@ namespace avaness.RacingMod
                     return;
             }
 
+            race.Register();
 
             if (RacingConstants.IsServer)
             {
@@ -84,6 +85,19 @@ namespace avaness.RacingMod
             Beacon.BeaconStorage.Register();
 
             config.Copy(RacingPreferences.LoadFile());
+
+            if(config.AutoRecord)
+            {
+                if(RacingConstants.IsServer)
+                {
+                    if (MyAPIGateway.Session.Player != null)
+                        race.EnableRecording(MyAPIGateway.Session.Player.SteamUserId);
+                }
+                else
+                {
+                    Net.SendToServer<object>(RacingConstants.packetAutoRec, null);
+                }
+            }
 
             MyLog.Default.WriteLineAndConsole("Racing Display started.");
             running = true;

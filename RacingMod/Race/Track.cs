@@ -38,6 +38,11 @@ namespace avaness.RacingMod.Race
 
         }
 
+        public void Register()
+        {
+            RacingSession.Instance.Net.Register(RacingConstants.packetAutoRec, EnableRecording);
+        }
+
         public void Unload()
         {
             MapSettings.NumLapsChanged -= NumLapsChanged;
@@ -56,6 +61,13 @@ namespace avaness.RacingMod.Race
                 Nodes.DrawDebug();
                 RacingSession.Instance.DebugRecorder();
             }
+        }
+
+        public void EnableRecording(ulong sender)
+        {
+            if (sender == 0)
+                return;
+            Racers.GetStaticInfo(sender).CreateRecorder();
         }
 
         public void Bind(Hud.RacingHud hud)

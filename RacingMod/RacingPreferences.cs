@@ -37,6 +37,26 @@ namespace avaness.RacingMod
         }
         public event Action<Keybind> OnHideHudChanged;
 
+        private bool autoRecord = false;
+        public bool AutoRecord
+        {
+            get
+            {
+                return autoRecord;
+            }
+            set
+            {
+                if(value != autoRecord)
+                {
+                    autoRecord = value;
+                    SaveFile();
+                    if (OnAutoRecordChanged != null)
+                        OnAutoRecordChanged.Invoke(value);
+                }
+            }
+        }
+        public event Action<bool> OnAutoRecordChanged;
+
         public void SaveFile ()
         {
             var writer = MyAPIGateway.Utilities.WriteFileInLocalStorage(RacingConstants.playerFile, typeof(RacingPreferences));
@@ -73,6 +93,9 @@ namespace avaness.RacingMod
             hideHud = racingPreferences.hideHud;
             if (OnHideHudChanged != null)
                 OnHideHudChanged.Invoke(hideHud);
+            autoRecord = racingPreferences.autoRecord;
+            if (OnAutoRecordChanged != null)
+                OnAutoRecordChanged.Invoke(autoRecord);
         }
     }
 }

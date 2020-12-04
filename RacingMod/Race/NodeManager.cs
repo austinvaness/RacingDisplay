@@ -531,13 +531,10 @@ namespace avaness.RacingMod.Race
                     MyVisualScriptLogicProvider.ShowNotificationToAll($"{info.Racer.DisplayName} just finished with time {time}", RacingConstants.defaultMsgMs, "White");
                 }
 
-                if (mapSettings.TimedMode && info.AutoJoin)
+                if (mapSettings.TimedMode && mapSettings.Looped && info.AutoJoin)
                 {
                     NewOnTrack(info, false);
-                    if (mapSettings.Looped)
-                        info.NextNode = 1;
-                    else
-                        info.NextNode = 0;
+                    info.NextNode = 1;
                     return RacerState.Reset;
                 }
                 else

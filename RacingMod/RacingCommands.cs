@@ -156,7 +156,7 @@ namespace avaness.RacingMod
                 case "autojoin":
                     if(RacingConstants.IsServer)
                     {
-                        if(mapSettings.TimedMode)
+                        if(mapSettings.TimedMode && mapSettings.Looped)
                         {
                             if (!race.Contains(p.SteamUserId) && !race.JoinRace(p))
                                 return;
@@ -170,7 +170,7 @@ namespace avaness.RacingMod
                         }
                         else
                         {
-                            ShowMsg(p, "Auto join only works for timed races.");
+                            ShowMsg(p, "Auto join only works for looped timed races.");
                         }
                     }
                     else
