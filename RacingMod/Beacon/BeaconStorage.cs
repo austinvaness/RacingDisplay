@@ -193,7 +193,7 @@ namespace avaness.RacingMod.Beacon
                     Enabled = false;
                 }
                 Save();
-                block.CustomName = CompatRemoveTag(name, 5);
+                block.CustomName = CompatRemoveTag(name, 6);
             }
             else if(name.StartsWith("[checkpoint]", StringComparison.OrdinalIgnoreCase))
             {
