@@ -53,6 +53,7 @@ namespace avaness.RacingMod.Hud
             if(settingsMenu != null)
                 settingsMenu.Unload();
             config.OnHideHudChanged -= UpdateHideHud;
+            config.OnAutoRecordChanged -= UpdateAutoRecord;
         }
 
         private void CreateHud()
