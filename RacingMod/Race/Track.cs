@@ -59,7 +59,7 @@ namespace avaness.RacingMod.Race
             if (debug && MyAPIGateway.Session.Player != null)
             {
                 Nodes.DrawDebug();
-                RacingSession.Instance.DebugRecorder();
+                //RacingSession.Instance.DebugRecorder();
             }
         }
 

@@ -190,10 +190,10 @@ namespace avaness.RacingMod
                 {
                     race.Update();
                 }
-                else if(race.Debug)
+                /*else if(race.Debug)
                 {
                     DebugRecorder();
-                }
+                }*/
 
                 if (Hud != null && config != null && config.HideHud.IsKeybindPressed())
                     Hud.ToggleUI();
@@ -205,11 +205,11 @@ namespace avaness.RacingMod
         }
 
 
-        public void DebugRecorder()
+        /*public void DebugRecorder()
         {
             if (Recorder != null)
                 Recorder.Debug();
-        }
+        }*/
 
         protected override void UnloadData()
         {
