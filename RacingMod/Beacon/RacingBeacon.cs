@@ -95,6 +95,7 @@ namespace avaness.RacingMod.Beacon
             grid.OnMarkForClose += CubeGrid_OnMarkForClose;
             grid.OnIsStaticChanged += CubeGrid_OnIsStaticChanged;
             grid.PositionComp.OnLocalAABBChanged += UpdateGridCenter;
+            grid.OnGridSplit += Grid_OnGridSplit;
         }
 
         private void Unsubscribe(IMyCubeGrid grid)
@@ -102,6 +103,7 @@ namespace avaness.RacingMod.Beacon
             grid.OnMarkForClose -= CubeGrid_OnMarkForClose;
             grid.OnIsStaticChanged -= CubeGrid_OnIsStaticChanged;
             grid.PositionComp.OnLocalAABBChanged -= UpdateGridCenter;
+            grid.OnGridSplit -= Grid_OnGridSplit;
         }
 
         public Vector3D GetCoords()
@@ -200,6 +202,13 @@ namespace avaness.RacingMod.Beacon
             return Beacon.CubeGrid == null || Beacon.CubeGrid.MarkedForClose;
         }
 
+        private void Grid_OnGridSplit(IMyCubeGrid grid1, IMyCubeGrid grid2)
+        {
+            isStatic = false;
+            UpdateRegistration(true);
+            Unsubscribe(Beacon.CubeGrid);
+            NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
+        }
 
         private void CubeGrid_OnIsStaticChanged(IMyCubeGrid grid, bool isStatic)
         {
