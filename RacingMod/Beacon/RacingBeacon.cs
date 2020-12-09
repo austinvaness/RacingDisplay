@@ -221,7 +221,8 @@ namespace avaness.RacingMod.Beacon
             isStatic = false;
             UpdateRegistration(true);
             Unsubscribe(Beacon.CubeGrid);
-            NeedsUpdate |= MyEntityUpdateEnum.EACH_100TH_FRAME;
+            if(Entity != null)
+                NeedsUpdate |= MyEntityUpdateEnum.EACH_100TH_FRAME;
         }
 
         private void UpdateRegistration()
