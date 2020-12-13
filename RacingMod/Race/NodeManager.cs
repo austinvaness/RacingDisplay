@@ -1,4 +1,5 @@
 ﻿using avaness.RacingMod.Beacon;
+using avaness.RacingMod.Racers;
 using Sandbox.Game;
 using System;
 using System.Collections;

@@ -1,21 +1,24 @@
 ﻿using avaness.RacingMod.Paths;
+using avaness.RacingMod.Race.Finish;
 using Sandbox.Game;
 using Sandbox.ModAPI;
 using System;
+using System.Collections.Generic;
 using VRage.Game.ModAPI;
 
-namespace avaness.RacingMod
+namespace avaness.RacingMod.Racers
 {
-    public class StaticRacerInfo : IEquatable<StaticRacerInfo>
+    public class StaticRacerInfo : IFinisher, IEquatable<StaticRacerInfo>
     {
-        public ulong Id;
-        public IMyPlayer Racer;
-        public string Name;
+        public ulong Id { get; }
+        public IMyPlayer Racer { get; set; }
+        public string Name { get; }
         public Timer Timer;
         public bool InStart;
         public bool OnTrack;
         public int Laps = 0;
-        public TimeSpan BestTime = new TimeSpan(0);
+        public long Time => BestTime.Ticks;
+        public TimeSpan BestTime { get; private set; } = new TimeSpan(0);
         public int RankUpFrame = 0;
         public int Rank = 0;
         /// <summary>
@@ -39,6 +42,19 @@ namespace avaness.RacingMod
             }
         }
 
+        public StaticRacerInfo(IMyPlayer p)
+        {
+            Id = p.SteamUserId;
+            Name = RacingTools.SetLength(p.DisplayName, RacingConstants.nameWidth);
+            Racer = p;
+            Timer = new Timer(true);
+        }
+
+        public void UpdateTime(SerializableFinisher finisher)
+        {
+            if (BestTime.Ticks == 0 || BestTime > finisher.BestTime)
+                BestTime = finisher.BestTime;
+        }
 
         public void SetNextNode (int value, bool force = false)
         {
@@ -56,13 +72,6 @@ namespace avaness.RacingMod
             MyVisualScriptLogicProvider.RemoveGPS(RacingConstants.gateWaypointName, Racer.IdentityId);
         }
 
-        public StaticRacerInfo(IMyPlayer p)
-        {
-            Id = p.SteamUserId;
-            Name = RacingTools.SetLength(p.DisplayName, RacingConstants.nameWidth);
-            Racer = p;
-            Timer = new Timer(true);
-        }
 
         /// <summary>
         /// Returns true if the new time was used.
@@ -108,72 +117,30 @@ namespace avaness.RacingMod
             }
         }
 
-        public override bool Equals (object obj)
+        public override bool Equals(object obj)
         {
-            StaticRacerInfo info = obj as StaticRacerInfo;
-            return info != null && Id == info.Id;
+            return Equals(obj as StaticRacerInfo);
         }
 
-        public override int GetHashCode ()
+        public bool Equals(StaticRacerInfo other)
+        {
+            return other != null &&
+                   Id == other.Id;
+        }
+
+        public override int GetHashCode()
         {
             return 2108858624 + Id.GetHashCode();
         }
 
-        public bool Equals (StaticRacerInfo other)
+        public static bool operator ==(StaticRacerInfo left, StaticRacerInfo right)
         {
-            return other != null && Id == other.Id;
-        }
-    }
-
-    public class Timer
-    {
-        private DateTime started;
-        private DateTime? paused;
-
-        private DateTime Now => RacingSession.Instance.Runtime;
-
-        public Timer(bool paused = false)
-        {
-            started = Now;
-            if (paused)
-                this.paused = started;
-            else
-                this.paused = null;
+            return EqualityComparer<StaticRacerInfo>.Default.Equals(left, right);
         }
 
-        public TimeSpan GetTime()
+        public static bool operator !=(StaticRacerInfo left, StaticRacerInfo right)
         {
-            if (paused.HasValue)
-                return paused.Value - started;
-            return Now - started;
-        }
-        public string GetTime (string format)
-        {
-            return GetTime().ToString(format);
-        }
-
-        public void Start()
-        {
-            if(paused.HasValue)
-            {
-                started += Now - paused.Value;
-                paused = null;
-            }
-        }
-
-        public void Stop()
-        {
-            if(!paused.HasValue)
-                paused = Now;
-        }
-
-        public void Reset (bool paused = false)
-        {
-            started = Now;
-            if (paused)
-                this.paused = started;
-            else
-                this.paused = null;
+            return !(left == right);
         }
     }
 }

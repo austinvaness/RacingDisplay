@@ -26,6 +26,7 @@ namespace avaness.RacingMod
 
         public const string mapFile = "RacingDisplayConfig.xml";
         public const string playerFile = "RacingDisplayPreferences.xml";
+        public const string finisherFile = "RacingDisplayFinishers.xml";
 
         public const string timerFormating = "mm\\:ss\\:ff";
 

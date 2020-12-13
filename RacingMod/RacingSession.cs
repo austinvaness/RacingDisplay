@@ -1,16 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Draygo.API;
 using Sandbox.Game;
 using Sandbox.ModAPI;
 using VRage.Game.Components;
-using VRage.Game.ModAPI;
 using VRage.Utils;
 using VRageMath;
-using System.Collections.Concurrent;
-using VRage;
 using SpaceEngineers.Game.ModAPI;
 using avaness.RacingMod.Paths;
 using avaness.RacingMod.Hud;
@@ -64,7 +58,6 @@ namespace avaness.RacingMod
                     return;
             }
 
-            race.Register();
 
             if (RacingConstants.IsServer)
             {
@@ -72,6 +65,7 @@ namespace avaness.RacingMod
                 MapSettings.Copy(RacingMapSettings.LoadFile());
                 if(Hud != null)
                     Hud.OnEnabled += Hud_OnEnabled;
+                race.LoadServer();
             }
             else
             {
@@ -111,8 +105,12 @@ namespace avaness.RacingMod
 
         public override void SaveData()
         {
-            if (RacingConstants.IsServer && MapSettings != null)
-                MapSettings.SaveFile();
+            if (RacingConstants.IsServer)
+            {
+                if (MapSettings != null)
+                    MapSettings.SaveFile();
+                race.SaveData();
+            }
         }
 
         public int TriggerTimers()
@@ -228,6 +226,7 @@ namespace avaness.RacingMod
                 cmds.Unload();
             }
         }
+
 
     }
 }

@@ -1,5 +1,6 @@
 ﻿using avaness.RacingMod.Paths;
 using avaness.RacingMod.Race;
+using avaness.RacingMod.Race.Finish;
 using avaness.RacingMod.Racers;
 using ProtoBuf;
 using Sandbox.Game;
@@ -75,7 +76,7 @@ namespace avaness.RacingMod
         {
             bool redirect = false;
             command = command.ToLower().Trim();
-            if (!command.StartsWith("/rcd"))
+            if (!command.StartsWith("/rcd") && !command.StartsWith("/race"))
                 return;
             sendToOthers = false;
             string [] cmd = command.Split(' ');
@@ -207,7 +208,7 @@ namespace avaness.RacingMod
                         }
                         else
                         {
-                            ShowAdminMsg(p, "Usage:\n/rcd clear [name]: Removes all or a specific racer from finalists.");
+                            ShowAdminMsg(p, "Usage:\n/race clear [name]: Removes all or a specific racer from finalists.");
                             return;
 
                         }
@@ -262,7 +263,7 @@ namespace avaness.RacingMod
 
                     if (cmd.Length != 3)
                     {
-                        ShowAdminMsg(p, "Usage:\n/rcd grant <name>: Fixes a 'missing' error on the ui.");
+                        ShowAdminMsg(p, "Usage:\n/race grant <name>: Fixes a 'missing' error on the ui.");
                         return;
                     }
 
@@ -291,7 +292,7 @@ namespace avaness.RacingMod
 
                     if (cmd.Length != 3)
                     {
-                        ShowAdminMsg(p, "Usage:\n/rcd laps <number>: Changes the number of laps.");
+                        ShowAdminMsg(p, "Usage:\n/race laps <number>: Changes the number of laps.");
                         return;
                     }
 
@@ -320,7 +321,7 @@ namespace avaness.RacingMod
 
                     if (cmd.Length != 3)
                     {
-                        ShowAdminMsg(p, "Usage:\n/rcd kick <name>: Removes a player from the race.");
+                        ShowAdminMsg(p, "Usage:\n/race kick <name>: Removes a player from the race.");
                         return;
                     }
 
@@ -394,7 +395,7 @@ namespace avaness.RacingMod
 
                     if (cmd.Length < 3 || cmd.Length > 4)
                     {
-                        ShowAdminMsg(p, "Usage:\n/rcd finish <name> [position]: Adds a finisher to the list.");
+                        ShowAdminMsg(p, "Usage:\n/race finish <name> [position]: Adds a finisher to the list.");
                         return;
                     }
 
@@ -503,23 +504,25 @@ namespace avaness.RacingMod
 
         void ShowChatHelp (IMyPlayer p)
         {
-            string s = "\nCommands:\n/rcd join: Joins the race.\n/rcd leave: Leaves the race.\n" +
-                "/rcd rejoin: Shortcut to leave and join the race.\n" +
-                "/rcd autojoin: Rejoin a timed race after it has been completed.\n" +
-                "/rcd record: Start recording your fastest path in timed races.";
+            string s = "\nCommands:\n" +
+                "/race join: Joins the race.\n" +
+                "/race leave: Leaves the race.\n" +
+                "/race rejoin: Shortcut to leave and join the race.\n" +
+                "/race autojoin: Stay in a timed race after completion.\n" +
+                "/race record: Record your fastest path in timed races.";
             if (IsPlayerAdmin(p, false))
-                s += "\nTo view admin commands:\n/rcd admin";
+                s += "\nTo view admin commands:\n/race admin";
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Blue");
         }
 
         void ShowAdminHelp (IMyPlayer p)
         {
             string s = "\nAdmin Commands:\n" +
-                    "/rcd clear [name]: Removes finalist(s).\n" +
-                    "/rcd grant <name>: Fixes a racer's 'missing' status.\n/rcd mode: Toggles timed mode.\n" +
-                    "/rcd kick <name>: Removes a racer from the race.\n/rcd strictstart: Toggles if starting on the track is allowed.\n" +
-                    "/rcd laps <number>: Changes the number of laps.\n/rcd looped: Toggles if the track is looped.\n" +
-                    "/rcd timers: Triggers all timers prefixed with [racetimer].\n/rcd finish <name> [position]: Force a racer to finish.";
+                    "/race clear [name]: Removes finalist(s).\n" +
+                    "/race grant <name>: Fixes a racer's 'missing' status.\n/race mode: Toggles timed mode.\n" +
+                    "/race kick <name>: Removes a racer from the race.\n/race strictstart: Toggles if starting on the track is allowed.\n" +
+                    "/race laps <number>: Changes the number of laps.\n/race looped: Toggles if the track is looped.\n" +
+                    "/race timers: Triggers all timers prefixed with [racetimer].\n/race finish <name> [position]: Force a racer to finish.";
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd admin", p.IdentityId, "Red");
         }
 

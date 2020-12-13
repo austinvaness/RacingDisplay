@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using VRage.Game.ModAPI;
 using System.Linq;
-using System;
+using avaness.RacingMod.Race.Finish;
 
 namespace avaness.RacingMod.Race
 {
@@ -38,9 +38,10 @@ namespace avaness.RacingMod.Race
 
         }
 
-        public void Register()
+        public void LoadServer()
         {
             RacingSession.Instance.Net.Register(RacingConstants.packetAutoRec, EnableRecording);
+            Finishers.LoadFile(Racers);
         }
 
         public void Unload()
@@ -61,6 +62,11 @@ namespace avaness.RacingMod.Race
                 Nodes.DrawDebug();
                 //RacingSession.Instance.DebugRecorder();
             }
+        }
+
+        public void SaveData()
+        {
+            Finishers.SaveFile();
         }
 
         public void EnableRecording(ulong sender)
@@ -121,6 +127,7 @@ namespace avaness.RacingMod.Race
                 return false;
             return grid.Physics.LinearVelocity.LengthSquared() > RacingConstants.moveThreshold2;
         }
+
 
         public bool JoinRace(IMyPlayer p, bool force = false)
         {

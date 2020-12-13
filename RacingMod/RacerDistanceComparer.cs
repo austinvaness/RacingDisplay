@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using avaness.RacingMod.Racers;
+using System.Collections.Generic;
 
 namespace avaness.RacingMod
 {
@@ -13,19 +14,6 @@ namespace avaness.RacingMod
                 return 1;
             else
                 return result;
-        }
-    }
-
-    public class RacerBestTimeComparer : IComparer<StaticRacerInfo>
-    {
-        public int Compare (StaticRacerInfo x, StaticRacerInfo y)
-        {
-            if (x.Equals(y))
-                return 0;
-            int result = x.BestTime.CompareTo(y.BestTime);
-            if (result != 0)
-                return result;
-            return 1;
         }
     }
 }
