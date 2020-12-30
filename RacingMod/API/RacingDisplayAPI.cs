@@ -29,7 +29,7 @@ namespace avaness.RacingMod.API
         }
 
         /// <summary>
-        /// Call this method to cleanup the mod once you are done with it.
+        /// Call this method to cleanup once you are done with it.
         /// </summary>
         public void Close()
         {
