@@ -31,7 +31,7 @@ namespace avaness.RacingMod
         private readonly Track race;
         private readonly RacingPreferences config = new RacingPreferences();
         private bool running;
-
+        private API.APILogic api;
         //private int gateWaypointGps;
 
 
@@ -170,6 +170,8 @@ namespace avaness.RacingMod
                 return;
 
             // Startup
+            if(api == null && Runticks >= 300)
+                api = new API.APILogic(race);
 
             if (!running)
                 Start();

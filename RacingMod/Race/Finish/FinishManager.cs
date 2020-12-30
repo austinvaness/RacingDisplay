@@ -15,6 +15,8 @@ namespace avaness.RacingMod.Race.Finish
         private readonly List<IFinisher> finishers = new List<IFinisher>();
         private SerializableFinisher[] serializable;
 
+        public event Action OnFinishersModified;
+
         public FinishList()
         {
             MapSettings.TimedModeChanged += TimedModeChanged;
@@ -87,6 +89,7 @@ namespace avaness.RacingMod.Race.Finish
         public void Unload()
         {
             MapSettings.TimedModeChanged -= TimedModeChanged;
+            OnFinishersModified = null;
         }
 
         private void TimedModeChanged (bool timed)
@@ -131,6 +134,8 @@ namespace avaness.RacingMod.Race.Finish
             finalString = tempSb.ToString();
             if(this.serializable != null)
                 this.serializable = serializable;
+            if (OnFinishersModified != null)
+                OnFinishersModified.Invoke();
         }
 
         public override string ToString ()
