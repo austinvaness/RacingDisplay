@@ -146,6 +146,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="API\APILogic.cs" />
+    <Compile Include="API\RacingDisplayAPI.cs" />
     <Compile Include="Beacon\BeaconControls.cs" />
     <Compile Include="Beacon\BeaconStorage.cs" />
     <Compile Include="Beacon\BeaconType.cs" />

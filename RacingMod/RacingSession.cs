@@ -227,6 +227,7 @@ namespace avaness.RacingMod
                 Net.Unload();
                 cmds.Unload();
             }
+            api?.Unload();
         }
 
 
