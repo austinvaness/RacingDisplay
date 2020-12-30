@@ -22,8 +22,11 @@ namespace APITest
 
         protected override void UnloadData ()
         {
-            racingApi.OnFinishersModified -= RacingApi_OnFinishersModified;
-            racingApi?.Close();
+            if(racingApi != null)
+            {
+                racingApi.OnFinishersModified -= RacingApi_OnFinishersModified;
+                racingApi.Close();
+            }
         }
 
         public override void UpdateAfterSimulation ()
