@@ -225,6 +225,7 @@ namespace avaness.RacingMod.Race
             if (ranking.Count == 0 && Finishers.Count == 0)
             {
                 activeRacersText.Append("No racers in range.");
+                previousTick.Clear();
                 return;
             }
 
@@ -329,6 +330,10 @@ namespace avaness.RacingMod.Race
                     i++;
                 }
                 previousTick = ranking;
+            }
+            else
+            {
+                previousTick.Clear();
             }
         }
 
