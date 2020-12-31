@@ -359,5 +359,10 @@ namespace avaness.RacingMod.Race
             }
             Racers.ClearRecorders();
         }
+
+        public IEnumerable<StaticRacerInfo> GetListedRacers()
+        {
+            return previousTick;
+        }
     }
 }
