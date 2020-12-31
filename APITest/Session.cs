@@ -23,10 +23,7 @@ namespace APITest
         protected override void UnloadData ()
         {
             if(racingApi != null)
-            {
-                racingApi.OnFinishersModified -= RacingApi_OnFinishersModified;
                 racingApi.Close();
-            }
         }
 
         public override void UpdateAfterSimulation ()
@@ -34,22 +31,18 @@ namespace APITest
             if (MyAPIGateway.Session?.Player == null)
                 return;
             if (racingApi == null)
-                racingApi = new RacingDisplayAPI(OnEnabled);
+                racingApi = new RacingDisplayAPI();
             if (!racingApi.Enabled)
                 return;
-            if(MyAPIGateway.Input.IsAnyCtrlKeyPressed() && MyAPIGateway.Input.IsNewKeyPressed(VRage.Input.MyKeys.J))
-                racingApi.JoinRace(MyAPIGateway.Session.Player);
-            MyAPIGateway.Utilities.ShowNotification($"There are {racingApi.Racers.Length} racers in the race.", 16);
-        }
+            if (MyAPIGateway.Input.IsAnyCtrlKeyPressed())
+            {
+                if (MyAPIGateway.Input.IsNewKeyPressed(VRage.Input.MyKeys.J))
+                    racingApi.JoinRace(MyAPIGateway.Session.Player);
+                else if (MyAPIGateway.Input.IsNewKeyPressed(VRage.Input.MyKeys.L))
+                    racingApi.LeaveRace(MyAPIGateway.Session.Player);
+            }
 
-        private void OnEnabled ()
-        {
-            racingApi.OnFinishersModified += RacingApi_OnFinishersModified;
-        }
-
-        private void RacingApi_OnFinishersModified (MyTuple<ulong, TimeSpan> [] finishers)
-        {
-            MyAPIGateway.Utilities.ShowNotification($"There are now {finishers.Length} finishers.");
+            MyAPIGateway.Utilities.ShowNotification($"There are {racingApi.Racers.Count()} racers in the race.", 16);
         }
     }
 }
