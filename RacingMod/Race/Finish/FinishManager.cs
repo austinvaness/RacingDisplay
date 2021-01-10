@@ -123,7 +123,7 @@ namespace avaness.RacingMod.Race.Finish
                     i++;
                     tempSb.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');
                     tempSb.Append(info.Name).Append(' ');
-                    tempSb.Append(info.BestTime.ToString(RacingConstants.timerFormating)).AppendLine();
+                    tempSb.Append(RacingTools.Format(info.BestTime)).AppendLine();
                 }
 
                 tempSb.Length--;

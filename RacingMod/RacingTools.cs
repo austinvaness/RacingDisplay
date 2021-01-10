@@ -53,6 +53,13 @@ namespace avaness.RacingMod
             return returnValue;
         }
 
+        public static string Format (TimeSpan span)
+        {
+            if (span.TotalHours >= 1)
+                return span.ToString("hh\\:mm\\:ss");
+            return span.ToString("mm\\:ss\\.ff");
+        }
+
         /// <summary>
         /// Adds an element to a list keeping the list sorted,
         /// or replaces the element if it already exists.

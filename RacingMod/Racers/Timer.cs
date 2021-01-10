@@ -24,10 +24,6 @@ namespace avaness.RacingMod.Racers
                 return paused.Value - started;
             return Now - started;
         }
-        public string GetTime (string format)
-        {
-            return GetTime().ToString(format);
-        }
 
         public void Start()
         {

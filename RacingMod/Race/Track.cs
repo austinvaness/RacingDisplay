@@ -304,7 +304,7 @@ namespace avaness.RacingMod.Race
                     {
                         if (MapSettings.TimedMode)
                         {
-                            dist = info.Timer.GetTime(RacingConstants.timerFormating);
+                            dist = RacingTools.Format(info.Timer.GetTime());
                         }
                         else
                         {

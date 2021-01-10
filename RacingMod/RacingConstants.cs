@@ -28,8 +28,6 @@ namespace avaness.RacingMod
         public const string playerFile = "RacingDisplayPreferences.xml";
         public const string finisherFile = "RacingDisplayFinishers.xml";
 
-        public const string timerFormating = "mm\\:ss\\:ff";
-
         public const int defaultMsgMs = 4000;
 
         public const int numberWidth = 2;

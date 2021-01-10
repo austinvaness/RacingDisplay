@@ -528,7 +528,7 @@ namespace avaness.RacingMod.Race
                 info.Laps = 0;
                 if (info.MarkTime() && mapSettings.TimedMode)
                 {
-                    string time = info.BestTime.ToString(RacingConstants.timerFormating);
+                    string time = RacingTools.Format(info.BestTime);
                     MyVisualScriptLogicProvider.ShowNotificationToAll($"{info.Racer.DisplayName} just finished with time {time}", RacingConstants.defaultMsgMs, "White");
                 }
 
