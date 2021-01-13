@@ -131,6 +131,9 @@ namespace avaness.RacingMod.Race
 
         public bool JoinRace(IMyPlayer p, bool force = false)
         {
+            if (Nodes.Count < 2)
+                return false;
+
             if (!force && MapSettings.StrictStart)
             {
                 if (Nodes.OnTrack(p))
