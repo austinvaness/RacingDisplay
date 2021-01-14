@@ -7,5 +7,6 @@ namespace avaness.RacingMod.Race.Finish
         ulong Id { get; }
         string Name { get; }
         TimeSpan BestTime { get; }
+        void RemoveFinish();
     }
 }

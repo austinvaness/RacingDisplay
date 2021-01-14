@@ -93,26 +93,15 @@ namespace avaness.RacingMod
                     {
                         if(cmd.Length > 2 && IsPlayerAdmin(p, false))
                         {
-                            string arg;
-                            if (cmd.Length > 3)
-                            {
-                                StringBuilder sb = new StringBuilder(cmd[2]);
-                                for (int i = 3; i < cmd.Length; i++)
-                                    sb.Append(' ').Append(cmd[i]);
-                                arg = sb.ToString();
-                            }
-                            else
-                            {
-                                arg = cmd[2];
-                            }
+                            string arg = BuildString(cmd, 2);
 
-                            if(arg.Equals("all", StringComparison.OrdinalIgnoreCase))
+                            if (arg.Equals("all", StringComparison.OrdinalIgnoreCase))
                             {
                                 List<IMyPlayer> players = new List<IMyPlayer>();
                                 MyAPIGateway.Players.GetPlayers(players);
-                                foreach(IMyPlayer temp in players)
+                                foreach (IMyPlayer temp in players)
                                 {
-                                    if(!race.Contains(temp.SteamUserId))
+                                    if (!race.Contains(temp.SteamUserId))
                                         race.JoinRace(temp);
                                 }
                             }
@@ -188,29 +177,28 @@ namespace avaness.RacingMod
                         if (cmd.Length == 2)
                         {
                             finishers.Clear();
-                            ShowAdminMsg(p, "Cleared all finishers.");
                             racers.ClearRecorders();
                         }
-                        else if (cmd.Length == 3)
+                        else
                         {
+                            string name = BuildString(cmd, 2);
+
                             StaticRacerInfo info;
-                            if (!racers.GetStaticInfo(cmd[2], out info))
-                            {
-                                ShowAdminMsg(p, $"No racer was found with a name containing '{cmd [2]}'.");
-                                return;
-                            }
-                            else
+                            if (racers.GetStaticInfo(name, out info))
                             {
                                 ShowAdminMsg(p, $"Removed {info.Name} from the finalists.");
                                 info.Recorder?.ClearData();
                                 finishers.Remove(info);
                             }
-                        }
-                        else
-                        {
-                            ShowAdminMsg(p, "Usage:\n/race clear [name]: Removes all or a specific racer from finalists.");
-                            return;
-
+                            else if(finishers.Remove(name))
+                            {
+                                ShowAdminMsg(p, $"Removed {name} from the finalists.");
+                            }
+                            else
+                            {
+                                ShowAdminMsg(p, $"No racer was found with a name containing '{name}'.");
+                                return;
+                            }
                         }
                     }
                     else
@@ -480,6 +468,24 @@ namespace avaness.RacingMod
 
             if (redirect)
                 RacingSession.Instance.Net.SendToServer(RacingConstants.packetCmd, new CommandInfo(command, p.SteamUserId));
+        }
+
+        private static string BuildString(string[] cmd, int start)
+        {
+            string arg;
+            if (cmd.Length > (start + 1))
+            {
+                StringBuilder sb = new StringBuilder(cmd[start]);
+                for (int i = start + 1; i < cmd.Length; i++)
+                    sb.Append(' ').Append(cmd[i]);
+                arg = sb.ToString();
+            }
+            else
+            {
+                arg = cmd[start];
+            }
+
+            return arg;
         }
 
         private bool IsPlayerAdmin (IMyPlayer p, bool warn)

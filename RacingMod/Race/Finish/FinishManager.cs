@@ -45,9 +45,9 @@ namespace avaness.RacingMod.Race.Finish
             FinishersModifed();
         }
 
-        private bool RemoveUpdate(StaticRacerInfo info)
+        private bool RemoveUpdate(IFinisher finisher)
         {
-            int current = IndexOf(info);
+            int current = IndexOf(finisher);
             if (current >= 0)
             {
                 finishers.RemoveAt(current);
@@ -67,6 +67,21 @@ namespace avaness.RacingMod.Race.Finish
             return -1;
         }
 
+        public bool Remove(string name)
+        {
+            for (int i = 0; i < finishers.Count; i++)
+            {
+                IFinisher finisher = finishers[i];
+                if(finisher.Name.ToLower().Contains(name))
+                {
+                    finishers.RemoveAt(i);
+                    FinishersModifed();
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public bool Remove(StaticRacerInfo info)
         {
             if (RemoveUpdate(info))
@@ -80,8 +95,8 @@ namespace avaness.RacingMod.Race.Finish
 
         public void Clear()
         {
-            foreach (StaticRacerInfo info in finishers)
-                info.RemoveFinish();
+            foreach (IFinisher finisher in finishers)
+                finisher.RemoveFinish();
             finishers.Clear();
             FinishersModifed();
         }

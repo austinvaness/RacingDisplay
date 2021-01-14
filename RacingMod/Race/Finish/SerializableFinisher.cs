@@ -35,6 +35,11 @@ namespace avaness.RacingMod.Race.Finish
             BestTime = info.BestTime;
         }
 
+        public void RemoveFinish()
+        {
+
+        }
+
         public override bool Equals(object obj)
         {
             return Equals(obj as SerializableFinisher);
