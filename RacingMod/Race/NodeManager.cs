@@ -195,7 +195,7 @@ namespace avaness.RacingMod.Race
                 }
             }
 
-            Start.DrawDebug();
+            Start.DrawDebug(Start.IsCheckpoint ? Color.Red : Color.Blue);
 
             if (nodes.Count > 1)
             {

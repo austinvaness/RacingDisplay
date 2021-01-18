@@ -78,6 +78,11 @@ namespace avaness.RacingMod.Beacon
             nodeNum.Tooltip = MyStringId.GetOrCompute("The number representing the position of this beacon along the track.");
             MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(nodeNum);
 
+            /*IMyTerminalControlButton insert = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyBeacon>("RCD_Insert");
+            insert.Visible = IsStatic;
+            insert.Enabled = IsStatic;
+            insert.Title = MyStringId.GetOrCompute("Insert");
+            MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(insert);*/
 
             IMyTerminalControlButton set = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyBeacon>("RCD_Update");
             set.Visible = IsStatic;

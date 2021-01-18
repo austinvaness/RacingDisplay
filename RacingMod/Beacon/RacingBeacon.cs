@@ -121,6 +121,12 @@ namespace avaness.RacingMod.Beacon
 
         public void DrawDebug()
         {
+            DrawDebug(Color.Red);
+        }
+
+        public void DrawDebug(Color outsideColor)
+        {
+            
             MatrixD gridMatrix;
             BoundingBoxD gridAABB;
             GetGridInfo(out gridAABB, out gridMatrix);
@@ -129,7 +135,7 @@ namespace avaness.RacingMod.Beacon
             if (Contains(MyAPIGateway.Session.Player, ref gridAABB, ref gridMatrix))
                 color = Color.Green;
             else
-                color = Color.Red;
+                color = outsideColor;
             color.A = 1;
 
             MyStringId material = MyStringId.GetOrCompute("Square");
