@@ -235,6 +235,33 @@ namespace avaness.RacingMod.Race
             TotalDistance = cumulative;
         }
 
+        public bool GetNeighbors(Vector3D pos, out RacingBeacon start, out RacingBeacon end)
+        {
+            start = null;
+            end = null;
+
+            if (nodes.Count == 0)
+                return false;
+
+            if (nodes.Count == 1)
+            {
+                start = Start;
+                return true;
+            }
+
+            int iStart, iEnd;
+            double partial;
+            GetClosestSegment(pos, out iStart, out iEnd, out partial);
+
+            if (iStart >= 0 && iStart < nodes.Count)
+                start = nodes[iStart];
+
+            if (iEnd >= 0 && iEnd < nodes.Count)
+                end = nodes[iEnd];
+
+            return start != null || end != null;
+        }
+
         public bool ResetPosition(StaticRacerInfo info)
         {
             int start, end;

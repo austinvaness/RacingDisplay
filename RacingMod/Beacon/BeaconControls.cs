@@ -78,11 +78,13 @@ namespace avaness.RacingMod.Beacon
             nodeNum.Tooltip = MyStringId.GetOrCompute("The number representing the position of this beacon along the track.");
             MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(nodeNum);
 
-            /*IMyTerminalControlButton insert = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyBeacon>("RCD_Insert");
+            IMyTerminalControlButton insert = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyBeacon>("RCD_Insert");
             insert.Visible = IsStatic;
             insert.Enabled = IsStatic;
+            insert.Action = InsertBeacon;
             insert.Title = MyStringId.GetOrCompute("Insert");
-            MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(insert);*/
+            insert.Tooltip = MyStringId.GetOrCompute("Saves the settings and assigns a number automatically.");
+            MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(insert);
 
             IMyTerminalControlButton set = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyBeacon>("RCD_Update");
             set.Visible = IsStatic;
@@ -101,6 +103,16 @@ namespace avaness.RacingMod.Beacon
             MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(cancel);
 
             controls = true;
+        }
+
+        private static void InsertBeacon(IMyTerminalBlock block)
+        {
+            BeaconStorage s = block.GameLogic.GetAs<RacingBeacon>().Storage;
+            s.CreateTemp();
+            s.Temporary.Enabled = true;
+            s.Temporary.NodeNum = float.NaN;
+            s.ApplyTemp();
+            RefreshUI(block);
         }
 
         private static void SelectTrack(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> sel)
@@ -189,7 +201,7 @@ namespace avaness.RacingMod.Beacon
         {
             string str = sb.ToString();
             float num;
-            if (float.TryParse(str, out num))
+            if (float.TryParse(str, out num) && !float.IsNaN(num) && !float.IsInfinity(num))
             {
                 BeaconStorage s = GetTemporaryStorage(block);
                 s.NodeNum = num;

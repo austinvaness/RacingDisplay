@@ -99,12 +99,12 @@ namespace avaness.RacingMod.Beacon
                 {
                     BeaconStorage s = e.GameLogic.GetAs<RacingBeacon>()?.Storage;
                     if(s != null)
-                        s.PacketReceived(data, storage);
+                        s.PacketReceived(storage);
                 }
             }
         }
 
-        private void PacketReceived(byte[] data, BeaconStorage storage)
+        private void PacketReceived(BeaconStorage storage)
         {
             if (storage != null)
             {

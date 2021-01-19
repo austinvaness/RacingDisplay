@@ -238,6 +238,9 @@ namespace avaness.RacingMod.Beacon
         }
         private void UpdateRegistration(bool save)
         {
+            if (float.IsNaN(Storage.NodeNum))
+                Storage.NodeNum = ComputeNodeNum();
+
             if (Storage.Enabled)
             {
                 if (isStatic)
@@ -266,12 +269,28 @@ namespace avaness.RacingMod.Beacon
             }
         }
 
+        private float ComputeNodeNum()
+        {
+            RacingBeacon start;
+            RacingBeacon end;
+            if(RacingSession.Instance.Nodes.GetNeighbors(Beacon.GetPosition(), out start, out end))
+            {
+                if(start == null)
+                    return end.NodeNumber - 1;
+                else if(end == null)
+                    return start.NodeNumber + 1;
+                else
+                    return (start.NodeNumber + end.NodeNumber) / 2;
+            }
+            return 0;
+        }
+
         private void Register(bool save)
         {
             if(!registered)
             {
                 UpdateGridCenter();
-                if (RacingSession.Instance.Nodes.RegisterNode(this))
+                if (!float.IsNaN(NodeNumber) && !float.IsInfinity(NodeNumber) && RacingSession.Instance.Nodes.RegisterNode(this))
                 {
                     registered = true;
                 }
