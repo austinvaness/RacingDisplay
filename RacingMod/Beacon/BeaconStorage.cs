@@ -28,6 +28,9 @@ namespace avaness.RacingMod.Beacon
         [ProtoMember(6)]
         public string TrackName = "Default";
 
+        [ProtoMember(7)]
+        public float CheckpointSize = 0;
+
         private readonly MyModStorageComponentBase storage;
 
         private BeaconStorage temp;
@@ -128,6 +131,9 @@ namespace avaness.RacingMod.Beacon
         {
             Enabled = other.Enabled;
             Checkpoint = other.Checkpoint;
+            CheckpointSize = other.CheckpointSize;
+            if (CheckpointSize < 0)
+                CheckpointSize = 0;
             NodeNum = other.NodeNum;
             TrackName = other.TrackName;
             if (string.IsNullOrWhiteSpace(TrackName))

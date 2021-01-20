@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Sandbox.Common.ObjectBuilders;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
@@ -113,10 +114,28 @@ namespace avaness.RacingMod.Beacon
 
         public bool Contains (IMyPlayer p)
         {
-            MatrixD gridMatrix;
-            BoundingBoxD gridAABB;
-            GetGridInfo(out gridAABB, out gridMatrix);
-            return Contains(p, ref gridAABB, ref gridMatrix);
+            IMyEntity e = RacingTools.GetCockpit(p)?.CubeGrid;
+            if (e == null)
+                e = p.Character;
+
+            if (e == null)
+                return false;
+
+            if (Storage.CheckpointSize <= 0)
+            {
+                MatrixD gridMatrix;
+                BoundingBoxD gridAABB;
+                GetGridInfo(out gridAABB, out gridMatrix);
+
+                return Contains(e, ref gridAABB, ref gridMatrix);
+            }
+            else
+            {
+                BoundingSphereD sphere = new BoundingSphereD(gridCenter, Storage.CheckpointSize);
+                
+                return Contains(e, ref sphere);
+            }
+
         }
 
         public void DrawDebug()
@@ -126,22 +145,29 @@ namespace avaness.RacingMod.Beacon
 
         public void DrawDebug(Color outsideColor)
         {
-            
-            MatrixD gridMatrix;
-            BoundingBoxD gridAABB;
-            GetGridInfo(out gridAABB, out gridMatrix);
-
             Color color;
-            if (Contains(MyAPIGateway.Session.Player, ref gridAABB, ref gridMatrix))
+            if (Contains(MyAPIGateway.Session.Player))
                 color = Color.Green;
             else
                 color = outsideColor;
             color.A = 1;
 
             MyStringId material = MyStringId.GetOrCompute("Square");
-            MySimpleObjectDraw.DrawTransparentBox(ref gridMatrix, ref gridAABB, ref color, MySimpleObjectRasterizer.SolidAndWireframe, 1, 0.01f, material, material, blendType: BlendTypeEnum.PostPP);
-        }
 
+            float radius = Storage.CheckpointSize;
+            if(radius <= 0)
+            {
+                MatrixD gridMatrix;
+                BoundingBoxD gridAABB;
+                GetGridInfo(out gridAABB, out gridMatrix);
+                MySimpleObjectDraw.DrawTransparentBox(ref gridMatrix, ref gridAABB, ref color, MySimpleObjectRasterizer.SolidAndWireframe, 1, 0.01f, material, material, blendType: BlendTypeEnum.PostPP);
+            }
+            else
+            {
+                MatrixD matrix = MatrixD.CreateWorld(gridCenter);
+                MySimpleObjectDraw.DrawTransparentSphere(ref matrix, radius, ref color, MySimpleObjectRasterizer.Solid, 30, material, material, 0.01f, -1, null, BlendTypeEnum.PostPP);
+            }
+        }
 
         private void GetGridInfo(out BoundingBoxD gridAABB, out MatrixD gridMatrix)
         {
@@ -158,12 +184,34 @@ namespace avaness.RacingMod.Beacon
             }
         }
 
-        private bool Contains(IMyPlayer p, ref BoundingBoxD gridAABB, ref MatrixD gridMatrix)
+        private bool Contains(IMyEntity e, ref BoundingSphereD sphere)
+        {
+            if (e == null)
+                return false;
+
+            if (sphere.Intersects(e.WorldVolume))
+                return true;
+
+            if (e?.Physics == null)
+                return false;
+
+            Vector3D vel = e.Physics.LinearVelocity;
+            if (vel == Vector3D.Zero)
+                return false;
+
+            Vector3D direction = e.Physics.LinearVelocity / -300;
+            double speed = direction.Length();
+            direction /= speed;
+            double? result = sphere.Intersects(new RayD(e.GetPosition(), direction));
+            if (!result.HasValue)
+                return false;
+
+            return result.Value > 0 && result.Value < speed;
+        }
+
+        private bool Contains(IMyEntity e, ref BoundingBoxD gridAABB, ref MatrixD gridMatrix)
         {
             MatrixD transMatrix = MatrixD.Transpose(gridMatrix);
-            IMyEntity e = RacingTools.GetCockpit(p)?.CubeGrid;
-            if (e == null)
-                e = p.Character;
 
             if (e == null)
                 return false;

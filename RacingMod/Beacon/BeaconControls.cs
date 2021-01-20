@@ -1,12 +1,14 @@
 ﻿using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
+using VRageMath;
 
 namespace avaness.RacingMod.Beacon
 {
@@ -51,15 +53,6 @@ namespace avaness.RacingMod.Beacon
             enabled.Tooltip = MyStringId.GetOrCompute("When checked, the beacon is in use on the selected track.");
             MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(enabled);
 
-            IMyTerminalControlCheckbox isCheckpoint = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlCheckbox, IMyBeacon>("RCD_Checkpoint");
-            isCheckpoint.Visible = IsStatic;
-            isCheckpoint.Enabled = IsStatic;
-            isCheckpoint.Getter = GetCheckpoint;
-            isCheckpoint.Setter = SetCheckpoint;
-            isCheckpoint.Title = MyStringId.GetOrCompute("Checkpoint");
-            isCheckpoint.Tooltip = MyStringId.GetOrCompute("When checked, racers must pass through the grid of the beacon to continue the race.");
-            MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(isCheckpoint);
-
             IMyTerminalControlCheckbox gridPosition = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlCheckbox, IMyBeacon>("RCD_GridPosition");
             gridPosition.Visible = IsStatic;
             gridPosition.Enabled = IsStatic;
@@ -68,6 +61,26 @@ namespace avaness.RacingMod.Beacon
             gridPosition.Title = MyStringId.GetOrCompute("Grid Positioning");
             gridPosition.Tooltip = MyStringId.GetOrCompute("When checked, the beacon will use the center of the grid as its position for the race.");
             MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(gridPosition);
+
+            IMyTerminalControlCheckbox isCheckpoint = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlCheckbox, IMyBeacon>("RCD_Checkpoint");
+            isCheckpoint.Visible = IsStatic;
+            isCheckpoint.Enabled = IsStatic;
+            isCheckpoint.Getter = GetCheckpoint;
+            isCheckpoint.Setter = SetCheckpoint;
+            isCheckpoint.Title = MyStringId.GetOrCompute("Checkpoint");
+            isCheckpoint.Tooltip = MyStringId.GetOrCompute("When checked, racers must pass through the area of the beacon to continue the race.");
+            MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(isCheckpoint);
+
+            IMyTerminalControlSlider checkpointSize = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlSlider, IMyBeacon>("RCD_CheckpointSize");
+            checkpointSize.Visible = IsStatic;
+            checkpointSize.Enabled = IsStatic;
+            checkpointSize.Getter = GetCheckpointSize;
+            checkpointSize.Setter = SetCheckpointSize;
+            checkpointSize.SetLogLimits(1, RacingConstants.maxCheckpointSize + 1);
+            checkpointSize.Writer = WriteCheckpointSize;
+            checkpointSize.Title = MyStringId.GetOrCompute("Checkpoint Size");
+            checkpointSize.Tooltip = MyStringId.GetOrCompute("By default, the checkpoint area is the grid bounds. Change this value to make the area a sphere.");
+            MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(checkpointSize);
 
             IMyTerminalControlTextbox nodeNum = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlTextbox, IMyBeacon>("RCD_NodeNum");
             nodeNum.Visible = IsStatic;
@@ -212,6 +225,36 @@ namespace avaness.RacingMod.Beacon
         {
             BeaconStorage s = GetLatestStorage(block);
             return new StringBuilder().Append(s.NodeNum);
+        }
+
+        private static void WriteCheckpointSize(IMyTerminalBlock block, StringBuilder sb)
+        {
+            float size = GetCheckpointSize(block);
+            if (size <= 0)
+                sb.Append("Bounds");
+            else
+                MyValueFormatter.AppendDistanceInBestUnit(size, sb);
+        }
+
+        private static void SetCheckpointSize(IMyTerminalBlock block, float num)
+        {
+            if(!float.IsNaN(num) && !float.IsInfinity(num))
+            {
+                num = (float)MathHelper.Clamp(Math.Round(num - 1, 2), 0, RacingConstants.maxCheckpointSize);
+                BeaconStorage s = GetTemporaryStorage(block);
+                s.CheckpointSize = num;
+                if (!s.Checkpoint && num > 0)
+                {
+                    s.Checkpoint = true;
+                    RefreshUI(block);
+                }
+            }
+        }
+
+        private static float GetCheckpointSize(IMyTerminalBlock block)
+        {
+            BeaconStorage s = GetLatestStorage(block);
+            return s.CheckpointSize;
         }
 
         private static void SetCheckpoint(IMyTerminalBlock block, bool checkpoint)

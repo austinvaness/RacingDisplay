@@ -224,4 +224,7 @@ set src=%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)
 (robocopy "%25src%25" "%25UserProfile%25\Desktop\DevServer\Instance\content\244850\%25wid%25" /MIR /NJH /NJS) ^&amp; IF %25ERRORLEVEL%25 LSS 8 SET ERRORLEVEL = 0
 (robocopy "%25src%25" "%25ProgramFiles(x86)%25\Steam\steamapps\workshop\content\244850\%25wid%25" /MIR /NJH /NJS) ^&amp; IF %25ERRORLEVEL%25 LSS 8 SET ERRORLEVEL = 0</PostBuildEvent>
   </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>6</LangVersion>
+  </PropertyGroup>
 </Project>
