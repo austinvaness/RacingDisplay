@@ -18,7 +18,7 @@ namespace avaness.RacingMod
             OnAutoRecordChanged = null;
         }
 
-        private Keybind hideHud = MyKeys.OemPlus;
+        private Keybind hideHud = MyKeys.None;
         public Keybind HideHud
         {
             get
