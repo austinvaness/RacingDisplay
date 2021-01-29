@@ -1,22 +1,21 @@
-﻿using avaness.RacingMod.Racers;
-using ProtoBuf;
+﻿using ProtoBuf;
 using Sandbox.Graphics;
 using Sandbox.ModAPI;
 using System;
 using VRage.Game.ModAPI;
 
-namespace avaness.RacingMod.Paths
+namespace avaness.RacingPaths.Paths
 {
     public class NetworkRaceRecorder : IRaceRecorder
     {
-        private readonly StaticRacerInfo info;
+        private readonly IMyPlayer p;
         private readonly PathRecorder bestTime;
         private readonly bool local;
 
-        public NetworkRaceRecorder(StaticRacerInfo info)
+        public NetworkRaceRecorder(IMyPlayer p)
         {
-            this.info = info;
-            bestTime = RacingSession.Instance.Paths.GetRecorder(info.Racer);
+            this.p = p;
+            bestTime = RacingSession.Instance.Paths.GetRecorder(p);
             local = bestTime == RacingSession.Instance.Paths.LocalRecorder;
         }
 

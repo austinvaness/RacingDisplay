@@ -97,16 +97,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\RacingMod\API\RacingDisplayAPI.cs">
+      <Link>RacingDisplayAPI.cs</Link>
+    </Compile>
     <Compile Include="Paths\IRaceRecorder.cs" />
     <Compile Include="Paths\NetworkRaceRecorder.cs" />
-    <Compile Include="Paths\Path.cs" />
-    <Compile Include="Paths\Path.GridData.cs" />
-    <Compile Include="Paths\Path.GridInfo.cs" />
+    <Compile Include="Path\Path.cs" />
+    <Compile Include="Path\Path.GridData.cs" />
+    <Compile Include="Path\Path.GridInfo.cs" />
     <Compile Include="Paths\PathPacket.cs" />
     <Compile Include="Paths\PathPlayer.cs" />
     <Compile Include="Paths\PathRecorder.cs" />
     <Compile Include="Paths\PathStorage.cs" />
-    <Compile Include="Paths\SerializableMatrix.cs" />
+    <Compile Include="Path\SerializableMatrix.cs" />
     <Compile Include="Paths\SerializablePathInfo.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using VRage.Game.ModAPI;
 
-namespace avaness.RacingMod.Paths
+namespace avaness.RacingPaths.Paths
 {
     public class PathPlayer
     {

@@ -1,7 +1,7 @@
 ﻿using ProtoBuf;
 using Sandbox.ModAPI;
 
-namespace avaness.RacingMod.Paths
+namespace avaness.RacingPaths.Paths
 {
 
     [ProtoContract]

@@ -1,7 +1,7 @@
 ﻿using Sandbox.ModAPI;
 using VRage.Game.ModAPI;
 
-namespace avaness.RacingMod.Paths
+namespace avaness.RacingPaths.Paths
 {
     /// <summary>
     /// Keeps the best time of racer.

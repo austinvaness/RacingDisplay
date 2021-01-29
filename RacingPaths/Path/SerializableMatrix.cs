@@ -2,7 +2,7 @@
 using VRage;
 using VRageMath;
 
-namespace avaness.RacingMod.Paths
+namespace avaness.RacingPaths.Path
 {
     [ProtoContract]
     public struct SerializableMatrix
@@ -12,18 +12,18 @@ namespace avaness.RacingMod.Paths
         [ProtoMember(2)]
         private SerializableVector3 up;
         [ProtoMember(3)]
-        private SerializableVector3 position;
+        private SerializableVector3 translation;
 
         public SerializableMatrix(Matrix m)
         {
             forward = m.Forward;
             up = m.Up;
-            position = m.Translation;
+            translation = m.Translation;
         }
 
         public static explicit operator Matrix(SerializableMatrix d)
         {
-            return Matrix.CreateWorld(d.position, d.forward, d.up);
+            return Matrix.CreateWorld(d.translation, d.forward, d.up);
         }
 
         public static explicit operator SerializableMatrix(Matrix m)

@@ -97,7 +97,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="RacingDisplayAPI.cs" />
+    <Compile Include="..\RacingMod\API\RacingDisplayAPI.cs">
+      <Link>RacingDisplayAPI.cs</Link>
+    </Compile>
     <Compile Include="Session.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

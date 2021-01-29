@@ -3,13 +3,12 @@ using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using VRage;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRageMath;
 
-namespace avaness.RacingMod.Paths
+namespace avaness.RacingPaths.Path
 {
     public partial class Path
     {

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using VRage.Game.ModAPI;
 using VRageMath;
 
-namespace avaness.RacingMod.Paths
+namespace avaness.RacingPaths.Path
 {
     public partial class Path
     {

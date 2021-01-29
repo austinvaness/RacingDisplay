@@ -4,10 +4,10 @@ using System;
 using VRage;
 using Sandbox.ModAPI;
 using VRage.Game.ModAPI;
-using avaness.RacingMod.Net;
+using avaness.RacingPaths.Net;
 using System.Linq;
 
-namespace avaness.RacingMod.Paths
+namespace avaness.RacingPaths.Paths
 {
     public class PathStorage
     {

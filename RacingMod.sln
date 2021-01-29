@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APITest", "APITest\APITest.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Racing Buttons", "RacingButtons\Racing Buttons.csproj", "{AFC8926D-CBCE-4576-8518-58E51B01327A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RacingPaths", "RacingPaths\RacingPaths.csproj", "{2DB02401-6F4E-477C-A9B0-6D482DCDE428}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Racing Ghosts", "RacingPaths\Racing Ghosts.csproj", "{2DB02401-6F4E-477C-A9B0-6D482DCDE428}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

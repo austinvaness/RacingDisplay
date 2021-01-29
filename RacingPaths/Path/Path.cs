@@ -7,7 +7,7 @@ using System.Text;
 using VRage.Game.ModAPI;
 using VRageMath;
 
-namespace avaness.RacingMod.Paths
+namespace avaness.RacingPaths.Path
 {
     [ProtoContract]
     public partial class Path

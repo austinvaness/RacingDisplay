@@ -1,12 +1,7 @@
-﻿using System;
-using System.Linq;
-using System.Text;
+﻿using System.Linq;
 using avaness.RacingMod.API;
 using Sandbox.ModAPI;
-using VRage;
-using VRage.Game;
 using VRage.Game.Components;
-using VRage.Utils;
 
 namespace APITest
 {

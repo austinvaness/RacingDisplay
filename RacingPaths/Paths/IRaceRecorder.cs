@@ -1,4 +1,4 @@
-﻿namespace avaness.RacingMod.Paths
+﻿namespace avaness.RacingPaths.Paths
 {
     public interface IRaceRecorder
     {
