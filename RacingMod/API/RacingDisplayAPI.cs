@@ -41,10 +41,10 @@ namespace avaness.RacingMod.API
             joinRace = null;
             leaveRace = null;
             onEnabled = null;
-            PlayerJoined = null;
-            PlayerStarted = null;
-            PlayerLeft = null;
-            PlayerFinished = null;
+            OnPlayerJoined = null;
+            OnPlayerStarted = null;
+            OnPlayerLeft = null;
+            OnPlayerFinished = null;
         }
 
         private void RecieveData(object obj)
@@ -67,22 +67,22 @@ namespace avaness.RacingMod.API
                     }
                 }
             }
-            else if(obj is MyTuple<ulong, int>)
+            else if(obj is MyTuple<IMyPlayer, int>)
             {
-                var pEvent = (MyTuple<ulong, int>)obj;
+                var pEvent = (MyTuple<IMyPlayer, int>)obj;
                 switch ((PlayerEvent)pEvent.Item2)
                 {
                     case PlayerEvent.Joined:
-                        PlayerJoined?.Invoke(pEvent.Item1);
+                        OnPlayerJoined?.Invoke(pEvent.Item1);
                         break;
                     case PlayerEvent.Started:
-                        PlayerStarted?.Invoke(pEvent.Item1);
+                        OnPlayerStarted?.Invoke(pEvent.Item1);
                         break;
                     case PlayerEvent.Left:
-                        PlayerLeft?.Invoke(pEvent.Item1);
+                        OnPlayerLeft?.Invoke(pEvent.Item1);
                         break;
                     case PlayerEvent.Finished:
-                        PlayerFinished?.Invoke(pEvent.Item1);
+                        OnPlayerFinished?.Invoke(pEvent.Item1);
                         break;
                 }
             }
@@ -91,22 +91,22 @@ namespace avaness.RacingMod.API
         /// <summary>
         /// Invoked when a player first joins the race, or when the player first appears on the display.
         /// </summary>
-        public Action<ulong> PlayerJoined;
+        public event Action<IMyPlayer> OnPlayerJoined;
 
         /// <summary>
         /// Invoked when a player first gets onto the race track.
         /// </summary>
-        public Action<ulong> PlayerStarted;
+        public event Action<IMyPlayer> OnPlayerStarted;
 
         /// <summary>
         /// Invoked when a player leaves the race.
         /// </summary>
-        public Action<ulong> PlayerLeft;
+        public event Action<IMyPlayer> OnPlayerLeft;
 
         /// <summary>
         /// Invoked when a player finishes the race.
         /// </summary>
-        public Action<ulong> PlayerFinished;
+        public event Action<IMyPlayer> OnPlayerFinished;
 
 
         private Func<IEnumerable<MyTuple<ulong, TimeSpan>>> finishers;

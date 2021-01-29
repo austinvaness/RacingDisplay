@@ -10,6 +10,7 @@ using avaness.RacingMod.Hud;
 using avaness.RacingMod.Net;
 using avaness.RacingMod.Race;
 using VRage;
+using VRage.Game.ModAPI;
 
 namespace avaness.RacingMod
 {
@@ -212,9 +213,9 @@ namespace avaness.RacingMod
             api?.Unload();
         }
 
-        public void SendAPIEvent(ulong id, API.RacingDisplayAPI.PlayerEvent pEvent)
+        public void SendAPIEvent(IMyPlayer p, API.RacingDisplayAPI.PlayerEvent pEvent)
         {
-            api?.SendEvent(id, pEvent);
+            api?.SendEvent(p, pEvent);
         }
     }
 }

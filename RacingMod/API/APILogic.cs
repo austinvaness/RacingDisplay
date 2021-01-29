@@ -48,9 +48,9 @@ namespace avaness.RacingMod.API
             return race.LeaveRace(p, false);
         }
 
-        public void SendEvent(ulong id, RacingDisplayAPI.PlayerEvent pEvent)
+        public void SendEvent(IMyPlayer p, RacingDisplayAPI.PlayerEvent pEvent)
         {
-            MyAPIGateway.Utilities.SendModMessage(RacingConstants.ModMessageId, new MyTuple<ulong, int>(id, (int)pEvent));
+            MyAPIGateway.Utilities.SendModMessage(RacingConstants.ModMessageId, new MyTuple<IMyPlayer, int>(p, (int)pEvent));
         }
     }
 }

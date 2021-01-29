@@ -340,7 +340,7 @@ namespace avaness.RacingMod.Race
             info.Timer.Reset(false);
             info.OnTrack = true;
             info.InStart = false;
-            RacingSession.Instance.SendAPIEvent(info.Id, API.RacingDisplayAPI.PlayerEvent.Started);
+            RacingSession.Instance.SendAPIEvent(info.Racer, API.RacingDisplayAPI.PlayerEvent.Started);
             if (resetPos)
             {
                 ResetPosition(info);
@@ -558,7 +558,7 @@ namespace avaness.RacingMod.Race
                     MyVisualScriptLogicProvider.ShowNotificationToAll($"{info.Racer.DisplayName} just finished with time {time}", RacingConstants.defaultMsgMs, "White");
                 }
 
-                RacingSession.Instance.SendAPIEvent(info.Id, API.RacingDisplayAPI.PlayerEvent.Finished);
+                RacingSession.Instance.SendAPIEvent(info.Racer, API.RacingDisplayAPI.PlayerEvent.Finished);
                 if (mapSettings.TimedMode && mapSettings.Looped && info.AutoJoin)
                 {
                     NewOnTrack(info, false);
