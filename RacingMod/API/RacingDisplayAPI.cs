@@ -41,26 +41,73 @@ namespace avaness.RacingMod.API
             joinRace = null;
             leaveRace = null;
             onEnabled = null;
+            PlayerJoined = null;
+            PlayerStarted = null;
+            PlayerLeft = null;
+            PlayerFinished = null;
         }
 
         private void RecieveData(object obj)
         {
-            if (!Enabled && obj is MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>>)
+            if (!Enabled)
             {
-                // Initialization
-                var funcs = (MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>>)obj;
-                finishers = funcs.Item1;
-                racers = funcs.Item2;
-                joinRace = funcs.Item3;
-                leaveRace = funcs.Item4;
-                Enabled = true;
-                if (onEnabled != null)
+                if (obj is MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>>)
                 {
-                    onEnabled.Invoke();
-                    onEnabled = null;
+                    // Initialization
+                    var funcs = (MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>>)obj;
+                    finishers = funcs.Item1;
+                    racers = funcs.Item2;
+                    joinRace = funcs.Item3;
+                    leaveRace = funcs.Item4;
+                    Enabled = true;
+                    if (onEnabled != null)
+                    {
+                        onEnabled.Invoke();
+                        onEnabled = null;
+                    }
+                }
+            }
+            else if(obj is MyTuple<ulong, int>)
+            {
+                var pEvent = (MyTuple<ulong, int>)obj;
+                switch ((PlayerEvent)pEvent.Item2)
+                {
+                    case PlayerEvent.Joined:
+                        PlayerJoined?.Invoke(pEvent.Item1);
+                        break;
+                    case PlayerEvent.Started:
+                        PlayerStarted?.Invoke(pEvent.Item1);
+                        break;
+                    case PlayerEvent.Left:
+                        PlayerLeft?.Invoke(pEvent.Item1);
+                        break;
+                    case PlayerEvent.Finished:
+                        PlayerFinished?.Invoke(pEvent.Item1);
+                        break;
                 }
             }
         }
+
+        /// <summary>
+        /// Invoked when a player first joins the race, or when the player first appears on the display.
+        /// </summary>
+        public Action<ulong> PlayerJoined;
+
+        /// <summary>
+        /// Invoked when a player first gets onto the race track.
+        /// </summary>
+        public Action<ulong> PlayerStarted;
+
+        /// <summary>
+        /// Invoked when a player leaves the race.
+        /// </summary>
+        public Action<ulong> PlayerLeft;
+
+        /// <summary>
+        /// Invoked when a player finishes the race.
+        /// </summary>
+        public Action<ulong> PlayerFinished;
+
 
         private Func<IEnumerable<MyTuple<ulong, TimeSpan>>> finishers;
         /// <summary>
@@ -159,6 +206,11 @@ namespace avaness.RacingMod.API
             List<IMyPlayer> temp = new List<IMyPlayer>(1);
             MyAPIGateway.Players.GetPlayers(temp, (p) => p.SteamUserId == steamId);
             return temp.FirstOrDefault();
+        }
+
+        public enum PlayerEvent
+        {
+            Joined, Started, Left, Finished
         }
     }
 }
