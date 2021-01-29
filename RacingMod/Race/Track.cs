@@ -165,6 +165,8 @@ namespace avaness.RacingMod.Race
                 info.Reset();
                 if (!MapSettings.TimedMode)
                     Finishers.Remove(info);
+
+                RacingSession.Instance.SendAPIEvent(info.Id, API.RacingDisplayAPI.PlayerEvent.Joined);
                 MyVisualScriptLogicProvider.ShowNotification("You have joined the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                 Nodes.JoinedRace(info);
                 return true;
@@ -180,12 +182,12 @@ namespace avaness.RacingMod.Race
         {
             StaticRacerInfo info = Racers.GetStaticInfo(p);
             info.Reset();
-
             info.AutoJoin = false;
             info.HideWaypoint();
 
             if (activePlayers.Remove(p.SteamUserId))
             {
+                RacingSession.Instance.SendAPIEvent(info.Id, API.RacingDisplayAPI.PlayerEvent.Left);
                 MyVisualScriptLogicProvider.ShowNotification("You have left the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                 return true;
             }

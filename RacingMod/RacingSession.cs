@@ -212,6 +212,9 @@ namespace avaness.RacingMod
             api?.Unload();
         }
 
-
+        public void SendAPIEvent(ulong id, API.RacingDisplayAPI.PlayerEvent pEvent)
+        {
+            api?.SendEvent(id, pEvent);
+        }
     }
 }
