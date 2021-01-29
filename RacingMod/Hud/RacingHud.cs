@@ -18,7 +18,6 @@ namespace avaness.RacingMod.Hud
         public HudAPIv2.HUDMessage activeRacersHud;
         private HudAPIv2.MenuRootCategory menuRoot;
         private HudAPIv2.MenuKeybindInput hideHudInput;
-        private HudAPIv2.MenuItem autoRecordInput;
         private MapSettingsMenu settingsMenu;
 
         public event Action OnEnabled;
@@ -53,7 +52,6 @@ namespace avaness.RacingMod.Hud
             if(settingsMenu != null)
                 settingsMenu.Unload();
             config.OnHideHudChanged -= UpdateHideHud;
-            config.OnAutoRecordChanged -= UpdateAutoRecord;
         }
 
         private void CreateHud()
@@ -65,8 +63,6 @@ namespace avaness.RacingMod.Hud
             menuRoot = new HudAPIv2.MenuRootCategory("Racing Display", HudAPIv2.MenuRootCategory.MenuFlag.PlayerMenu, "Racing Display");
             hideHudInput = new HudAPIv2.MenuKeybindInput("Hide Hud - " + config.HideHud.ToString(), menuRoot, "Press any Key [Hide Hud]", SetHideHudKey);
             config.OnHideHudChanged += UpdateHideHud;
-            autoRecordInput = new HudAPIv2.MenuItem("Auto Record - " + BoolToString(config.AutoRecord), menuRoot, SetAutoRecord);
-            config.OnAutoRecordChanged += UpdateAutoRecord;
 
             settingsMenu = new MapSettingsMenu(mapSettings);
 
@@ -77,16 +73,6 @@ namespace avaness.RacingMod.Hud
             }
 
             RacingSession.Instance.Net.Register(RacingConstants.packetMainId, ReceiveHudText);
-        }
-
-        private void SetAutoRecord()
-        {
-            config.AutoRecord = !config.AutoRecord;
-        }
-
-        private void UpdateAutoRecord(bool autoRecord)
-        {
-            autoRecordInput.Text = "Auto Record - " + BoolToString(autoRecord);
         }
 
         private void ReceiveHudText(byte[] data)
@@ -117,14 +103,6 @@ namespace avaness.RacingMod.Hud
         private void UpdateHideHud(Keybind keybind)
         {
             hideHudInput.Text = "Hide Hud - " + keybind.ToString();
-        }
-
-        private string BoolToString(bool b)
-        {
-            if (b)
-                return "On";
-            else
-                return "Off";
         }
     }
 }

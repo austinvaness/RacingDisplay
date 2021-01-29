@@ -162,10 +162,6 @@
     <Compile Include="Net\Networking.cs" />
     <Compile Include="Race\Finish\SerializableFinisher.cs" />
     <Compile Include="Race\NodeManager.cs" />
-    <Compile Include="Paths\IRaceRecorder.cs" />
-    <Compile Include="Paths\PathRecorder.cs" />
-    <Compile Include="Paths\ClientRaceRecorder.cs" />
-    <Compile Include="Paths\ServerRaceRecorder.cs" />
     <Compile Include="Race\Track.cs" />
     <Compile Include="Racers\RacerStorage.cs" />
     <Compile Include="RacingCommands.cs" />
@@ -208,7 +204,9 @@
   <ItemGroup>
     <Analyzer Include="..\..\..\VS2017\SEWhitelistChecker.dll" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Paths\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd /D $(ProjectDir)

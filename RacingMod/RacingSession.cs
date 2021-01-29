@@ -6,10 +6,10 @@ using VRage.Game.Components;
 using VRage.Utils;
 using VRageMath;
 using SpaceEngineers.Game.ModAPI;
-using avaness.RacingMod.Paths;
 using avaness.RacingMod.Hud;
 using avaness.RacingMod.Net;
 using avaness.RacingMod.Race;
+using VRage;
 
 namespace avaness.RacingMod
 {
@@ -24,8 +24,6 @@ namespace avaness.RacingMod
         public Network Net;
         public RacingHud Hud;
         public NodeManager Nodes;
-
-        public ClientRaceRecorder Recorder;
 
         public bool HasTextHudAPI { get; private set; }
 
@@ -74,26 +72,13 @@ namespace avaness.RacingMod
                 int gateWaypointGps = MyAPIGateway.Session.GPS.Create(RacingConstants.gateWaypointName, RacingConstants.gateWaypointDescription, Vector3D.Zero, true).Hash;
                 MyAPIGateway.Session.GPS.RemoveLocalGps(gateWaypointGps);
                 Net.SendToServer(RacingConstants.packetSettingsInit, BitConverter.GetBytes(MyAPIGateway.Session.Player.SteamUserId));
-                Net.Register(RacingConstants.packetRec, ServerRaceRecorder.Packet.Received);
             }
+
             Net.Register(RacingConstants.packetSettings, ReceiveSettings);
             Net.Register(RacingConstants.packetSettingsInit, ReceiveSettingsInit);
             Beacon.BeaconStorage.Register();
 
             config.Copy(RacingPreferences.LoadFile());
-
-            if(config.AutoRecord)
-            {
-                if(RacingConstants.IsServer)
-                {
-                    if (MyAPIGateway.Session.Player != null)
-                        race.EnableRecording(MyAPIGateway.Session.Player.SteamUserId);
-                }
-                else
-                {
-                    Net.SendToServer<object>(RacingConstants.packetAutoRec, null);
-                }
-            }
 
             cmds = new RacingCommands(race);
 
@@ -199,19 +184,8 @@ namespace avaness.RacingMod
 
             try
             {
-                if (RacingConstants.IsPlayer)
-                {
-                    Recorder?.Update();
-                }
-
                 if (RacingConstants.IsServer)
-                {
                     race.Update();
-                }
-                /*else if(race.Debug)
-                {
-                    DebugRecorder();
-                }*/
 
                 if (Hud != null && config != null && config.HideHud.IsKeybindPressed())
                     Hud.ToggleUI();
@@ -221,13 +195,6 @@ namespace avaness.RacingMod
                 RacingTools.ShowError(e, GetType());
             }
         }
-
-
-        /*public void DebugRecorder()
-        {
-            if (Recorder != null)
-                Recorder.Debug();
-        }*/
 
         protected override void UnloadData()
         {

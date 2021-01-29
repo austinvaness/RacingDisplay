@@ -1,9 +1,9 @@
-﻿using avaness.RacingMod.Paths;
-using avaness.RacingMod.Race.Finish;
+﻿using avaness.RacingMod.Race.Finish;
 using Sandbox.Game;
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using VRage.Game.ModAPI;
 
 namespace avaness.RacingMod.Racers
@@ -28,7 +28,6 @@ namespace avaness.RacingMod.Racers
         public double Distance = 0;
         public bool Missed = false;
         public bool AutoJoin = false;
-        public IRaceRecorder Recorder { get; private set; }
 
         private int nextNode;
         public int NextNode
@@ -81,7 +80,6 @@ namespace avaness.RacingMod.Racers
         public bool MarkTime()
         {
             TimeSpan span = Timer.GetTime();
-            Recorder?.EndTrack();
             if (BestTime.Ticks == 0 || span < BestTime)
             {
                 BestTime = span;
@@ -108,16 +106,16 @@ namespace avaness.RacingMod.Racers
             AutoJoin = false;
         }
 
-        public void CreateRecorder()
+        public ulong[] GetSelectedGhosts()
         {
-            if (Recorder == null)
-            {
-                if (Id == MyAPIGateway.Session.Player?.SteamUserId)
-                    Recorder = RacingSession.Instance.Recorder = new ClientRaceRecorder();
-                else
-                    Recorder = new ServerRaceRecorder(Racer);
-            }
+            // TODO
+            List<IMyPlayer> players = new List<IMyPlayer>();
+            MyAPIGateway.Players.GetPlayers(players);
+            return players.Select(p => p.SteamUserId).ToArray();
         }
+
+
+
 
         public override bool Equals(object obj)
         {

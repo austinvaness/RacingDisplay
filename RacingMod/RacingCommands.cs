@@ -1,11 +1,9 @@
-﻿using avaness.RacingMod.Paths;
-using avaness.RacingMod.Race;
+﻿using avaness.RacingMod.Race;
 using avaness.RacingMod.Race.Finish;
 using avaness.RacingMod.Racers;
 using ProtoBuf;
 using Sandbox.Game;
 using Sandbox.ModAPI;
-using SpaceEngineers.Game.ModAPI;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -189,12 +187,27 @@ namespace avaness.RacingMod
                         }
                         else if(finishers.Remove(name))
                         {
-                            ShowAdminMsg(p, $"Removed {name} from the finalists.");
+                            finishers.Clear();
                         }
                         else
                         {
-                            ShowAdminMsg(p, $"No racer was found with a name containing '{name}'.");
-                            return;
+                            string name = BuildString(cmd, 2);
+
+                            StaticRacerInfo info;
+                            if (racers.GetStaticInfo(name, out info))
+                            {
+                                ShowAdminMsg(p, $"Removed {info.Name} from the finalists.");
+                                finishers.Remove(info);
+                            }
+                            else if(finishers.Remove(name))
+                            {
+                                ShowAdminMsg(p, $"Removed {name} from the finalists.");
+                            }
+                            else
+                            {
+                                ShowAdminMsg(p, $"No racer was found with a name containing '{name}'.");
+                                return;
+                            }
                         }
                     }
                     break;
@@ -365,27 +378,6 @@ namespace avaness.RacingMod
                     if (IsPlayerAdmin(p, false))
                         ShowAdminHelp(p);
                     return;
-                case "recorder":
-                case "record":
-                case "rec":
-                    if(mapSettings.TimedMode)
-                    {
-                        StaticRacerInfo info = racers.GetStaticInfo(p);
-                        if (info.Recorder == null)
-                        {
-                            ShowMsg(p, "Your best time is now being recorded.");
-                            info.CreateRecorder();
-                        }
-                        else
-                        {
-                            ShowMsg(p, "Your recorder is already active.");
-                        }
-                    }
-                    else
-                    {
-                        ShowMsg(p, "Recording only works in timed mode.");
-                    }
-                    return;
                 default:
                     ShowChatHelp(p);
                     return;
@@ -436,8 +428,7 @@ namespace avaness.RacingMod
                 "/race join: Joins the race.\n" +
                 "/race leave: Leaves the race.\n" +
                 "/race rejoin: Shortcut to leave and join the race.\n" +
-                "/race autojoin: Stay in a timed race after completion.\n" +
-                "/race record: Record your fastest path in timed races.";
+                "/race autojoin: Stay in a timed race after completion.";
             if (IsPlayerAdmin(p, false))
                 s += "\nTo view admin commands:\n/race admin";
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd", p.IdentityId, "Blue");

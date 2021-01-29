@@ -340,8 +340,6 @@ namespace avaness.RacingMod.Race
             info.Timer.Reset(false);
             info.OnTrack = true;
             info.InStart = false;
-            if(info.Recorder != null && mapSettings.TimedMode)
-                info.Recorder.StartTrack();
             if (resetPos)
             {
                 ResetPosition(info);

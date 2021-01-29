@@ -40,7 +40,6 @@ namespace avaness.RacingMod.Race
 
             NumLapsChanged(MapSettings.NumLaps);
             MapSettings.NumLapsChanged += NumLapsChanged;
-            MapSettings.LoopedChanged += LoopedChanged;
 
         }
 
@@ -61,7 +60,6 @@ namespace avaness.RacingMod.Race
         public void Unload()
         {
             MapSettings.NumLapsChanged -= NumLapsChanged;
-            MapSettings.LoopedChanged -= LoopedChanged;
             Finishers.Unload();
         }
 
@@ -107,11 +105,6 @@ namespace avaness.RacingMod.Race
         }
 
 
-        private void LoopedChanged(bool looped)
-        {
-            Racers.ClearRecorders();
-        }
-
 
         public void ToggleDebug()
         {
@@ -127,7 +120,6 @@ namespace avaness.RacingMod.Race
         {
             foreach (ulong id in activePlayers)
                 Racers.SetMaxLaps(id, laps);
-            Racers.ClearRecorders();
 
             tempSb.Clear();
             tempSb.Append("#".PadRight(RacingConstants.numberWidth + 1));
@@ -188,7 +180,6 @@ namespace avaness.RacingMod.Race
         {
             StaticRacerInfo info = Racers.GetStaticInfo(p);
             info.Reset();
-            info.Recorder?.LeftTrack();
 
             info.AutoJoin = false;
             info.HideWaypoint();
@@ -435,7 +426,6 @@ namespace avaness.RacingMod.Race
                 if (nodes.Count < 2 || !nodes.ResetPosition(info))
                     LeaveRace(info.Racer);
             }
-            Racers.ClearRecorders();
         }
 
         public IEnumerable<StaticRacerInfo> GetListedRacers()

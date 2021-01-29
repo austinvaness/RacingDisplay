@@ -81,12 +81,6 @@ namespace avaness.RacingMod.Racers
             return info;
         }
 
-        public void ClearRecorders()
-        {
-            foreach (StaticRacerInfo info in staticRacerInfo.Values)
-                info.Recorder?.ClearData();
-        }
-
         public void SetMaxLaps(ulong id, int laps)
         {
             StaticRacerInfo info;
