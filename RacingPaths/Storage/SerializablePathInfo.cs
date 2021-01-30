@@ -1,7 +1,7 @@
-﻿using ProtoBuf;
-using VRage;
+﻿using avaness.RacingPaths.Data;
+using ProtoBuf;
 
-namespace avaness.RacingPaths.Paths
+namespace avaness.RacingPaths.Storage
 {
     [ProtoContract]
     public class SerializablePathInfo

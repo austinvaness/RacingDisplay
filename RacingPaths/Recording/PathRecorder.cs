@@ -1,14 +1,17 @@
-﻿using Sandbox.ModAPI;
+﻿using avaness.RacingPaths.Data;
+using Sandbox.ModAPI;
 using VRage.Game.ModAPI;
 
-namespace avaness.RacingPaths.Paths
+namespace avaness.RacingPaths.Recording
 {
     /// <summary>
     /// Keeps the best time of racer.
     /// </summary>
-    public class PathRecorder : IRaceRecorder
+    public class PathRecorder
     {
         public Path Best { get; private set; }
+
+        public bool IsLocal { get; }
 
         private readonly IMyPlayer p;
         private bool rec;
@@ -19,6 +22,9 @@ namespace avaness.RacingPaths.Paths
             this.p = p;
             Best = best;
             temp = new Path("BestTime" + p.SteamUserId, p.DisplayName, "The best time of " + p.DisplayName);
+
+            IMyPlayer local = MyAPIGateway.Session?.Player;
+            IsLocal = local != null && local.SteamUserId == p.SteamUserId;
         }
 
         public void Update()
@@ -28,14 +34,14 @@ namespace avaness.RacingPaths.Paths
             MyAPIGateway.Utilities.ShowNotification($"Recording: {rec}", 16);
         }
 
-        public void StartTrack()
+        public void Start()
         {
             temp.ClearData();
             RecordTick();
             rec = true;
         }
 
-        public void EndTrack()
+        public void Stop()
         {
             if(rec)
             {
@@ -53,7 +59,7 @@ namespace avaness.RacingPaths.Paths
             }
         }
 
-        public void ClearData()
+        public void Clear()
         {
             Best.ClearData();
             Best = null;
@@ -61,7 +67,7 @@ namespace avaness.RacingPaths.Paths
             rec = false;
         }
 
-        public void LeftTrack()
+        public void Cancel()
         {
             rec = false;
             temp.ClearData();
@@ -69,7 +75,12 @@ namespace avaness.RacingPaths.Paths
 
         private void RecordTick()
         {
-            temp.Record(RacingTools.GetCockpit(p)?.CubeGrid);
+            temp.Record(GetCockpit()?.CubeGrid);
+        }
+
+        private IMyCubeBlock GetCockpit()
+        {
+            return p?.Controller?.ControlledEntity?.Entity as IMyCubeBlock;
         }
     }
 }

@@ -50,7 +50,7 @@ namespace avaness.RacingMod
         public const float finishCompatNum = 10000;
         public const int maxCheckpointSize = 500;
         public static Guid beaconStorage = new Guid("77E1A8DB-DC82-45A9-87F1-F1A0D86F24DB");
-        public const string pathVarId = "RacePathData";
+        
         public const string fontId = "FreeMono_Racing";
         public const string fontData = @"
 <?xml version=""1.0"" encoding=""UTF-8"" ?>

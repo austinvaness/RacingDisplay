@@ -8,7 +8,7 @@ using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRageMath;
 
-namespace avaness.RacingPaths.Path
+namespace avaness.RacingPaths.Data
 {
     public partial class Path
     {
@@ -20,7 +20,7 @@ namespace avaness.RacingPaths.Path
             public bool NewGrid => newGrid != null && newGrid.Length > 0;
 
             [ProtoMember(2)]
-            private MyObjectBuilder_CubeGrid[] newGrid;
+            private MyObjectBuilder_CubeGrid[] newGrid = new MyObjectBuilder_CubeGrid[0];
 
             [ProtoMember(3)]
             private SerializableMatrix[] serializableMatrix
@@ -35,7 +35,7 @@ namespace avaness.RacingPaths.Path
                 }
             }
             
-            private Matrix[] gridMatrix;
+            private Matrix[] gridMatrix = new Matrix[0];
 
             /// <summary>
             /// Used for serialization only.
@@ -52,15 +52,9 @@ namespace avaness.RacingPaths.Path
                 List<IMyCubeGrid> grids = new List<IMyCubeGrid>();
                 MyAPIGateway.GridGroups.GetGroup(grid, GridLinkTypeEnum.Physical, grids);
                 if(saveBuilder)
-                {
                     newGrid = grids.Select(GridToBuilder).ToArray();
-                    gridMatrix = new Matrix[0];
-                }
                 else
-                {
-                    newGrid = new MyObjectBuilder_CubeGrid[0];
                     gridMatrix = grids.Select(GridToMatrix).ToArray();
-                }
 
             }
 

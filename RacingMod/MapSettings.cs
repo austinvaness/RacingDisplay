@@ -109,27 +109,6 @@ namespace avaness.RacingMod
         }
         public event Action<bool> LoopedChanged;
 
-        [ProtoMember(5)]
-        private bool botRecord = false;
-        public bool BotRecord
-        {
-            get
-            {
-                return botRecord;
-            }
-            set
-            {
-                if(value != botRecord)
-                {
-                    botRecord = value;
-                    Sync(new Packet(PacketEnum.BotRecord, botRecord));
-                    if (BotRecordChanged != null)
-                        BotRecordChanged.Invoke(value);
-                }
-            }
-        }
-        public event Action<bool> BotRecordChanged;
-
         public void SaveFile ()
         {
             if (RacingConstants.IsServer)
@@ -158,10 +137,6 @@ namespace avaness.RacingMod
             looped = config.looped;
             if (LoopedChanged != null)
                 LoopedChanged.Invoke(Looped);
-
-            botRecord = config.botRecord;
-            if (BotRecordChanged != null)
-                BotRecordChanged.Invoke(botRecord);
         }
 
         public void Unload()
@@ -212,7 +187,6 @@ namespace avaness.RacingMod
             TimedMode = 1,
             StrictStart = 2,
             Looped = 3,
-            BotRecord = 4
         }
 
         [ProtoContract]
@@ -270,12 +244,6 @@ namespace avaness.RacingMod
                         config.looped = b3;
                         if (config.LoopedChanged != null)
                             config.LoopedChanged.Invoke(b3);
-                        break;
-                    case PacketEnum.BotRecord:
-                        bool b4 = value == 1;
-                        config.botRecord = b4;
-                        if (config.BotRecordChanged != null)
-                            config.BotRecordChanged.Invoke(b4);
                         break;
                 }
             }

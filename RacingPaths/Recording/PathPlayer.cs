@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using avaness.RacingPaths.Data;
+using System.Collections.Generic;
 using VRage.Game.ModAPI;
 
-namespace avaness.RacingPaths.Paths
+namespace avaness.RacingPaths.Recording
 {
     public class PathPlayer
     {
@@ -29,10 +30,12 @@ namespace avaness.RacingPaths.Paths
             Play((IEnumerable<Path>)paths);
         }
 
-        public void Play(IEnumerable<Path> paths)
+        public void Play(IEnumerable<Path> paths, params Path[] additionalPaths)
         {
             this.paths.Clear();
             this.paths.AddRange(paths);
+            if (additionalPaths.Length > 0)
+                this.paths.AddRange(additionalPaths);
         }
 
         public void Clear()

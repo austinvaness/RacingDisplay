@@ -204,9 +204,7 @@
   <ItemGroup>
     <Analyzer Include="..\..\..\VS2017\SEWhitelistChecker.dll" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Paths\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd /D $(ProjectDir)

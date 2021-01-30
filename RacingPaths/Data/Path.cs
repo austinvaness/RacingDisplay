@@ -7,7 +7,7 @@ using System.Text;
 using VRage.Game.ModAPI;
 using VRageMath;
 
-namespace avaness.RacingPaths.Path
+namespace avaness.RacingPaths.Data
 {
     [ProtoContract]
     public partial class Path
@@ -22,7 +22,12 @@ namespace avaness.RacingPaths.Path
         private int playbackGroupRequested = -1;
         private List<IMyCubeGrid> playbackGroup;
 
-        private readonly string ghostId, ghostName, ghostDescription;
+        [ProtoMember(2)]
+        private readonly string ghostId;
+        [ProtoMember(3)]
+        private readonly string ghostName;
+        [ProtoMember(4)]
+        private readonly string ghostDescription;
 
         private static Color ghostWaypointColor = new Color(0, 0, 255);
         private const int maxData = 108000; // about 30 minutes at 60tps
