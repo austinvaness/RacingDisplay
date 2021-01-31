@@ -13,8 +13,11 @@ namespace avaness.RacingPaths
 {
     public class Commands
     {
-        public Commands()
+        private PathStorage paths;
+
+        public Commands(PathStorage paths)
         {
+            this.paths = paths;
             MyAPIGateway.Utilities.MessageEnteredSender += Utilities_MessageEnteredSender;
         }
 
@@ -41,8 +44,9 @@ namespace avaness.RacingPaths
             switch (cmd[1])
             {
                 case "top":
+                    if(cmd.Length == 2)
                     {
-                        SortedSet<Path> sorted = new SortedSet<Path>(RacingPathsSession.Instance.Paths.Select(i => i.Data), new PathComparer());
+                        SortedSet<Path> sorted = new SortedSet<Path>(paths.Select(i => i.Data), new PathComparer());
                         StringBuilder sb = new StringBuilder();
                         sb.Append("Top 10:").AppendLine();
                         if(sorted.Count > 0)
@@ -64,29 +68,17 @@ namespace avaness.RacingPaths
                         MyVisualScriptLogicProvider.SendChatMessage(sb.ToString(), "Leaderboard", identityId);
                     }
                     break;
-                case "del":
                 case "clear":
+                    if(cmd.Length == 2)
+                        paths.ClearAll();
+                    break;
+                case "remove":
+                case "del":
                     if(cmd.Length >= 3)
                     {
                         string name = BuildString(cmd, 2);
                         IMyPlayer p = GetPlayer(name);
-                        RacingPathsSession.Instance.Paths.Remove(p.SteamUserId);
-                    }
-                    break;
-                case "export": // TODO run on client
-                    if(MyAPIGateway.Session.Player != null)
-                    {
-                        SerializablePathInfo info;
-                        if (!RacingPathsSession.Instance.Paths.TryGetPathInfo(MyAPIGateway.Session.Player.SteamUserId, out info))
-                            return;
-
-                        var writer = MyAPIGateway.Utilities.WriteBinaryFileInGlobalStorage("export.bin");
-                        writer.Write(MyAPIGateway.Utilities.SerializeToBinary(info));
-                        writer.Flush();
-                        writer.Close();
-                        string path = System.IO.Path.Combine(MyAPIGateway.Utilities.GamePaths.UserDataPath, "Storage\\export.bin");
-                        MyClipboardHelper.SetClipboard(path);
-                        MyVisualScriptLogicProvider.SendChatMessage("Location of path file copied to clipboard.", "Export", identityId);
+                        paths.Remove(p.SteamUserId);
                     }
                     break;
             }

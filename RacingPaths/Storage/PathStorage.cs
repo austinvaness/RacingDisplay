@@ -90,6 +90,13 @@ namespace avaness.RacingPaths.Storage
             }
         }
 
+        public void ClearAll()
+        {
+            saveData.Clear();
+            foreach (PathRecorder rec in recorders.Values)
+                rec.Clear();
+        }
+
         /// <summary>
         /// Called on the server to save paths.
         /// </summary>

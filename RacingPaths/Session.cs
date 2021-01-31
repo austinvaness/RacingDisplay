@@ -48,7 +48,7 @@ namespace avaness.RacingPaths
         {
             racingApi = new RacingDisplayAPI(OnRacingAPI);
             paths = new PathStorage();
-            cmds = new Commands();
+            cmds = new Commands(paths);
             init = true;
         }
 
