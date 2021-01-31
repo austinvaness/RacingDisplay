@@ -40,6 +40,8 @@ namespace avaness.RacingPaths.Recording
 
         public void Clear()
         {
+            foreach (Path p in paths)
+                p.StopPlay();
             paths.Clear();
         }
     }

@@ -7,14 +7,15 @@ using System.Linq;
 using avaness.RacingPaths.Recording;
 using avaness.RacingPaths.Data;
 using VRage.Utils;
+using System.Collections;
 
 namespace avaness.RacingPaths.Storage
 {
-    public class PathStorage
+    public class PathStorage : IEnumerable<SerializablePathInfo>
     {
         private const string variableId = "RacePathData";
 
-        private Dictionary<ulong, SerializablePathInfo> paths = new Dictionary<ulong, SerializablePathInfo>();
+        private Dictionary<ulong, SerializablePathInfo> saveData = new Dictionary<ulong, SerializablePathInfo>();
         private Dictionary<ulong, PathRecorder> recorders = new Dictionary<ulong, PathRecorder>();
 
         public PathStorage()
@@ -26,7 +27,16 @@ namespace avaness.RacingPaths.Storage
         {
             foreach (PathRecorder rec in recorders.Values)
                 rec.Update();
-            MyAPIGateway.Utilities.ShowNotification($"Recorders: {recorders.Count} Paths: {paths.Count}", 16);
+            MyAPIGateway.Utilities.ShowNotification($"Recorders: {recorders.Count} Paths: {saveData.Count}", 16);
+        }
+
+        public void Unload()
+        {
+            foreach(PathRecorder rec in recorders.Values)
+            {
+                rec.OnBestChanged -= OnBestChanged;
+                rec.Unload();
+            }
         }
 
         private SerializablePathInfo ConvertToPath(string base64)
@@ -65,12 +75,12 @@ namespace avaness.RacingPaths.Storage
             string[] storage;
             if (MyAPIGateway.Utilities.GetVariable(variableId, out storage))
             {
-                paths.Clear();
+                saveData.Clear();
                 foreach (string s in storage)
                 {
                     SerializablePathInfo temp = ConvertToPath(s);
                     if (temp != null)
-                        paths[temp.PlayerId] = temp;
+                        saveData[temp.PlayerId] = temp;
                 }
 
             }
@@ -89,11 +99,11 @@ namespace avaness.RacingPaths.Storage
             {
                 Path p = kv.Value.Best;
                 if(p != null && !p.IsEmpty)
-                    paths[kv.Key] = new SerializablePathInfo(kv.Key, p);
+                    saveData[kv.Key] = new SerializablePathInfo(kv.Key, p);
             }
 
             List<string> base64s = new List<string>();
-            foreach(SerializablePathInfo info in paths.Values)
+            foreach(SerializablePathInfo info in saveData.Values)
             {
                 string base64 = ConvertToBase64(info);
                 if (base64 != null)
@@ -114,19 +124,33 @@ namespace avaness.RacingPaths.Storage
             if (recorders.TryGetValue(pid, out temp))
                 return temp;
 
-            SerializablePathInfo info;
-            if (paths.TryGetValue(pid, out info))
-                temp = new PathRecorder(p, info.Data);
+            Path saved;
+            if (TryGetPath(pid, out saved))
+                temp = new PathRecorder(p, saved);
             else
                 temp = new PathRecorder(p);
+            temp.OnBestChanged += OnBestChanged;
             recorders[pid] = temp;
             return temp;
+        }
+
+        private void OnBestChanged(ulong id, Path newBest)
+        {
+            if(newBest == null || newBest.IsEmpty)
+                saveData.Remove(id);
+            else
+                saveData[id] = new SerializablePathInfo(id, newBest);
+        }
+
+        public bool TryGetPathInfo(ulong id, out SerializablePathInfo info)
+        {
+            return saveData.TryGetValue(id, out info);
         }
 
         public bool TryGetPath(ulong id, out Path path)
         {
             SerializablePathInfo info;
-            if(paths.TryGetValue(id, out info))
+            if(saveData.TryGetValue(id, out info))
             {
                 path = info.Data;
                 return true;
@@ -134,6 +158,25 @@ namespace avaness.RacingPaths.Storage
 
             path = null;
             return false;
+        }
+
+        public void Remove(ulong id)
+        {
+            PathRecorder temp;
+            if (TryGetRecorder(id, out temp))
+                temp.Clear();
+            else
+                saveData.Remove(id);
+        }
+
+        public IEnumerator<SerializablePathInfo> GetEnumerator()
+        {
+            return saveData.Values.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return saveData.Values.GetEnumerator();
         }
     }
 }

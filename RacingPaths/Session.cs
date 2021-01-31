@@ -17,12 +17,14 @@ namespace avaness.RacingPaths
     {
         public static RacingPathsSession Instance;
 
+        public PathStorage Paths => paths;
+
         private bool init = false;
         private RacingDisplayAPI racingApi;
         private PathStorage paths;
         private PathPlayer player = new PathPlayer();
         private HashSet<ulong> selectedPlayers = new HashSet<ulong>();
-        //private HashSet<IMyPlayer> players = new HashSet<IMyPlayer>(new PlayerIdComparer());
+        private Commands cmds;
 
         public override void LoadData()
         {
@@ -38,13 +40,15 @@ namespace avaness.RacingPaths
                 racingApi.OnPlayerFinished -= RacingApi_OnPlayerFinished;
                 racingApi.OnPlayerLeft -= RacingApi_OnPlayerLeft;
             }
+            cmds?.Unload();
+            paths?.Unload();
         }
 
         private void Start()
         {
             racingApi = new RacingDisplayAPI(OnRacingAPI);
             paths = new PathStorage();
-
+            cmds = new Commands();
             init = true;
         }
 

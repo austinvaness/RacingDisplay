@@ -100,11 +100,14 @@
     <Compile Include="..\RacingMod\API\RacingDisplayAPI.cs">
       <Link>RacingDisplayAPI.cs</Link>
     </Compile>
+    <Compile Include="Commands.cs" />
     <Compile Include="Data\SerializableMatrix.cs" />
-    <Compile Include="HudAPIv2.cs" />
+    <Compile Include="Hud\GhostHud.cs" />
+    <Compile Include="Hud\HudAPIv2.cs" />
     <Compile Include="Data\Path.cs" />
     <Compile Include="Data\Path.GridData.cs" />
     <Compile Include="Data\Path.GridInfo.cs" />
+    <Compile Include="PathComparer.cs" />
     <Compile Include="PlayerIdComparer.cs" />
     <Compile Include="Recording\PathPlayer.cs" />
     <Compile Include="Recording\PathRecorder.cs" />

@@ -3,7 +3,9 @@ using Sandbox.Game;
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using VRage.Game;
 using VRage.Game.ModAPI;
 using VRageMath;
 
@@ -14,25 +16,30 @@ namespace avaness.RacingPaths.Data
     {
         private int runtime = 0;
         private GridInfo prevGrid;
-        [ProtoMember(1)]
-        private readonly List<GridData> data = new List<GridData>();
+        [ProtoMember(1, IsRequired = true)]
+        private List<GridData> data = new List<GridData>();
 
         private bool play;
         private int playbackTick = 0;
         private int playbackGroupRequested = -1;
         private List<IMyCubeGrid> playbackGroup;
 
-        [ProtoMember(2)]
-        private readonly string ghostId;
-        [ProtoMember(3)]
-        private readonly string ghostName;
-        [ProtoMember(4)]
-        private readonly string ghostDescription;
+        [ProtoMember(2, IsRequired = true)]
+        private string ghostId = "Invalid";
+        [ProtoMember(3, IsRequired = true)]
+        private string ghostName = "Invalid";
+        [ProtoMember(4, IsRequired = true)]
+        private string ghostDescription = "Invalid";
 
         private static Color ghostWaypointColor = new Color(0, 0, 255);
         private const int maxData = 108000; // about 30 minutes at 60tps
 
         public bool IsEmpty => data.Count == 0;
+        private int LastRuntime => IsEmpty ? 0 : data.Last().Runtime;
+        private const long oneTick = (long)(MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS * TimeSpan.TicksPerSecond);
+        public TimeSpan Length => new TimeSpan(LastRuntime * oneTick);
+
+        public string DisplayName => ghostName;
 
         /// <summary>
         /// Used for serialization only.
@@ -193,9 +200,9 @@ namespace avaness.RacingPaths.Data
             MyVisualScriptLogicProvider.RemoveGPSFromEntity(ghostId, ghostName, ghostDescription);
         }
 
-        public bool SmallerThan(Path other)
+        public bool BetterThan(Path other)
         {
-            return other.data.Count == 0 || data.Count < other.data.Count;
+            return other.data.Count == 0 || (data.Count > 0 && data[data.Count - 1].Runtime < other.data[data.Count - 1].Runtime);
         }
     }
 }

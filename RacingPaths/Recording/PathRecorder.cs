@@ -1,5 +1,6 @@
 ﻿using avaness.RacingPaths.Data;
 using Sandbox.ModAPI;
+using System;
 using VRage.Game.ModAPI;
 
 namespace avaness.RacingPaths.Recording
@@ -10,8 +11,10 @@ namespace avaness.RacingPaths.Recording
     public class PathRecorder
     {
         public Path Best { get; private set; }
+        public event Action<ulong, Path> OnBestChanged;
 
         public bool IsLocal { get; }
+
 
         private readonly IMyPlayer p;
         private bool rec;
@@ -34,10 +37,14 @@ namespace avaness.RacingPaths.Recording
             MyAPIGateway.Utilities.ShowNotification($"Recording: {rec}", 16);
         }
 
+        public void Unload()
+        {
+            OnBestChanged = null;
+        }
+
         public void Start()
         {
             temp.ClearData();
-            RecordTick();
             rec = true;
         }
 
@@ -45,10 +52,11 @@ namespace avaness.RacingPaths.Recording
         {
             if(rec)
             {
-                if (Best == null || temp.SmallerThan(Best))
+                if (Best == null || Best.IsEmpty || temp.BetterThan(Best))
                 {
                     Path newEmpty = temp.EmptyCopy();
                     Best = temp;
+                    OnBestChanged?.Invoke(p.SteamUserId, temp);
                     temp = newEmpty;
                 }
                 else
@@ -63,6 +71,7 @@ namespace avaness.RacingPaths.Recording
         {
             Best.ClearData();
             Best = null;
+            OnBestChanged?.Invoke(p.SteamUserId, null);
             temp.ClearData();
             rec = false;
         }
