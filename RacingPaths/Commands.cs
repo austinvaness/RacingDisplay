@@ -205,13 +205,13 @@ namespace avaness.RacingPaths
         private ulong GetPlayer(string name)
         {
             List<IMyPlayer> temp = new List<IMyPlayer>();
-            MyAPIGateway.Players.GetPlayers(temp, p => p.DisplayName.Contains(name, StringComparison.OrdinalIgnoreCase));
+            MyAPIGateway.Players.GetPlayers(temp, p => p.DisplayName.IndexOf(name, StringComparison.OrdinalIgnoreCase) != -1);
             if (temp.Count > 0)
                 return temp[0].SteamUserId;
 
             foreach (SerializablePathInfo info in paths)
             {
-                if (info.Data.DisplayName.Contains(name, StringComparison.OrdinalIgnoreCase))
+                if (info.Data.DisplayName.IndexOf(name, StringComparison.OrdinalIgnoreCase) != -1)
                     return info.PlayerId;
             }
 
