@@ -10,7 +10,18 @@ namespace avaness.RacingPaths.Recording
     /// </summary>
     public class PathRecorder
     {
-        public Path Best { get; private set; }
+        public Path Best
+        {
+            get
+            {
+                return best;
+            }
+            private set
+            {
+                best = value;
+                OnBestChanged?.Invoke(p.SteamUserId, value);
+            }
+        }
         public event Action<ulong, Path> OnBestChanged;
 
         public bool IsLocal { get; }
@@ -19,11 +30,12 @@ namespace avaness.RacingPaths.Recording
         private readonly IMyPlayer p;
         private bool rec;
         private Path temp;
+        private Path best;
 
         public PathRecorder(IMyPlayer p, Path best = null)
         {
             this.p = p;
-            Best = best;
+            this.best = best;
             temp = new Path("BestTime" + p.SteamUserId, p.DisplayName, "The best time of " + p.DisplayName);
 
             IMyPlayer local = MyAPIGateway.Session?.Player;
@@ -32,16 +44,14 @@ namespace avaness.RacingPaths.Recording
 
         public void Update()
         {
-            if(rec)
+            if (rec)
             {
                 RecordTick();
-                if(Best != null && !Best.IsEmpty && !temp.BetterThan(Best))
+                if (Best != null && !Best.IsEmpty && !temp.BetterThan(Best))
                 {
-                    rec = false;
-                    temp.ClearData();
+                    Cancel();
                 }
             }
-            MyAPIGateway.Utilities.ShowNotification($"Recording: {rec}", 16);
         }
 
         public void Unload()
@@ -57,13 +67,12 @@ namespace avaness.RacingPaths.Recording
 
         public void Stop()
         {
-            if(rec)
+            if (rec)
             {
                 if (Best == null || Best.IsEmpty || temp.BetterThan(Best))
                 {
                     Path newEmpty = temp.EmptyCopy();
                     Best = temp;
-                    OnBestChanged?.Invoke(p.SteamUserId, temp);
                     temp = newEmpty;
                 }
                 else
@@ -78,7 +87,6 @@ namespace avaness.RacingPaths.Recording
         {
             Best.ClearData();
             Best = null;
-            OnBestChanged?.Invoke(p.SteamUserId, null);
             temp.ClearData();
             rec = false;
         }

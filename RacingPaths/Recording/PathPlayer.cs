@@ -19,7 +19,10 @@ namespace avaness.RacingPaths.Recording
                 else
                 {
                     if (!p.Play())
+                    {
                         paths.RemoveAtFast(i);
+                        p.StopPlay();
+                    }
                 }
             }
         }

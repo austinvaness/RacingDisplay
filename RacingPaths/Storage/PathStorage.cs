@@ -27,7 +27,6 @@ namespace avaness.RacingPaths.Storage
         {
             foreach (PathRecorder rec in recorders.Values)
                 rec.Update();
-            MyAPIGateway.Utilities.ShowNotification($"Recorders: {recorders.Count} Paths: {saveData.Count}", 16);
         }
 
         public void Unload()
@@ -51,7 +50,6 @@ namespace avaness.RacingPaths.Storage
             {
                 string s = "Error converting base64 to Path: " + e.ToString();
                 MyLog.Default.WriteLineAndConsole(s);
-                MyAPIGateway.Utilities.ShowNotification(s, 5000);
                 return null;
             }
         }
