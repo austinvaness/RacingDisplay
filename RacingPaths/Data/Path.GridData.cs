@@ -94,6 +94,7 @@ namespace avaness.RacingPaths.Data
                 List<IMyCubeGrid> temp = new List<IMyCubeGrid>(newGrid.Length);
                 IMyCubeGrid g1 = (IMyCubeGrid)e;
                 g1.Name = g1.DisplayName = g1.CustomName = ghostId;
+                MyAPIGateway.Entities.SetEntityName(g1);
                 Prep(g1);
                 MyAPIGateway.Entities.AddEntity(e);
                 temp.Add(g1);

@@ -14,7 +14,6 @@ namespace avaness.RacingPaths.Data
         private class GridInfo
         {
             private long[] id;
-            private int[] blockCount;
             private Vector3D[] pos;
 
             public GridInfo(IMyCubeGrid grid)
@@ -27,20 +26,13 @@ namespace avaness.RacingPaths.Data
             private void SetInfo(List<IMyCubeGrid> grids)
             {
                 id = new long[grids.Count];
-                blockCount = new int[grids.Count];
                 pos = new Vector3D[grids.Count];
                 for (int i = 0; i < id.Length; i++)
                 {
                     IMyCubeGrid g = grids[i];
                     id[i] = g.EntityId;
-                    blockCount[i] = GridCount(g);
                     pos[i] = g.WorldMatrix.Translation;
                 }
-            }
-
-            private int GridCount(IMyCubeGrid grid)
-            {
-                return ((MyCubeGrid)grid).GetFatBlocks().Count;
             }
 
             public bool Changed(IMyCubeGrid grid, out bool positionOnly)
@@ -59,18 +51,9 @@ namespace avaness.RacingPaths.Data
                 for (int i = 0; i < id.Length; i++)
                 {
                     IMyCubeGrid g = grids[i];
-                    int count = GridCount(g);
                     if (g.EntityId != id[i])
                     {
                         id[i] = g.EntityId;
-                        blockCount[i] = count;
-                        pos[i] = g.WorldMatrix.Translation;
-                        positionOnly = false;
-                        diff = true;
-                    }
-                    else if (count != blockCount[i])
-                    {
-                        blockCount[i] = count;
                         pos[i] = g.WorldMatrix.Translation;
                         positionOnly = false;
                         diff = true;
