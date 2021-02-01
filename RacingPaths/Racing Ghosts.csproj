@@ -121,7 +121,12 @@
     <Compile Include="Session.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Workshop\metadata.mod" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Workshop\modinfo.sbmi" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd /D "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\"

@@ -32,10 +32,13 @@ namespace avaness.RacingPaths.Recording
 
         private void RaceEnd(byte[] data)
         {
-            PacketRaceEnd packet = MyAPIGateway.Utilities.SerializeFromBinary<PacketRaceEnd>(data);
-            if (packet != null)
-                RaceEnd(packet.finish);
-
+            try
+            {
+                PacketRaceEnd packet = MyAPIGateway.Utilities.SerializeFromBinary<PacketRaceEnd>(data);
+                if (packet != null)
+                    RaceEnd(packet.finish);
+            }
+            catch { }
         }
 
         public void RaceEnd(bool finish)
@@ -55,9 +58,13 @@ namespace avaness.RacingPaths.Recording
 
         private void RaceStart(byte[] data)
         {
-            PacketRaceStart packet = MyAPIGateway.Utilities.SerializeFromBinary<PacketRaceStart>(data);
-            if (packet != null)
-                RaceStart(packet.recording);
+            try
+            {
+                PacketRaceStart packet = MyAPIGateway.Utilities.SerializeFromBinary<PacketRaceStart>(data);
+                if (packet != null)
+                    RaceStart(packet.recording);
+            }
+            catch { }
         }
 
         public void RaceStart(bool recording)
