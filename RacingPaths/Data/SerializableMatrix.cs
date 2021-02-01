@@ -1,5 +1,4 @@
 ﻿using ProtoBuf;
-using VRage;
 using VRageMath;
 
 namespace avaness.RacingPaths.Data

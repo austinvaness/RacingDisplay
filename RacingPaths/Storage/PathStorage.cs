@@ -3,7 +3,6 @@ using System;
 using VRage;
 using Sandbox.ModAPI;
 using VRage.Game.ModAPI;
-using System.Linq;
 using avaness.RacingPaths.Recording;
 using avaness.RacingPaths.Data;
 using VRage.Utils;
@@ -16,6 +15,7 @@ namespace avaness.RacingPaths.Storage
         private const string variableId = "RacePathData";
 
         private Dictionary<ulong, SerializablePathInfo> saveData = new Dictionary<ulong, SerializablePathInfo>();
+        private bool needSave = false;
         private Dictionary<ulong, PathRecorder> recorders = new Dictionary<ulong, PathRecorder>();
 
         public PathStorage()
@@ -102,12 +102,8 @@ namespace avaness.RacingPaths.Storage
         /// </summary>
         public void Save()
         {
-            foreach (KeyValuePair<ulong, PathRecorder> kv in recorders)
-            {
-                Path p = kv.Value.Best;
-                if(p != null && !p.IsEmpty)
-                    saveData[kv.Key] = new SerializablePathInfo(kv.Key, p);
-            }
+            if (!needSave)
+                return;
 
             List<string> base64s = new List<string>();
             foreach(SerializablePathInfo info in saveData.Values)
@@ -117,6 +113,7 @@ namespace avaness.RacingPaths.Storage
                     base64s.Add(base64);
             }
             MyAPIGateway.Utilities.SetVariable(variableId, base64s.ToArray());
+            needSave = false;
         }
 
         public bool TryGetRecorder(ulong id, out PathRecorder rec)
@@ -147,6 +144,7 @@ namespace avaness.RacingPaths.Storage
                 saveData.Remove(id);
             else
                 saveData[id] = new SerializablePathInfo(id, newBest);
+            needSave = true;
         }
 
         public bool TryGetPathInfo(ulong id, out SerializablePathInfo info)
@@ -174,6 +172,7 @@ namespace avaness.RacingPaths.Storage
                 temp.Clear();
             else
                 saveData.Remove(id);
+            needSave = true;
         }
 
         public IEnumerator<SerializablePathInfo> GetEnumerator()

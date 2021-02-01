@@ -33,7 +33,14 @@ namespace avaness.RacingPaths.Recording
         public void Update()
         {
             if(rec)
+            {
                 RecordTick();
+                if(Best != null && !Best.IsEmpty && !temp.BetterThan(Best))
+                {
+                    rec = false;
+                    temp.ClearData();
+                }
+            }
             MyAPIGateway.Utilities.ShowNotification($"Recording: {rec}", 16);
         }
 

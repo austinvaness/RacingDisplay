@@ -1,6 +1,5 @@
 ﻿using avaness.RacingPaths.Data;
 using System.Collections.Generic;
-using VRage.Game.ModAPI;
 
 namespace avaness.RacingPaths.Recording
 {

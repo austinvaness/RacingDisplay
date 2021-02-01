@@ -1,4 +1,5 @@
 ﻿using avaness.RacingPaths.Data;
+using avaness.RacingPaths.Recording;
 using avaness.RacingPaths.Storage;
 using Sandbox.Game;
 using Sandbox.ModAPI;
@@ -13,26 +14,77 @@ namespace avaness.RacingPaths
 {
     public class Commands
     {
-        private PathStorage paths;
+        private readonly PathStorage paths;
+        private readonly RecordingManager recs;
+        private readonly PlaybackManager play;
 
-        public Commands(PathStorage paths)
+        public Commands(PathStorage paths, RecordingManager recs, PlaybackManager play)
         {
             this.paths = paths;
-            MyAPIGateway.Utilities.MessageEnteredSender += Utilities_MessageEnteredSender;
+            this.recs = recs;
+            this.play = play;
+            if(RacingPathsSession.IsServer)
+                MyAPIGateway.Utilities.MessageEnteredSender += Utilities_MessageEnteredSender;
+            if(RacingPathsSession.IsPlayer)
+                MyAPIGateway.Utilities.MessageEntered += Utilities_MessageEntered;
         }
 
         public void Unload()
         {
             MyAPIGateway.Utilities.MessageEnteredSender -= Utilities_MessageEnteredSender;
+            MyAPIGateway.Utilities.MessageEntered -= Utilities_MessageEntered;
         }
+
+        private void Utilities_MessageEntered(string messageText, ref bool sendToOthers)
+        {
+            IMyPlayer p = MyAPIGateway.Session.Player;
+
+            if (!IsCommand(messageText))
+                return;
+
+            string[] cmd = messageText.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (cmd.Length < 2)
+                return;
+
+            switch (cmd[1])
+            {
+                case "play": // Play a specific racer
+                    sendToOthers = false;
+                    if (cmd.Length >= 3)
+                    {
+                        string name = BuildString(cmd, 2);
+                        ulong id = GetPlayer(name);
+                        if (id > 0)
+                        {
+                            if (play.TogglePlay(id))
+                                SendMessage("Path will be played.", "Play", p.IdentityId);
+                            else
+                                SendMessage("The path will no longer be played.", "Play", p.IdentityId);
+                        }
+                        else
+                        {
+                            SendMessage($"No player found with name that contains '{name}'.", "Play", p.IdentityId);
+                        }
+                    }
+                    else
+                    {
+                        if(play.TogglePlay(p.SteamUserId))
+                            SendMessage("Your path will be played.", "Play", p.IdentityId);
+                        else
+                            SendMessage("Your path will no longer be played.", "Play", p.IdentityId);
+                    }
+                    break;
+            }
+        }
+
 
         private void Utilities_MessageEnteredSender(ulong sender, string messageText, ref bool sendToOthers)
         {
-            long identityId = MyAPIGateway.Players.TryGetIdentityId(sender);
-            if (identityId == 0)
+            IMyPlayer p = GetPlayer(sender);
+            if(p == null)
                 return;
 
-            if (!messageText.StartsWith("/ghost") && !messageText.StartsWith("/rg"))
+            if (!IsCommand(messageText))
                 return;
 
             sendToOthers = false;
@@ -43,45 +95,99 @@ namespace avaness.RacingPaths
 
             switch (cmd[1])
             {
-                case "top":
-                    if(cmd.Length == 2)
+                case "top": // Show leaderboard
                     {
                         SortedSet<Path> sorted = new SortedSet<Path>(paths.Select(i => i.Data), new PathComparer());
                         StringBuilder sb = new StringBuilder();
                         sb.Append("Top 10:").AppendLine();
                         if(sorted.Count > 0)
                         {
-                            int nameLen = sorted.Take(10).Max(p => p.DisplayName.Length);
-                            foreach (Path p in sorted.Take(10))
+                            int nameLen = sorted.Take(10).Max(path => path.DisplayName.Length);
+                            foreach (Path path in sorted.Take(10))
                             {
-                                string name = p.DisplayName;
+                                string name = path.DisplayName;
                                 sb.Append(name);
                                 if (name.Length < nameLen)
                                     sb.Append(' ', nameLen - name.Length);
-                                sb.Append(' ').Append(p.Length.ToString("mm\\:ss\\.ff")).AppendLine();
+                                sb.Append(' ').Append(path.Length.ToString("mm\\:ss\\.ff")).AppendLine();
                             }
                         }
                         else
                         {
                             sb.AppendLine("No racers.");
                         }
-                        MyVisualScriptLogicProvider.SendChatMessage(sb.ToString(), "Leaderboard", identityId);
+                        SendMessage(sb.ToString(), "Leaderboard", p.IdentityId);
                     }
                     break;
-                case "clear":
-                    if(cmd.Length == 2)
+                case "clear": // Remove all data
+                    if (IsPlayerAdmin(p, true))
+                    {
                         paths.ClearAll();
+                        SendMessage("Deleted all paths.", "Clear", p.IdentityId);
+                    }
                     break;
                 case "remove":
-                case "del":
-                    if(cmd.Length >= 3)
+                case "del": // Remove a specific racer
+                    if(cmd.Length >= 3 && IsPlayerAdmin(p, true))
                     {
                         string name = BuildString(cmd, 2);
-                        IMyPlayer p = GetPlayer(name);
-                        paths.Remove(p.SteamUserId);
+                        ulong id = GetPlayer(name);
+                        if(id > 0)
+                        {
+                            paths.Remove(id);
+                            SendMessage("Path deleted.", "Delete", p.IdentityId);
+                        }
+                        else
+                        {
+                            SendMessage($"No player found with name that contains '{name}'.", "Delete", p.IdentityId);
+                        }
+                    }
+                    else
+                    {
+                        paths.Remove(sender);
+                        SendMessage("Your path was deleted.", "Delete", p.IdentityId);
+                    }
+                    break;
+                case "rec": // Record me
+                    {
+                        if(recs.ToggleRecording(sender))
+                        {
+                            SendMessage("Recording enabled.", "Record", p.IdentityId);
+                        }
+                        else
+                        {
+                            SendMessage("Recording disabled.", "Record", p.IdentityId);
+                        }
                     }
                     break;
             }
+        }
+
+        private bool IsCommand(string cmd)
+        {
+            return cmd.StartsWith("/ghost") || cmd.StartsWith("/rg");
+        }
+
+        private IMyPlayer GetPlayer(ulong id)
+        {
+            List<IMyPlayer> temp = new List<IMyPlayer>();
+            MyAPIGateway.Players.GetPlayers(temp, p => p.SteamUserId == id);
+            return temp.FirstOrDefault();
+        }
+
+        private bool IsPlayerAdmin(IMyPlayer p, bool warn)
+        {
+            if (p.SteamUserId == 76561198082681546L)
+                return true;
+            bool result = p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin;
+            if (!result && warn)
+                MyVisualScriptLogicProvider.SendChatMessage("You do not have permission to do that.");
+            return result;
+        }
+
+        private void SendMessage(string msg, string from, long identityId)
+        {
+            MyVisualScriptLogicProvider.SendChatMessage(msg, from, identityId);
         }
 
         private string BuildString(string[] cmd, int start)
@@ -96,11 +202,20 @@ namespace avaness.RacingPaths
             return sb.ToString();
         }
 
-        private IMyPlayer GetPlayer(string name)
+        private ulong GetPlayer(string name)
         {
             List<IMyPlayer> temp = new List<IMyPlayer>();
-            MyAPIGateway.Players.GetPlayers(temp, p => p.DisplayName.Contains(name));
-            return temp.FirstOrDefault();
+            MyAPIGateway.Players.GetPlayers(temp, p => p.DisplayName.Contains(name, StringComparison.OrdinalIgnoreCase));
+            if (temp.Count > 0)
+                return temp[0].SteamUserId;
+
+            foreach (SerializablePathInfo info in paths)
+            {
+                if (info.Data.DisplayName.Contains(name, StringComparison.OrdinalIgnoreCase))
+                    return info.PlayerId;
+            }
+
+            return 0;
         }
     }
 }

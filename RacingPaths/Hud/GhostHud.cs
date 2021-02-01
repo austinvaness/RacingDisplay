@@ -1,6 +1,5 @@
 ﻿using Draygo.API;
 using System.Text;
-using VRage.Game;
 using VRageMath;
 
 namespace avaness.RacingPaths.Hud
@@ -8,9 +7,22 @@ namespace avaness.RacingPaths.Hud
     public class GhostHud
     {
         private readonly HudAPIv2 hud;
-        private HudAPIv2.HUDMessage board;
-        private readonly StringBuilder boardText = new StringBuilder();
+        private HudAPIv2.HUDMessage recording;
 
+        public bool RecordingIndicator
+        {
+            get
+            {
+                if (recording == null)
+                    return false;
+                return recording.Visible;
+            }
+            set
+            {
+                if(recording != null)
+                    recording.Visible = value;
+            }
+        }
 
         public GhostHud()
         {
@@ -24,13 +36,10 @@ namespace avaness.RacingPaths.Hud
 
         private void OnHudReady()
         {
-            board = new HudAPIv2.HUDMessage(boardText, new Vector2D(0.95, 0.9));
-        }
-
-        private void Realign()
-        {
-            Vector2D size = board.GetTextLength();
-            board.Offset = new Vector2D(-size.X, 0);
+            recording = new HudAPIv2.HUDMessage(new StringBuilder("Recording"), new Vector2D(-1, 1), Scale: 0.75)
+            {
+                Visible = false
+            };
         }
     }
 }

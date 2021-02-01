@@ -107,15 +107,21 @@
     <Compile Include="Data\Path.cs" />
     <Compile Include="Data\Path.GridData.cs" />
     <Compile Include="Data\Path.GridInfo.cs" />
+    <Compile Include="Net\Network.cs" />
+    <Compile Include="Net\PacketRaceEnd.cs" />
+    <Compile Include="Net\PacketRaceStart.cs" />
+    <Compile Include="Recording\PlaybackManager.cs" />
     <Compile Include="PathComparer.cs" />
     <Compile Include="PlayerIdComparer.cs" />
     <Compile Include="Recording\PathPlayer.cs" />
     <Compile Include="Recording\PathRecorder.cs" />
+    <Compile Include="Recording\RecordingManager.cs" />
     <Compile Include="Storage\PathStorage.cs" />
     <Compile Include="Storage\SerializablePathInfo.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd /D "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\"

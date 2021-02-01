@@ -1,14 +1,10 @@
-﻿using avaness.RacingMod.API;
-using Sandbox.ModAPI;
-using System;
-using System.Collections.Generic;
+﻿using Sandbox.ModAPI;
 using VRage.Game.Components;
-using VRage.Game.ModAPI;
 using avaness.RacingPaths.Storage;
-using VRageMath;
-using avaness.RacingPaths.Data;
 using avaness.RacingPaths.Recording;
-using System.Linq;
+using avaness.RacingPaths.Hud;
+using VRage.Game;
+using avaness.RacingPaths.Net;
 
 namespace avaness.RacingPaths
 {
@@ -17,14 +13,18 @@ namespace avaness.RacingPaths
     {
         public static RacingPathsSession Instance;
 
-        public PathStorage Paths => paths;
+        public static bool IsServer => MyAPIGateway.Session.IsServer || MyAPIGateway.Session.OnlineMode == MyOnlineModeEnum.OFFLINE;
+        public static bool IsDedicated => IsServer && MyAPIGateway.Utilities.IsDedicated;
+        public static bool IsPlayer => !IsDedicated;
 
         private bool init = false;
-        private RacingDisplayAPI racingApi;
         private PathStorage paths;
         private PathPlayer player = new PathPlayer();
-        private HashSet<ulong> selectedPlayers = new HashSet<ulong>();
         private Commands cmds;
+        private GhostHud hud;
+        private RecordingManager recs;
+        private PlaybackManager play;
+        private Network net;
 
         public override void LoadData()
         {
@@ -34,74 +34,35 @@ namespace avaness.RacingPaths
         protected override void UnloadData()
         {
             Instance = null;
-            if(racingApi != null)
-            {
-                racingApi.OnPlayerStarted -= RacingApi_OnPlayerStarted;
-                racingApi.OnPlayerFinished -= RacingApi_OnPlayerFinished;
-                racingApi.OnPlayerLeft -= RacingApi_OnPlayerLeft;
-            }
+            net?.Unload();
+            recs?.Unload();
             cmds?.Unload();
             paths?.Unload();
+            hud?.Unload();
         }
 
         private void Start()
         {
-            racingApi = new RacingDisplayAPI(OnRacingAPI);
+            if (IsPlayer && MyAPIGateway.Session.Player == null)
+                return;
+
+            net = new Network();
             paths = new PathStorage();
-            cmds = new Commands(paths);
+
+            if (IsPlayer)
+            {
+                hud = new GhostHud();
+                play = new PlaybackManager(net, paths, player, hud);
+            }
+
+            if (IsServer)
+            {
+                recs = new RecordingManager(paths, net);
+            }
+
+            cmds = new Commands(paths, recs, play);
+
             init = true;
-        }
-
-        private void OnRacingAPI()
-        {
-            racingApi.OnPlayerStarted += RacingApi_OnPlayerStarted;
-            racingApi.OnPlayerFinished += RacingApi_OnPlayerFinished;
-            racingApi.OnPlayerLeft += RacingApi_OnPlayerLeft;
-        }
-
-        private void RacingApi_OnPlayerLeft(IMyPlayer p)
-        {
-            PathRecorder rec;
-            if (paths.TryGetRecorder(p.SteamUserId, out rec))
-            {
-                rec.Cancel();
-                if (rec.IsLocal)
-                    player.Clear();
-            }
-        }
-
-        private IEnumerable<Path> GetSelectedPaths()
-        {
-            foreach(ulong id in selectedPlayers)
-            {
-                Path p;
-                if (paths.TryGetPath(id, out p))
-                    yield return p;
-            }
-        }
-
-        private void RacingApi_OnPlayerFinished(IMyPlayer p)
-        {
-            PathRecorder rec;
-            if (paths.TryGetRecorder(p.SteamUserId, out rec))
-            {
-                rec.Stop();
-                if (rec.IsLocal)
-                    player.Clear();
-            }
-        }
-
-        private void RacingApi_OnPlayerStarted(IMyPlayer p)
-        {
-            PathRecorder rec = paths.GetRecorder(p);
-            rec.Start();
-            if (rec.IsLocal)
-            {
-                if (rec.Best != null && !rec.Best.IsEmpty)
-                    player.Play(GetSelectedPaths(), rec.Best);
-                else
-                    player.Play(GetSelectedPaths());
-            }
         }
 
         public override void UpdateAfterSimulation()
@@ -109,9 +70,12 @@ namespace avaness.RacingPaths
             if (MyAPIGateway.Session == null)
                 return;
             if (!init)
+            {
                 Start();
-
-            player.Update();
+                if (!init)
+                    return;
+            }
+            player?.Update();
             paths.Update();
         }
 
