@@ -58,7 +58,7 @@ namespace avaness.RacingPaths.Data
                         positionOnly = false;
                         diff = true;
                     }
-                    else if (g.WorldMatrix.Translation != pos[i])
+                    else if (!g.WorldMatrix.Translation.Equals(pos[i], 0.1))
                     {
                         pos[i] = g.WorldMatrix.Translation;
                         diff = true;
