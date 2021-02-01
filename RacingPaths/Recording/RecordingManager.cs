@@ -15,13 +15,15 @@ namespace avaness.RacingPaths.Recording
     {
         private readonly RacingDisplayAPI racingApi;
         private readonly PathStorage paths;
+        private readonly PlaybackManager play;
         private readonly HashSet<ulong> toRecord = new HashSet<ulong>();
         private readonly Network net;
 
-        public RecordingManager(PathStorage paths, Network net)
+        public RecordingManager(PathStorage paths, Network net, PlaybackManager play)
         {
             this.paths = paths;
             this.net = net;
+            this.play = play;
             racingApi = new RacingDisplayAPI(OnRacingAPI);
             MyVisualScriptLogicProvider.PlayerDisconnected += PlayerDisconnected;
         }
@@ -57,7 +59,10 @@ namespace avaness.RacingPaths.Recording
             if (paths.TryGetRecorder(p.SteamUserId, out rec))
                 rec.Cancel();
 
-            net.SendTo(Network.packetRaceStart, new PacketRaceEnd(false), p.SteamUserId);
+            if (play != null && MyAPIGateway.Session.Player.SteamUserId == p.SteamUserId)
+                play.RaceEnd(false);
+            else
+                net.SendTo(Network.packetRaceStart, new PacketRaceEnd(false), p.SteamUserId);
         }
 
         private void OnPlayerFinished(IMyPlayer p)
@@ -66,7 +71,10 @@ namespace avaness.RacingPaths.Recording
             if (paths.TryGetRecorder(p.SteamUserId, out rec))
                 rec.Stop();
 
-            net.SendTo(Network.packetRaceStart, new PacketRaceEnd(true), p.SteamUserId);
+            if (play != null && MyAPIGateway.Session.Player.SteamUserId == p.SteamUserId)
+                play.RaceEnd(true);
+            else
+                net.SendTo(Network.packetRaceStart, new PacketRaceEnd(true), p.SteamUserId);
         }
 
         private void OnPlayerStarted(IMyPlayer p)
@@ -76,7 +84,10 @@ namespace avaness.RacingPaths.Recording
             if(recording)
                 paths.GetRecorder(p).Start();
 
-            net.SendTo(Network.packetRaceStart, new PacketRaceStart(recording), p.SteamUserId);
+            if (play != null && MyAPIGateway.Session.Player.SteamUserId == p.SteamUserId)
+                play.RaceStart(recording);
+            else
+                net.SendTo(Network.packetRaceStart, new PacketRaceStart(recording), p.SteamUserId);
         }
 
         public bool ToggleRecording(ulong id)

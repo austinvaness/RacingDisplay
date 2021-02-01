@@ -57,7 +57,7 @@ namespace avaness.RacingPaths
 
             if (IsServer)
             {
-                recs = new RecordingManager(paths, net);
+                recs = new RecordingManager(paths, net, play);
             }
 
             cmds = new Commands(paths, recs, play);

@@ -3,6 +3,7 @@ using avaness.RacingPaths.Hud;
 using avaness.RacingPaths.Net;
 using avaness.RacingPaths.Storage;
 using Sandbox.ModAPI;
+using System;
 using System.Collections.Generic;
 using VRage.Game.ModAPI;
 
@@ -32,13 +33,17 @@ namespace avaness.RacingPaths.Recording
         private void RaceEnd(byte[] data)
         {
             PacketRaceEnd packet = MyAPIGateway.Utilities.SerializeFromBinary<PacketRaceEnd>(data);
-            if (packet == null)
-                return;
+            if (packet != null)
+                RaceEnd(packet.finish);
 
+        }
+
+        public void RaceEnd(bool finish)
+        {
             PathRecorder rec;
             if (paths.TryGetRecorder(me.SteamUserId, out rec))
             {
-                if (packet.finish)
+                if (finish)
                     rec.Stop();
                 else
                     rec.Cancel();
@@ -51,9 +56,12 @@ namespace avaness.RacingPaths.Recording
         private void RaceStart(byte[] data)
         {
             PacketRaceStart packet = MyAPIGateway.Utilities.SerializeFromBinary<PacketRaceStart>(data);
-            if (packet == null)
-                return;
+            if (packet != null)
+                RaceStart(packet.recording);
+        }
 
+        public void RaceStart(bool recording)
+        {
             List<Path> playable = new List<Path>();
             foreach (ulong id in toPlay)
             {
@@ -62,18 +70,18 @@ namespace avaness.RacingPaths.Recording
                     playable.Add(p);
             }
 
-            if (packet.recording)
+            if (recording)
             {
                 PathRecorder rec = paths.GetRecorder(me);
                 rec.Start();
-                
+
                 Path p;
                 if (!toPlay.Contains(me.SteamUserId) && paths.TryGetPath(me.SteamUserId, out p))
                     playable.Add(p); // Always play the local recording
             }
 
             player.Play(playable);
-            hud.RecordingIndicator = packet.recording;
+            hud.RecordingIndicator = recording;
         }
 
         public bool TogglePlay(ulong id)
