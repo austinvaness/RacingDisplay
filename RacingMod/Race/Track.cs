@@ -238,7 +238,7 @@ namespace avaness.RacingMod.Race
             BuildText(ranking);
         }
 
-        void BuildText(SortedSet<StaticRacerInfo> ranking)
+        void BuildText(SortedSet<IRacer> ranking)
         {
             int runticks = RacingSession.Instance.Runticks;
 
@@ -268,7 +268,7 @@ namespace avaness.RacingMod.Race
                 int i = Finishers.Count + 1;
                 double previousDist = Nodes.TotalDistance * MapSettings.NumLaps;
 
-                foreach (StaticRacerInfo info in ranking)
+                foreach (IRacer info in ranking)
                 {
                     string drawnColor = null;
                     if (info.OnTrack)

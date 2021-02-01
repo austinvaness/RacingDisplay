@@ -8,25 +8,24 @@ using VRage.Game.ModAPI;
 
 namespace avaness.RacingMod.Racers
 {
-    public class StaticRacerInfo : IFinisher, IEquatable<StaticRacerInfo>
+    public class StaticRacerInfo : IRacer, IFinisher, IEquatable<StaticRacerInfo>
     {
         public ulong Id { get; }
         public IMyPlayer Racer { get; set; }
         public string Name { get; }
         public string FormattedName { get; }
-        public Timer Timer;
+        public Timer Timer { get; }
         public bool InStart;
-        public bool OnTrack;
-        public int Laps = 0;
-        public long Time => BestTime.Ticks;
+        public bool OnTrack { get; set; }
+        public int Laps { get; set; } = 0;
         public TimeSpan BestTime { get; private set; } = new TimeSpan(0);
-        public int RankUpFrame = 0;
-        public int Rank = 0;
+        public int RankUpFrame { get; set; } = 0;
+        public int Rank { get; set; } = 0;
         /// <summary>
         /// Distance from start
         /// </summary>
-        public double Distance = 0;
-        public bool Missed = false;
+        public double Distance { get; set; } = 0;
+        public bool Missed { get; set; } = false;
         public bool AutoJoin = false;
 
         private int nextNode;
