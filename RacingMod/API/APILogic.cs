@@ -5,6 +5,8 @@ using VRage;
 using System.Linq;
 using VRage.Game.ModAPI;
 using System.Collections.Generic;
+using VRage.Game;
+using VRage.Utils;
 
 namespace avaness.RacingMod.API
 {
@@ -50,7 +52,16 @@ namespace avaness.RacingMod.API
 
         public void SendEvent(IMyPlayer p, RacingDisplayAPI.PlayerEvent pEvent)
         {
-            MyAPIGateway.Utilities.SendModMessage(RacingConstants.ModMessageId, new MyTuple<IMyPlayer, int>(p, (int)pEvent));
+            try // Necessary to protect against bad code since mod messages are received instantly.
+            {
+                MyAPIGateway.Utilities.SendModMessage(RacingConstants.ModMessageId, new MyTuple<IMyPlayer, int>(p, (int)pEvent));
+            }
+            catch (Exception e)
+            {
+                MyLog.Default.WriteLineAndConsole($"ERROR in mod linked to API: {e.Message}\n{e.StackTrace}");
+                if (MyAPIGateway.Session?.Player != null)
+                    MyAPIGateway.Utilities.ShowNotification($"[ ERROR: {e.Message} | Send SpaceEngineers.Log to mod author ]", 3000, MyFontEnum.Red);
+            }
         }
     }
 }

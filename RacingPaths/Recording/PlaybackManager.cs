@@ -72,8 +72,7 @@ namespace avaness.RacingPaths.Recording
 
             if (recording)
             {
-                PathRecorder rec = paths.GetRecorder(me);
-                rec.Start();
+                paths.GetRecorder(me).Start();
 
                 Path p;
                 if (!toPlay.Contains(me.SteamUserId) && paths.TryGetPath(me.SteamUserId, out p))

@@ -202,7 +202,7 @@ namespace avaness.RacingPaths.Data
 
         public bool BetterThan(Path other)
         {
-            return other.data.Count == 0 || (data.Count > 0 && data[data.Count - 1].Runtime < other.data[data.Count - 1].Runtime);
+            return other.data.Count == 0 || (data.Count > 0 && data[data.Count - 1].Runtime < other.data[other.data.Count - 1].Runtime);
         }
     }
 }
