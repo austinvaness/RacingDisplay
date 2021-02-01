@@ -7,7 +7,7 @@ namespace avaness.RacingPaths.Net
     public class Network
     {
         public const byte packetRaceStart = 0;
-        public const byte packetRaceEnd = 0;
+        public const byte packetRaceEnd = 1;
 
 
         private const ushort packetId = 33982;
