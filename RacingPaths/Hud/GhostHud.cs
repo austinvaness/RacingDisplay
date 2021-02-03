@@ -1,4 +1,8 @@
 ﻿using Draygo.API;
+using RichHudFramework.Client;
+using RichHudFramework.UI;
+using RichHudFramework.UI.Client;
+using Sandbox.ModAPI;
 using System.Text;
 using VRageMath;
 
@@ -26,20 +30,28 @@ namespace avaness.RacingPaths.Hud
 
         public GhostHud()
         {
-            hud = new HudAPIv2(OnHudReady);
+            hud = new HudAPIv2(CreateHud);
+            if (RichHudClient.Registered)
+                CreateRichHud();
         }
+
 
         public void Unload()
         {
             hud.Unload();
         }
 
-        private void OnHudReady()
+        private void CreateHud()
         {
             recording = new HudAPIv2.HUDMessage(new StringBuilder("Recording"), new Vector2D(-1, 1), Scale: 0.75)
             {
                 Visible = false
             };
+        }
+
+        public void CreateRichHud()
+        {
+
         }
     }
 }

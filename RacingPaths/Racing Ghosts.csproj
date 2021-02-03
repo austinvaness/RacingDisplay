@@ -63,6 +63,7 @@
     <Reference Include="System">
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.Xml" />
     <Reference Include="VRage">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SpaceEngineers\Bin64\VRage.dll</HintPath>
       <Private>False</Private>
@@ -103,7 +104,6 @@
     <Compile Include="Commands.cs" />
     <Compile Include="Data\SerializableMatrix.cs" />
     <Compile Include="Hud\GhostHud.cs" />
-    <Compile Include="Hud\HudAPIv2.cs" />
     <Compile Include="Data\Path.cs" />
     <Compile Include="Data\Path.GridData.cs" />
     <Compile Include="Data\Path.GridInfo.cs" />
@@ -116,6 +116,140 @@
     <Compile Include="Recording\PathPlayer.cs" />
     <Compile Include="Recording\PathRecorder.cs" />
     <Compile Include="Recording\RecordingManager.cs" />
+    <Compile Include="RichHudFramework\Client\RichHudClient.cs" />
+    <Compile Include="RichHudFramework\Client\UI\BindManager\Bind.cs" />
+    <Compile Include="RichHudFramework\Client\UI\BindManager\BindGroup.cs" />
+    <Compile Include="RichHudFramework\Client\UI\BindManager\BindManager.cs" />
+    <Compile Include="RichHudFramework\Client\UI\BindManager\Control.cs" />
+    <Compile Include="RichHudFramework\Client\UI\HUD\HudCursor.cs" />
+    <Compile Include="RichHudFramework\Client\UI\HUD\HudMain.cs" />
+    <Compile Include="RichHudFramework\Client\UI\HUD\Rendering\FontManager\FontData.cs" />
+    <Compile Include="RichHudFramework\Client\UI\HUD\Rendering\FontManager\FontManager.cs" />
+    <Compile Include="RichHudFramework\Client\UI\HUD\Rendering\TextBoard.cs" />
+    <Compile Include="RichHudFramework\Client\UI\HUD\Rendering\TextBuilder.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\ControlCategory.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TerminalButton.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TerminalCheckbox.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TerminalColorPicker.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TerminalControlBase.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TerminalDragBox.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TerminalDropdown.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TerminalList.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TerminalOnOffButton.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TerminalSlider.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Controls\TextField.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\ControlTile.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\ListBoxData.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Pages\ControlPage.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Pages\RebindPage.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Pages\TerminalPageBase.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\Pages\TextPage.cs" />
+    <Compile Include="RichHudFramework\Client\UI\SettingsMenu\RichHudTerminal.cs" />
+    <Compile Include="RichHudFramework\Shared\General\ApiContainers.cs" />
+    <Compile Include="RichHudFramework\Shared\General\Collections.cs" />
+    <Compile Include="RichHudFramework\Shared\General\Extensions\CollectionExtensions.cs" />
+    <Compile Include="RichHudFramework\Shared\General\Extensions\MathExtensions.cs" />
+    <Compile Include="RichHudFramework\Shared\General\Extensions\VectorExtensions.cs" />
+    <Compile Include="RichHudFramework\Shared\General\ObjectPool.cs" />
+    <Compile Include="RichHudFramework\Shared\General\PoolPolicies\StringBuilderPoolPolicy.cs" />
+    <Compile Include="RichHudFramework\Shared\General\TaskPool.cs" />
+    <Compile Include="RichHudFramework\Shared\General\Utilities\Color.cs" />
+    <Compile Include="RichHudFramework\Shared\General\Utilities\Debug.cs" />
+    <Compile Include="RichHudFramework\Shared\General\Utilities\ProtoBuf.cs" />
+    <Compile Include="RichHudFramework\Shared\General\Utilities\Xml.cs" />
+    <Compile Include="RichHudFramework\Shared\Internal\ExceptionHandler.cs" />
+    <Compile Include="RichHudFramework\Shared\Internal\ModBase.cs" />
+    <Compile Include="RichHudFramework\Shared\Internal\RichHudCore.cs" />
+    <Compile Include="RichHudFramework\Shared\IO\LocalFileIO.cs" />
+    <Compile Include="RichHudFramework\Shared\IO\LogIO.cs" />
+    <Compile Include="RichHudFramework\Shared\MsgEnums.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\BindManager\BindClientAccessors.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\BindManager\BindDefinition.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\BindManager\BindGroupInitializer.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\BindManager\CustomControls.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\BindManager\IBind.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\BindManager\IBindGroup.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\BindManager\IControl.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\CmdManager.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementBases\HudElementBase.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementBases\HudNodeBase.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementBases\HudParentBase.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementBases\HudSpaceNodeBase.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementBases\LabelBoxBase.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementBases\NodeUtils.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementBases\ParentUtils.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementBases\WindowBase.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementEnums.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementInterfaces\IClickableElement.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementInterfaces\IEntryBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementInterfaces\IHudCollection.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementInterfaces\IReadOnlyHudElement.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementInterfaces\IReadOnlyHudNode.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementInterfaces\IReadOnlyHudParent.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElementInterfaces\IReadOnlyHudSpaceNode.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\BorderBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\BorderedButton.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\BorderedCheckBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\Button.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\ColorPickerRGB.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\Dropdown.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\LabelBoxButton.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\LabelButton.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\ListBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\MouseInputElement.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\MouseInputFilter.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\NamedCheckBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\NamedOnOffButton.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\NamedSliderBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\OnOffButton.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\ScrollBar.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\ScrollBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\SliderBar.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\SliderBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\TextBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\TextField.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ClickableHudElements\TreeBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ContainerInterfaces\IHudElementContainer.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\ContainerInterfaces\IScrollBoxEntry.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\Containers\HudElementContainer.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\Containers\HudElementTuple.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\Containers\ListBoxEntry.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\Containers\ScrollBoxEntry.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\Containers\ScrollBoxEntryTuple.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\DoubleLabelBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\EmptyHudElement.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\HudChain.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\HudCollection.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\Label.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\LabelBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudElements\TexturedBox.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudMainEnums.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudSpaceNodes\CamSpaceNode.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\HudSpaceNodes\CustomSpaceNode.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\ICursor.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\BlockBoard.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\IFontMin.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\MatBoard.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\Material.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\MaterialFrame.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\QuadBoard.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\TextBuilderInterfaces\ILine.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\TextBuilderInterfaces\IRichChar.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\TextBuilderInterfaces\ITextBoard.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\Rendering\TextBuilderInterfaces\ITextBuilder.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\RichText\GlyphFormat.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\RichText\RichText.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\HUD\TerminalColors.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\SettingsMenu\IControlCategory.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\SettingsMenu\IControlPage.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\SettingsMenu\IControlTile.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\SettingsMenu\IModControlRoot.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\SettingsMenu\IRebindPage.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\SettingsMenu\ITerminalControl.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\SettingsMenu\ITerminalPage.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\SettingsMenu\ITextPage.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\SharedBinds.cs" />
+    <Compile Include="RichHudFramework\Shared\UI\TextInput.cs" />
     <Compile Include="Storage\PathStorage.cs" />
     <Compile Include="Storage\SerializablePathInfo.cs" />
     <Compile Include="Session.cs" />
@@ -125,21 +259,18 @@
     <Content Include="Workshop\metadata.mod" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="RichHudFramework\Shared\.gitrepo" />
     <None Include="Workshop\modinfo.sbmi" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>cd /D "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\"
-del /S /Q *.*
-cd /D $(ProjectDir)
+    <PostBuildEvent>cd /D $(ProjectDir)
 mkdir "Workshop"
-echo AssemblyInfo.cs &gt; exclude.txt
-echo obj &gt;&gt; exclude.txt
-echo bin &gt;&gt; exclude.txt
 mkdir "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)"
+rclone sync "$(ProjectDir)\" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)" --filter "- obj/**" --filter "- bin/**" --filter "- **/AssemblyInfo.cs" --filter "+ **.cs" --filter "- *" -v
+rclone sync "$(ProjectDir)\Workshop" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" --exclude "**.cs" -v
 xcopy "..\RacingMod\API\RacingDisplayAPI.cs"  "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)" /Y /S
-xcopy "*.cs" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)" /Y /S /exclude:exclude.txt
-xcopy "Workshop\*.*" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" /Y /S</PostBuildEvent>
+</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <LangVersion>6</LangVersion>

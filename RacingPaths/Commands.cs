@@ -74,6 +74,26 @@ namespace avaness.RacingPaths
                             SendMessage("Your path will no longer be played.", "Play", p.IdentityId);
                     }
                     break;
+                case "playnext": // Plays the next time to beat.
+                    if(cmd.Length == 2)
+                    {
+                        Path myPath;
+                        if(!paths.TryGetPath(p.SteamUserId, out myPath) || myPath.IsEmpty)
+                        {
+                            SendMessage("You do not have a path recorded!", "Play Next", p.IdentityId);
+                            return;
+                        }
+
+                        SerializablePathInfo next = paths.Where(path => path.Data.Length > myPath.Length).MinBy(path => path.Data.Length.Ticks);
+                        if(next == null)
+                        {
+                            SendMessage("No path found.", "Play Next", p.IdentityId);
+                            return;
+                        }
+
+                        play.SetPlay(next.PlayerId, true); // TODO automate this command
+                    }
+                    break;
             }
         }
 

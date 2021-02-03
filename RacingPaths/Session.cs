@@ -5,6 +5,8 @@ using avaness.RacingPaths.Recording;
 using avaness.RacingPaths.Hud;
 using VRage.Game;
 using avaness.RacingPaths.Net;
+using RichHudFramework.Client;
+using System;
 
 namespace avaness.RacingPaths
 {
@@ -25,6 +27,22 @@ namespace avaness.RacingPaths
         private RecordingManager recs;
         private PlaybackManager play;
         private Network net;
+
+        public override void Init(MyObjectBuilder_SessionComponent sessionComponent)
+        {
+            RichHudClient.Init(DebugName, HudReady, () => { });
+        }
+
+        private void HudReady()
+        {
+            if(IsPlayer)
+            {
+                if (hud == null)
+                    hud = new GhostHud();
+                else
+                    hud.CreateRichHud();
+            }
+        }
 
         public override void LoadData()
         {
@@ -51,7 +69,8 @@ namespace avaness.RacingPaths
 
             if (IsPlayer)
             {
-                hud = new GhostHud();
+                if(hud == null)
+                    hud = new GhostHud();
                 play = new PlaybackManager(net, paths, player, hud);
             }
 
