@@ -36,7 +36,7 @@ namespace avaness.RacingPaths.Recording
         {
             this.p = p;
             this.best = best;
-            temp = new Path("BestTime" + p.SteamUserId, p.DisplayName, "The best time of " + p.DisplayName);
+            temp = new Path(p.DisplayName, p.SteamUserId);
 
             IMyPlayer local = MyAPIGateway.Session?.Player;
             IsLocal = local != null && local.SteamUserId == p.SteamUserId;

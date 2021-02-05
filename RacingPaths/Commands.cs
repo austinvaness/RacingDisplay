@@ -84,7 +84,7 @@ namespace avaness.RacingPaths
                             return;
                         }
 
-                        SerializablePathInfo next = paths.Where(path => path.Data.Length > myPath.Length).MinBy(path => path.Data.Length.Ticks);
+                        Path next = paths.Where(path => path.Length > myPath.Length).MinBy(path => path.Length.Ticks);
                         if(next == null)
                         {
                             SendMessage("No path found.", "Play Next", p.IdentityId);
@@ -117,15 +117,15 @@ namespace avaness.RacingPaths
             {
                 case "top": // Show leaderboard
                     {
-                        SortedSet<Path> sorted = new SortedSet<Path>(paths.Select(i => i.Data), new PathComparer());
+                        SortedSet<Path> sorted = new SortedSet<Path>(paths, new PathComparer());
                         StringBuilder sb = new StringBuilder();
                         sb.Append("Top 10:").AppendLine();
                         if(sorted.Count > 0)
                         {
-                            int nameLen = sorted.Take(10).Max(path => path.DisplayName.Length);
+                            int nameLen = sorted.Take(10).Max(path => path.PlayerName.Length);
                             foreach (Path path in sorted.Take(10))
                             {
-                                string name = path.DisplayName;
+                                string name = path.PlayerName;
                                 sb.Append(name);
                                 if (name.Length < nameLen)
                                     sb.Append(' ', nameLen - name.Length);
@@ -229,9 +229,9 @@ namespace avaness.RacingPaths
             if (temp.Count > 0)
                 return temp[0].SteamUserId;
 
-            foreach (SerializablePathInfo info in paths)
+            foreach (Path info in paths)
             {
-                if (info.Data.DisplayName.IndexOf(name, StringComparison.OrdinalIgnoreCase) != -1)
+                if (info.PlayerName.IndexOf(name, StringComparison.OrdinalIgnoreCase) != -1)
                     return info.PlayerId;
             }
 

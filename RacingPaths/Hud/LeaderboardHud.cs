@@ -8,6 +8,7 @@ using Draygo.API;
 using VRage.Utils;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 using avaness.RacingPaths.Storage;
+using avaness.RacingPaths.Data;
 
 namespace avaness.RacingPaths.Hud
 {
@@ -77,7 +78,7 @@ namespace avaness.RacingPaths.Hud
             btn = new HudButton(cursor, origin, new Vector2D(0.1), Color.White, "Square");
         }
 
-        public void Load(IEnumerable<SerializablePathInfo> paths)
+        public void Load(IEnumerable<Path> paths)
         {
             
         }

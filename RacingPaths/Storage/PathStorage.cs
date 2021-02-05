@@ -10,11 +10,11 @@ using System.Collections;
 
 namespace avaness.RacingPaths.Storage
 {
-    public class PathStorage : IEnumerable<SerializablePathInfo>
+    public class PathStorage : IEnumerable<Path>
     {
         private const string variableId = "RacePathData";
 
-        private Dictionary<ulong, SerializablePathInfo> saveData = new Dictionary<ulong, SerializablePathInfo>();
+        private Dictionary<ulong, Path> saveData = new Dictionary<ulong, Path>();
         private bool needSave = false;
         private Dictionary<ulong, PathRecorder> recorders = new Dictionary<ulong, PathRecorder>();
 
@@ -38,13 +38,13 @@ namespace avaness.RacingPaths.Storage
             }
         }
 
-        private SerializablePathInfo ConvertToPath(string base64)
+        private Path ConvertToPath(string base64)
         {
             try
             {
                 byte[] compressed = Convert.FromBase64String(base64);
                 byte[] uncompressed = MyCompression.Decompress(compressed);
-                return MyAPIGateway.Utilities.SerializeFromBinary<SerializablePathInfo>(uncompressed);
+                return MyAPIGateway.Utilities.SerializeFromBinary<Path>(uncompressed);
             }
             catch (Exception e)
             {
@@ -54,7 +54,7 @@ namespace avaness.RacingPaths.Storage
             }
         }
 
-        private string ConvertToBase64(SerializablePathInfo info)
+        private string ConvertToBase64(Path info)
         {
             try
             {
@@ -76,7 +76,7 @@ namespace avaness.RacingPaths.Storage
                 saveData.Clear();
                 foreach (string s in storage)
                 {
-                    SerializablePathInfo temp = ConvertToPath(s);
+                    Path temp = ConvertToPath(s);
                     if (temp != null)
                         saveData[temp.PlayerId] = temp;
                 }
@@ -104,9 +104,9 @@ namespace avaness.RacingPaths.Storage
                 return;
 
             List<string> base64s = new List<string>();
-            foreach(SerializablePathInfo info in saveData.Values)
+            foreach(Path p in saveData.Values)
             {
-                string base64 = ConvertToBase64(info);
+                string base64 = ConvertToBase64(p);
                 if (base64 != null)
                     base64s.Add(base64);
             }
@@ -138,29 +138,16 @@ namespace avaness.RacingPaths.Storage
 
         private void OnBestChanged(ulong id, Path newBest)
         {
-            if(newBest == null || newBest.IsEmpty)
+            if (newBest == null || newBest.IsEmpty)
                 saveData.Remove(id);
             else
-                saveData[id] = new SerializablePathInfo(id, newBest);
+                saveData[id] = newBest;
             needSave = true;
-        }
-
-        public bool TryGetPathInfo(ulong id, out SerializablePathInfo info)
-        {
-            return saveData.TryGetValue(id, out info);
         }
 
         public bool TryGetPath(ulong id, out Path path)
         {
-            SerializablePathInfo info;
-            if(saveData.TryGetValue(id, out info))
-            {
-                path = info.Data;
-                return true;
-            }
-
-            path = null;
-            return false;
+            return saveData.TryGetValue(id, out path);
         }
 
         public void Remove(ulong id)
@@ -173,7 +160,7 @@ namespace avaness.RacingPaths.Storage
             needSave = true;
         }
 
-        public IEnumerator<SerializablePathInfo> GetEnumerator()
+        public IEnumerator<Path> GetEnumerator()
         {
             return saveData.Values.GetEnumerator();
         }

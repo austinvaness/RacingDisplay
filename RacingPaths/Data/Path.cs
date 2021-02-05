@@ -25,11 +25,36 @@ namespace avaness.RacingPaths.Data
         private List<IMyCubeGrid> playbackGroup;
 
         [ProtoMember(2)]
-        private string ghostId = "Invalid";
+        public string PlayerName
+        {
+            get
+            {
+                return playerName;
+            }
+            private set
+            {
+                playerName = value;
+                ghostDescription = "Best time of " + playerName;
+            }
+        }
+        private string playerName;
+        private string ghostDescription;
+
         [ProtoMember(3)]
-        private string ghostName = "Invalid";
-        [ProtoMember(4)]
-        private string ghostDescription = "Invalid";
+        public ulong PlayerId
+        {
+            get
+            {
+                return playerId;
+            }
+            private set
+            {
+                playerId = value;
+                ghostId = "BestTime" + playerId;
+            }
+        }
+        private ulong playerId;
+        private string ghostId;
 
         private static Color ghostWaypointColor = new Color(0, 0, 255);
         private const int maxData = 108000; // about 30 minutes at 60tps
@@ -39,8 +64,6 @@ namespace avaness.RacingPaths.Data
         private const long oneTick = (long)(MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS * TimeSpan.TicksPerSecond);
         public TimeSpan Length => new TimeSpan(LastRuntime * oneTick);
 
-        public string DisplayName => ghostName;
-
         /// <summary>
         /// Used for serialization only.
         /// </summary>
@@ -48,16 +71,15 @@ namespace avaness.RacingPaths.Data
         {
         }
 
-        public Path(string ghostId, string ghostName, string ghostDescription)
+        public Path(string playerName, ulong playerId)
         {
-            this.ghostId = ghostId;
-            this.ghostName = ghostName;
-            this.ghostDescription = ghostDescription;
+            PlayerName = playerName;
+            PlayerId = playerId;
         }
 
         public Path EmptyCopy()
         {
-            return new Path(ghostId, ghostName, ghostDescription);
+            return new Path(PlayerName, PlayerId);
         }
 
         public void Debug(StringBuilder sb, bool rec, bool play)
@@ -85,7 +107,7 @@ namespace avaness.RacingPaths.Data
                 ClosePlaybackGroup();
                 prevGrid = null;
             }
-            else if(data.Count >= maxData)
+            else if (data.Count >= maxData)
             {
                 return;
             }
@@ -97,12 +119,12 @@ namespace avaness.RacingPaths.Data
             {
                 prevGrid = null;
             }
-            else if(prevGrid == null)
+            else if (prevGrid == null)
             {
                 prevGrid = new GridInfo(grid);
                 data.Add(new GridData(runtime, grid, true));
             }
-            else 
+            else
             {
                 bool posOnly;
                 if (prevGrid.Changed(grid, out posOnly) && (!posOnly || runtime % 2 == 0))
@@ -122,7 +144,7 @@ namespace avaness.RacingPaths.Data
             }
             play = true;
 
-            if(playbackTick < data.Count)
+            if (playbackTick < data.Count)
             {
                 GridData tick = data[playbackTick];
                 if (tick.Runtime <= runtime)
@@ -133,7 +155,7 @@ namespace avaness.RacingPaths.Data
                         playbackGroupRequested = runtime;
                         tick.Create(NewPlaybackGroup, ghostId, runtime);
                     }
-                    else if(playbackGroup != null)
+                    else if (playbackGroup != null)
                     {
                         tick.Teleport(playbackGroup);
                     }
@@ -167,7 +189,7 @@ namespace avaness.RacingPaths.Data
 
         private void NewPlaybackGroup(List<IMyCubeGrid> group, int requestTime)
         {
-            if(play && requestTime == playbackGroupRequested)
+            if (play && requestTime == playbackGroupRequested)
             {
                 playbackGroup = group;
                 AddGps();
@@ -192,12 +214,12 @@ namespace avaness.RacingPaths.Data
 
         private void AddGps()
         {
-            MyVisualScriptLogicProvider.AddGPSToEntity(ghostId, ghostName, ghostDescription, ghostWaypointColor);
+            MyVisualScriptLogicProvider.AddGPSToEntity(ghostId, playerName, ghostDescription, ghostWaypointColor);
         }
 
         private void RemoveGps()
         {
-            MyVisualScriptLogicProvider.RemoveGPSFromEntity(ghostId, ghostName, ghostDescription);
+            MyVisualScriptLogicProvider.RemoveGPSFromEntity(ghostId, playerName, ghostDescription);
         }
 
         public bool BetterThan(Path other)
