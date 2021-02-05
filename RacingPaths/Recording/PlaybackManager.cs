@@ -16,11 +16,11 @@ namespace avaness.RacingPaths.Recording
     {
         private readonly PathStorage paths;
         private readonly PathPlayer player;
-        private readonly GhostHud hud;
+        private readonly CoreHud hud;
         private readonly HashSet<ulong> toPlay = new HashSet<ulong>();
         private readonly IMyPlayer me;
 
-        public PlaybackManager(Network net, PathStorage paths, PathPlayer player, GhostHud hud)
+        public PlaybackManager(Network net, PathStorage paths, PathPlayer player, CoreHud hud)
         {
             me = MyAPIGateway.Session.Player;
             this.paths = paths;

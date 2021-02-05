@@ -5,8 +5,9 @@ using avaness.RacingPaths.Recording;
 using avaness.RacingPaths.Hud;
 using VRage.Game;
 using avaness.RacingPaths.Net;
-using RichHudFramework.Client;
 using System;
+using avaness.RacingPaths.Data;
+using VRageMath;
 
 namespace avaness.RacingPaths
 {
@@ -23,26 +24,10 @@ namespace avaness.RacingPaths
         private PathStorage paths;
         private PathPlayer player = new PathPlayer();
         private Commands cmds;
-        private GhostHud hud;
+        private CoreHud hud;
         private RecordingManager recs;
         private PlaybackManager play;
         private Network net;
-
-        public override void Init(MyObjectBuilder_SessionComponent sessionComponent)
-        {
-            RichHudClient.Init(DebugName, HudReady, () => { });
-        }
-
-        private void HudReady()
-        {
-            if(IsPlayer)
-            {
-                if (hud == null)
-                    hud = new GhostHud();
-                else
-                    hud.CreateRichHud();
-            }
-        }
 
         public override void LoadData()
         {
@@ -69,8 +54,7 @@ namespace avaness.RacingPaths
 
             if (IsPlayer)
             {
-                if(hud == null)
-                    hud = new GhostHud();
+                hud = new CoreHud(paths);
                 play = new PlaybackManager(net, paths, player, hud);
             }
 
@@ -80,6 +64,16 @@ namespace avaness.RacingPaths
             }
 
             cmds = new Commands(paths, recs, play);
+
+            Matrix m1 = MyAPIGateway.Session.Camera.WorldMatrix;
+            SerializableMatrix m2 = new SerializableMatrix(m1);
+            byte[] b2 = MyAPIGateway.Utilities.SerializeToBinary(m2);
+            MyAPIGateway.Utilities.ShowNotification($"{b2.Length} bytes.");
+            m1.Forward = Vector3.Zero;
+            SerializableMatrix m3 = new SerializableMatrix(m1);
+            byte[] b3 = MyAPIGateway.Utilities.SerializeToBinary(m3);
+            MyAPIGateway.Utilities.ShowNotification($"{b3.Length} bytes.");
+
 
             init = true;
         }
@@ -102,6 +96,11 @@ namespace avaness.RacingPaths
         {
             if(paths != null && MyAPIGateway.Session.IsServer)
                 paths.Save();
+        }
+
+        public override void Draw()
+        {
+            hud?.Draw();
         }
     }
 }

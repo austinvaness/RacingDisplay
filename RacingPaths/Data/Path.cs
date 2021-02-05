@@ -105,7 +105,7 @@ namespace avaness.RacingPaths.Data
             else 
             {
                 bool posOnly;
-                if (prevGrid.Changed(grid, out posOnly))
+                if (prevGrid.Changed(grid, out posOnly) && (!posOnly || runtime % 2 == 0))
                 {
                     data.Add(new GridData(runtime, grid, !posOnly));
                 }
