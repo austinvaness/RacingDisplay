@@ -16,7 +16,7 @@ namespace avaness.RacingPaths.Data
     {
         private int runtime = 0;
         private GridInfo prevGrid;
-        [ProtoMember(1, IsRequired = true)]
+        [ProtoMember(1)]
         private List<GridData> data = new List<GridData>();
 
         private bool play;
@@ -24,11 +24,11 @@ namespace avaness.RacingPaths.Data
         private int playbackGroupRequested = -1;
         private List<IMyCubeGrid> playbackGroup;
 
-        [ProtoMember(2, IsRequired = true)]
+        [ProtoMember(2)]
         private string ghostId = "Invalid";
-        [ProtoMember(3, IsRequired = true)]
+        [ProtoMember(3)]
         private string ghostName = "Invalid";
-        [ProtoMember(4, IsRequired = true)]
+        [ProtoMember(4)]
         private string ghostDescription = "Invalid";
 
         private static Color ghostWaypointColor = new Color(0, 0, 255);

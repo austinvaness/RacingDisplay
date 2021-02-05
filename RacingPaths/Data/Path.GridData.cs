@@ -15,14 +15,14 @@ namespace avaness.RacingPaths.Data
         [ProtoContract]
         private class GridData
         {
-            [ProtoMember(1, IsRequired = true)]
+            [ProtoMember(1)]
             public int Runtime { get; private set; }
             public bool NewGrid => newGrid != null && newGrid.Length > 0;
 
-            [ProtoMember(2, IsRequired = true)]
+            [ProtoMember(2)]
             private MyObjectBuilder_CubeGrid[] newGrid = new MyObjectBuilder_CubeGrid[0];
 
-            [ProtoMember(3, IsRequired = true)]
+            [ProtoMember(3)]
             private SerializableMatrix[] serializableMatrix
             {
                 get
