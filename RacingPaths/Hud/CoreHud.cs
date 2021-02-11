@@ -1,8 +1,9 @@
-﻿using avaness.RacingPaths.Storage;
+﻿using avaness.RacingPaths.Data;
+using avaness.RacingPaths.Recording;
+using avaness.RacingPaths.Storage;
 using Draygo.API;
 using Sandbox.ModAPI;
 using System.Text;
-using VRage.Utils;
 using VRageMath;
 
 namespace avaness.RacingPaths.Hud
@@ -12,7 +13,8 @@ namespace avaness.RacingPaths.Hud
         private readonly HudAPIv2 hud;
         private HudAPIv2.HUDMessage recording;
         private PathStorage paths;
-        //private LeaderboardHud<SerializablePathInfo> leaderboard;
+        private PlaybackManager play;
+        private LeaderboardHud leaderboard;
         private Cursor cursor;
 
         public bool RecordingIndicator
@@ -41,6 +43,7 @@ namespace avaness.RacingPaths.Hud
         {
             hud.Unload();
             cursor?.Unload();
+            leaderboard?.Unload();
         }
 
         private void CreateHud()
@@ -51,7 +54,7 @@ namespace avaness.RacingPaths.Hud
             {
                 Visible = false
             };
-            //leaderboard = new LeaderboardHud<SerializablePathInfo>(paths, cursor, Vector2D.Zero, 0.5, "Name     ", "Time     ");
+            leaderboard = new LeaderboardHud(play, cursor, Vector2D.Zero, 0.5, "# ", "Name                ", "Time      ");
 
             cursor.Create(); // Create last to show on top
         }

@@ -8,6 +8,7 @@ using avaness.RacingPaths.Net;
 using System;
 using avaness.RacingPaths.Data;
 using VRageMath;
+using VRage;
 
 namespace avaness.RacingPaths
 {
@@ -21,6 +22,7 @@ namespace avaness.RacingPaths
         public static bool IsPlayer => !IsDedicated;
 
         private bool init = false;
+        public Random Rand = new Random();
         private PathStorage paths;
         private PathPlayer player = new PathPlayer();
         private Commands cmds;
@@ -64,16 +66,6 @@ namespace avaness.RacingPaths
             }
 
             cmds = new Commands(paths, recs, play);
-
-            Matrix m1 = MyAPIGateway.Session.Camera.WorldMatrix;
-            SerializableMatrix m2 = new SerializableMatrix(m1);
-            byte[] b2 = MyAPIGateway.Utilities.SerializeToBinary(m2);
-            MyAPIGateway.Utilities.ShowNotification($"{b2.Length} bytes.");
-            m1.Forward = Vector3.Zero;
-            SerializableMatrix m3 = new SerializableMatrix(m1);
-            byte[] b3 = MyAPIGateway.Utilities.SerializeToBinary(m3);
-            MyAPIGateway.Utilities.ShowNotification($"{b3.Length} bytes.");
-
 
             init = true;
         }

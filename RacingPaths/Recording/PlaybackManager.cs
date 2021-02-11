@@ -114,5 +114,10 @@ namespace avaness.RacingPaths.Recording
                 toPlay.Remove(id);
             }
         }
+
+        public bool IsPlaying(ulong id)
+        {
+            return toPlay.Contains(id);
+        }
     }
 }

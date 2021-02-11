@@ -94,7 +94,7 @@ namespace avaness.RacingMod.API
         public event Action<IMyPlayer> OnPlayerJoined;
 
         /// <summary>
-        /// Invoked when a player first gets onto the race track.
+        /// Invoked when a player first gets onto the race track. Players that join in the middle of the track don't trigger this event.
         /// </summary>
         public event Action<IMyPlayer> OnPlayerStarted;
 

@@ -9,24 +9,49 @@ namespace avaness.RacingPaths.Hud
     public class HudText
     {
         private readonly HudAPIv2.HUDMessage msg;
+        private readonly string prefix;
+        private string text;
 
         public HudText(string text, Vector2D origin, Color color, string font = "white")
         {
-            msg = new HudAPIv2.HUDMessage(GetInitialText(text, color), origin, HideHud: false, Blend: BlendTypeEnum.PostPP, Font: font);
-        }
-
-        private static StringBuilder GetInitialText(string text, Color color)
-        {
             StringBuilder sb = new StringBuilder();
-            if(color != Color.White)
+            if (color != Color.White)
             {
                 sb.Append("<color=");
                 sb.Append(color.R).Append(',');
                 sb.Append(color.G).Append(',');
                 sb.Append(color.B).Append('>');
             }
+            prefix = sb.ToString();
             sb.Append(text);
-            return sb;
+            this.text = text;
+
+            msg = new HudAPIv2.HUDMessage(sb, origin, HideHud: false, Blend: BlendTypeEnum.PostPP, Font: font);
+        }
+
+        public bool Visible
+        {
+            get
+            {
+                return msg.Visible;
+            }
+            set
+            {
+                msg.Visible = value;
+            }
+        }
+
+        public string Text
+        {
+            get
+            {
+                return text;
+            }
+            set
+            {
+                text = value;
+                msg.Message.Clear().Append(prefix).Append(text);
+            }
         }
 
         public Vector2D GetTextLength()

@@ -6,44 +6,32 @@ namespace avaness.RacingPaths.Data
     [ProtoContract]
     public struct SerializableMatrix
     {
-        [ProtoMember(1)]
-        private float forward_x;
-        [ProtoMember(2)]
-        private float forward_y;
-        [ProtoMember(3)]
-        private float forward_z;
-        [ProtoMember(4)]
-        private float up_x;
-        [ProtoMember(5)]
-        private float up_y;
-        [ProtoMember(6)]
-        private float up_z;
-        [ProtoMember(7)]
-        private float translation_x;
-        [ProtoMember(8)]
-        private float translation_y;
-        [ProtoMember(9)]
-        private float translation_z;
+        [ProtoMember(1, IsPacked = true)]
+        private float[] data;
 
         public SerializableMatrix(Matrix m)
         {
-            forward_x = -m.M31;
-            forward_y = -m.M32;
-            forward_z = -m.M33;
-            up_x = m.M21;
-            up_y = m.M22;
-            up_z = m.M23;
-            translation_x = m.M41;
-            translation_y = m.M42;
-            translation_z = m.M43;
+            data = new float[9];
+            // Translation
+            data[0] = m.M41;
+            data[1] = m.M42;
+            data[2] = m.M43;
+            // Forward
+            data[3] = -m.M31;
+            data[4] = -m.M32;
+            data[5] = -m.M33;
+            // Up
+            data[6] = m.M21;
+            data[7] = m.M22;
+            data[8] = m.M23;
         }
 
         public static explicit operator Matrix(SerializableMatrix d)
         {
             return Matrix.CreateWorld(
-                new Vector3(d.translation_x, d.translation_y, d.translation_z), 
-                new Vector3(d.forward_x, d.forward_y, d.forward_z), 
-                new Vector3(d.up_x, d.up_y, d.up_z));
+                new Vector3(d.data[0], d.data[1], d.data[2]),
+                new Vector3(d.data[3], d.data[4], d.data[5]),
+                new Vector3(d.data[6], d.data[7], d.data[8]));
         }
 
         public static explicit operator SerializableMatrix(Matrix m)

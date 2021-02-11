@@ -321,6 +321,7 @@ namespace avaness.RacingMod.Race
             {
                 // Player is outside of the start line and was in it previously
                 NewOnTrack(info);
+                SendStart(info);
                 return RacerState.On;
             }
             else
@@ -332,6 +333,11 @@ namespace avaness.RacingMod.Race
             }
         }
 
+        private void SendStart(StaticRacerInfo info)
+        {
+            RacingSession.Instance.SendAPIEvent(info.Racer, API.RacingDisplayAPI.PlayerEvent.Started);
+        }
+
         /// <summary>
         /// Called when a racer is new to the track.
         /// </summary>
@@ -340,7 +346,6 @@ namespace avaness.RacingMod.Race
             info.Timer.Reset(false);
             info.OnTrack = true;
             info.InStart = false;
-            RacingSession.Instance.SendAPIEvent(info.Racer, API.RacingDisplayAPI.PlayerEvent.Started);
             if (resetPos)
             {
                 ResetPosition(info);
@@ -562,6 +567,7 @@ namespace avaness.RacingMod.Race
                 if (mapSettings.TimedMode && mapSettings.Looped && info.AutoJoin)
                 {
                     NewOnTrack(info, false);
+                    SendStart(info);
                     info.NextNode = 1;
                     return RacerState.Reset;
                 }
