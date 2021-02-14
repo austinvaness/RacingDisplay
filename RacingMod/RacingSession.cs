@@ -27,6 +27,8 @@ namespace avaness.RacingMod
 
         public ClientRaceRecorder Recorder;
 
+        public bool HasTextHudAPI { get; private set; }
+
         private RacingCommands cmds;
         private readonly Track race;
         private readonly RacingPreferences config = new RacingPreferences();
@@ -41,7 +43,7 @@ namespace avaness.RacingMod
             race = new Track(MapSettings);
             Nodes = new NodeManager(MapSettings, race);
         }
-
+        
         private void Start()
         {
             if(cmds == null)
@@ -58,6 +60,9 @@ namespace avaness.RacingMod
                     return;
             }
 
+            CheckTextAPI();
+
+            MyVisualScriptLogicProvider.RemoveBoardScreen("RacingDisplay", 0);
 
             if (RacingConstants.IsServer)
             {
@@ -65,7 +70,7 @@ namespace avaness.RacingMod
                 MapSettings.Copy(RacingMapSettings.LoadFile());
                 if(Hud != null)
                     Hud.OnEnabled += Hud_OnEnabled;
-                race.LoadServer();
+                race.Init();
             }
             else
             {
@@ -95,6 +100,20 @@ namespace avaness.RacingMod
 
             MyLog.Default.WriteLineAndConsole("Racing Display started.");
             running = true;
+        }
+
+        private void CheckTextAPI()
+        {
+            foreach(var mod in MyAPIGateway.Session.Mods)
+            {
+                if(mod.PublishedFileId == 758597413)
+                {
+                    HasTextHudAPI = true;
+                    return;
+                }
+            }
+            HasTextHudAPI = false;
+            MyLog.Default.WriteLineAndConsole("[WARNING] Text Hud API was not found! Alternate hud will be used.");
         }
 
         private void Hud_OnEnabled()
