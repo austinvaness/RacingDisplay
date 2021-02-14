@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Racing Display", "RacingMod
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APITest", "APITest\APITest.csproj", "{3481323F-B5FB-4258-8CBB-D29E275E7E3C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RacingButtons", "RacingButtons\RacingButtons.csproj", "{AFC8926D-CBCE-4576-8518-58E51B01327A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Racing Buttons", "RacingButtons\Racing Buttons.csproj", "{AFC8926D-CBCE-4576-8518-58E51B01327A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

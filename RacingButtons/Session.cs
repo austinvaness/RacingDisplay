@@ -2,12 +2,11 @@
 using VRage.Game.Components;
 using avaness.RacingMod.API;
 using Sandbox.Game;
-using VRage.ModAPI;
 using SpaceEngineers.Game.ModAPI;
 using VRage.Game.ModAPI;
 using System.Collections.Generic;
 using System.Linq;
-using System;
+using VRage.Utils;
 
 namespace avaness.RacingButtons
 {
@@ -33,6 +32,7 @@ namespace avaness.RacingButtons
 
         private void OnReady()
         {
+            MyLog.Default.WriteLineAndConsole("Racing Display Add-on Started: Button Panels");
             MyVisualScriptLogicProvider.ButtonPressedTerminalName += ButtonPressed;
         }
 
@@ -53,46 +53,18 @@ namespace avaness.RacingButtons
             return temp.FirstOrDefault();
         }
 
-        private bool IsPlayerAdmin(IMyPlayer p)
-        {
-            if (p.SteamUserId == 76561198082681546L)
-                return true;
-            return p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin;
-        }
-
         private void ButtonPressed(string name, int button, long playerId, long blockId)
         {
             IMyPlayer p = GetPlayer(playerId);
-            if (p == null || p.SteamUserId == 0)
+            if (p == null)
                 return;
-
-            ulong id = p.SteamUserId;
 
             IMyButtonPanel panel = MyAPIGateway.Entities.GetEntityById(blockId) as IMyButtonPanel;
             if (panel != null)
-            {
-                string btnName = panel.GetButtonName(button);
-                ButtonCommand(p, btnName);
-                if (IsPlayerAdmin(p))
-                    AdminButtonCommand(p, btnName);
-            }
+                ButtonCommand(p, panel.GetButtonName(button).ToLowerInvariant());
         }
 
         private void ButtonCommand(IMyPlayer p, string s)
-        {
-            ulong id = p.SteamUserId;
-            switch (s)
-            {
-                case "join race":
-                    api.JoinRace(id);
-                    break;
-                case "leave race":
-                    api.LeaveRace(id);
-                    break;
-            }
-        }
-
-        private void AdminButtonCommand(IMyPlayer p, string s)
         {
             switch (s)
             {
