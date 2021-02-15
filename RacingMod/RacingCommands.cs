@@ -29,36 +29,77 @@ namespace avaness.RacingMod
             finishers = race.Finishers;
             racers = race.Racers;
 
-            MyAPIGateway.Utilities.MessageEnteredSender += MessageEntered;
+            MyAPIGateway.Utilities.MessageEntered += MessageEntered;
+            if (RacingConstants.IsServer)
+            {
+                MyAPIGateway.Utilities.MessageRecieved += ReceiveCommand;
+                RacingSession.Instance.Net.Register(RacingConstants.packetCmd, ReceiveCommandPacket);
+            }
         }
-
         public void Unload()
         {
-            MyAPIGateway.Utilities.MessageEnteredSender -= MessageEntered;
+            MyAPIGateway.Utilities.MessageEntered -= MessageEntered;
+            MyAPIGateway.Utilities.MessageRecieved -= ReceiveCommand;
         }
 
-        private void MessageEntered(ulong sender, string messageText, ref bool sendToOthers)
+        // Called on server
+        private void ReceiveCommandPacket(byte[] data)
         {
-            IMyPlayer p = RacingTools.GetPlayer(sender);
+            try
+            {
+                CommandInfo cmd = MyAPIGateway.Utilities.SerializeFromBinary<CommandInfo>(data);
+                ReceiveCommand(cmd.id, cmd.command);
+            }
+            catch (Exception e)
+            {
+                RacingTools.ShowError(e, GetType());
+            }
+        }
+
+        // Called on server
+        private void ReceiveCommand(ulong id, string command)
+        {
+            IMyPlayer p = RacingTools.GetPlayer(id);
             if (p != null)
-                ProcessCommand(p, messageText, ref sendToOthers);
+                ProcessCommand(p, command);
         }
 
-        private void ProcessCommand (IMyPlayer p, string command, ref bool sendToOthers)
+        // Called on clients
+        private void MessageEntered(string messageText, ref bool sendToOthers)
         {
-            command = command.ToLower().Trim();
-            if (!command.StartsWith("/rcd") && !command.StartsWith("/race"))
+            IMyPlayer p = MyAPIGateway.Session.Player;
+            if (p == null)
                 return;
-
-            sendToOthers = false;
             
-            string [] cmd = command.Split(' ');
+            if (IsRaceCommand(messageText))
+            {
+                sendToOthers = false;
+
+                if (RacingConstants.IsServer)
+                    ProcessCommand(p, messageText);
+                else
+                    RacingSession.Instance.Net.SendToServer(RacingConstants.packetCmd, new CommandInfo(messageText, p.SteamUserId));
+            }
+        }
+
+        private bool IsRaceCommand(string command)
+        {
+            return command.StartsWith("/rcd", StringComparison.OrdinalIgnoreCase) || command.StartsWith("/race", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void ProcessCommand (IMyPlayer p, string command)
+        {
+            if (!IsRaceCommand(command))
+                return;
+            
+            command = command.ToLower().Trim();
+
+            string[] cmd = command.Split(' ');
             if (cmd.Length == 1)
             {
                 ShowChatHelp(p);
                 return;
             }
-
 
             switch (cmd [1])
             {
@@ -411,6 +452,23 @@ namespace avaness.RacingMod
                     "/race laps <number>: Changes the number of laps.\n/race looped: Toggles if the track is looped.\n" +
                     "/race timers: Triggers all timers prefixed with [racetimer].\n/race finish <name> [position]: Force a racer to finish.";
             MyVisualScriptLogicProvider.SendChatMessage(s, "rcd admin", p.IdentityId, "Red");
+        }
+
+        [ProtoContract]
+        public class CommandInfo
+        {
+            [ProtoMember(1)]
+            public string command;
+            [ProtoMember(2)]
+            public ulong id;
+            public CommandInfo()
+            {
+            }
+            public CommandInfo(string cmd, ulong steamId)
+            {
+                this.command = cmd;
+                this.id = steamId;
+            }
         }
     }
 }

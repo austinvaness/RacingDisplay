@@ -63,8 +63,6 @@ namespace avaness.RacingMod
 
             if (RacingConstants.IsServer)
             {
-                cmds = new RacingCommands(race);
-
                 MyVisualScriptLogicProvider.RemoveGPSForAll(RacingConstants.gateWaypointName);
                 MapSettings.Copy(RacingMapSettings.LoadFile());
                 if(Hud != null)
@@ -96,6 +94,8 @@ namespace avaness.RacingMod
                     Net.SendToServer<object>(RacingConstants.packetAutoRec, null);
                 }
             }
+
+            cmds = new RacingCommands(race);
 
             MyLog.Default.WriteLineAndConsole("Racing Display started.");
             running = true;
