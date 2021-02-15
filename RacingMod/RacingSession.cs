@@ -46,11 +46,8 @@ namespace avaness.RacingMod
         
         private void Start()
         {
-            if(cmds == null)
-            {
+            if(Net == null)
                 Net = new Network();
-                cmds = new RacingCommands(race);
-            }
 
             if (RacingConstants.IsPlayer)
             {
@@ -66,6 +63,8 @@ namespace avaness.RacingMod
 
             if (RacingConstants.IsServer)
             {
+                cmds = new RacingCommands(race);
+
                 MyVisualScriptLogicProvider.RemoveGPSForAll(RacingConstants.gateWaypointName);
                 MapSettings.Copy(RacingMapSettings.LoadFile());
                 if(Hud != null)
@@ -241,11 +240,8 @@ namespace avaness.RacingMod
             Nodes.Unload();
             if(MapSettings != null)
                 MapSettings.Unload();
-            if (Net != null)
-            {
-                Net.Unload();
-                cmds.Unload();
-            }
+            Net?.Unload();
+            cmds?.Unload();
             api?.Unload();
         }
 
