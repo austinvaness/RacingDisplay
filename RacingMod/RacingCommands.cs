@@ -172,7 +172,6 @@ namespace avaness.RacingMod
                     if (cmd.Length == 2)
                     {
                         finishers.Clear();
-                        racers.ClearRecorders();
                     }
                     else
                     {
@@ -182,32 +181,16 @@ namespace avaness.RacingMod
                         if (racers.GetStaticInfo(name, out info))
                         {
                             ShowAdminMsg(p, $"Removed {info.Name} from the finalists.");
-                            info.Recorder?.ClearData();
                             finishers.Remove(info);
                         }
-                        else if(finishers.Remove(name))
+                        else if (finishers.Remove(name))
                         {
-                            finishers.Clear();
+                            ShowAdminMsg(p, $"Removed {name} from the finalists.");
                         }
                         else
                         {
-                            string name = BuildString(cmd, 2);
-
-                            StaticRacerInfo info;
-                            if (racers.GetStaticInfo(name, out info))
-                            {
-                                ShowAdminMsg(p, $"Removed {info.Name} from the finalists.");
-                                finishers.Remove(info);
-                            }
-                            else if(finishers.Remove(name))
-                            {
-                                ShowAdminMsg(p, $"Removed {name} from the finalists.");
-                            }
-                            else
-                            {
-                                ShowAdminMsg(p, $"No racer was found with a name containing '{name}'.");
-                                return;
-                            }
+                            ShowAdminMsg(p, $"No racer was found with a name containing '{name}'.");
+                            return;
                         }
                     }
                     break;

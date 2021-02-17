@@ -53,7 +53,6 @@ namespace avaness.RacingMod.Race
                 altText = new StringBuilder();
                 altHud = new HudText(1708268562, altText, new Vector2D(-0.125, 0.05), 0.7, RacingConstants.fontId);
             }
-            RacingSession.Instance.Net.Register(RacingConstants.packetAutoRec, EnableRecording);
             Finishers.LoadFile(Racers);
         }
 
@@ -89,13 +88,6 @@ namespace avaness.RacingMod.Race
         public void SaveData()
         {
             Finishers.SaveFile();
-        }
-
-        public void EnableRecording(ulong sender)
-        {
-            if (sender == 0)
-                return;
-            Racers.GetStaticInfo(sender).CreateRecorder();
         }
 
         public void Bind(RacingHud hud)
