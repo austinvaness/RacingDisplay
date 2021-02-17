@@ -13,6 +13,7 @@ namespace avaness.RacingMod.Racers
         public ulong Id { get; }
         public IMyPlayer Racer { get; set; }
         public string Name { get; }
+        public string FormattedName { get; }
         public Timer Timer;
         public bool InStart;
         public bool OnTrack;
@@ -46,6 +47,7 @@ namespace avaness.RacingMod.Racers
         {
             Id = p.SteamUserId;
             Name = p.DisplayName;
+            FormattedName = RacingTools.SetLength(p.DisplayName, RacingConstants.nameWidth);
             Racer = p;
             Timer = new Timer(true);
         }

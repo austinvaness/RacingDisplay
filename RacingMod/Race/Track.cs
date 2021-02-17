@@ -327,7 +327,7 @@ namespace avaness.RacingMod.Race
                     }
 
                     // <num> <name>
-                    TextAppend(RacingTools.SetLength(info.Name, RacingConstants.nameWidth));
+                    TextAppend(info.FormattedName);
                     TextAppend(' ');
                     
                     // <num> <name> <distance>
