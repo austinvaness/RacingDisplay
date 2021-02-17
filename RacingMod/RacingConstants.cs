@@ -20,7 +20,6 @@ namespace avaness.RacingMod
         public const byte packetCmd = 1;
         public const byte packetSettings = 2;
         public const byte packetSettingsInit = 3;
-        public const byte packetRecord = 4;
         public const byte packetBeaconSettings = 5;
 
         public const string mapFile = "RacingDisplayConfig.xml";
