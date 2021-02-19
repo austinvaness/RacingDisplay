@@ -132,14 +132,14 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Workshop\metadata.mod" />
+    <Content Include="Workshop\Textures\Cross.dds" />
+    <Content Include="Workshop\Textures\PlayBtn.dds" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Workshop\Data\TransparentMaterials.sbc" />
     <None Include="Workshop\modinfo.sbmi" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Workshop\Textures\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd /D $(ProjectDir)

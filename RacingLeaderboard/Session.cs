@@ -58,6 +58,7 @@ namespace avaness.RacingLeaderboard
             {
                 hud = new CoreHud(paths);
                 play = new PlaybackManager(net, paths, player, hud);
+                hud.Init(play);
             }
 
             if (IsServer)

@@ -7,6 +7,7 @@ using avaness.RacingLeaderboard.Recording;
 using avaness.RacingLeaderboard.Data;
 using VRage.Utils;
 using System.Collections;
+using System.Text;
 
 namespace avaness.RacingLeaderboard.Storage
 {
@@ -48,8 +49,7 @@ namespace avaness.RacingLeaderboard.Storage
             }
             catch (Exception e)
             {
-                string s = "Error converting base64 to Path: " + e.ToString();
-                MyLog.Default.WriteLineAndConsole(s);
+                MyLog.Default.WriteLineAndConsole("[Racing Leaderboard] Error decompressing path data: " + e.ToString());
                 return null;
             }
         }
@@ -62,8 +62,9 @@ namespace avaness.RacingLeaderboard.Storage
                 byte[] compressed = MyCompression.Compress(uncompressed);
                 return Convert.ToBase64String(compressed);
             }
-            catch
+            catch(Exception e)
             {
+                MyLog.Default.WriteLineAndConsole("[Racing Leaderboard] Error compressing path data: " + e.ToString());
                 return null;
             }
         }

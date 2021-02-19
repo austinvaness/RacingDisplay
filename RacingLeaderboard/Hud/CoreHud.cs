@@ -3,6 +3,7 @@ using avaness.RacingLeaderboard.Recording;
 using avaness.RacingLeaderboard.Storage;
 using Draygo.API;
 using Sandbox.ModAPI;
+using System;
 using System.Text;
 using VRageMath;
 
@@ -38,6 +39,12 @@ namespace avaness.RacingLeaderboard.Hud
             hud = new HudAPIv2(CreateHud);
         }
 
+        public void Init(PlaybackManager play)
+        {
+            this.play = play;
+            if (cursor == null && hud.Heartbeat)
+                CreateHud();
+        }
 
         public void Unload()
         {
@@ -48,13 +55,16 @@ namespace avaness.RacingLeaderboard.Hud
 
         private void CreateHud()
         {
+            if (play == null || cursor != null)
+                return;
+
             cursor = new Cursor();
             
             recording = new HudAPIv2.HUDMessage(new StringBuilder("Recording"), new Vector2D(-1, 1), Scale: 0.75)
             {
                 Visible = false
             };
-            leaderboard = new LeaderboardHud(play, cursor, Vector2D.Zero, 0.5, "# ", "Name                ", "Time      ");
+            leaderboard = new LeaderboardHud(paths, play, cursor, Vector2D.Zero, 0.5, "# ", "Name                ", "Time      ");
 
             cursor.Create(); // Create last to show on top
         }

@@ -12,7 +12,7 @@ namespace avaness.RacingLeaderboard.Hud
         private readonly string prefix;
         private string text;
 
-        public HudText(string text, Vector2D origin, Color color, string font = "white")
+        public HudText(string text, Vector2D origin, Color color, string font = "monospace")
         {
             StringBuilder sb = new StringBuilder();
             if (color != Color.White)
