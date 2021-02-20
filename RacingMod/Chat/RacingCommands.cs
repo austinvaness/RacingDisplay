@@ -33,8 +33,8 @@ namespace avaness.RacingMod.Chat
                 Add(new CmdLeave(), "leave", "l");
                 Add(new CmdRejoin(), "rejoin");
                 Add(new ACmdClear(), new ACmdFinish(), new ACmdGrant(), new ACmdKick(), new ACmdLaps(), new ACmdLooped(), new ACmdMode(), new ACmdStrictStart(), new ACmdTimers());
-                BuildText();
-                Add(new CmdDebug());
+                BuildHelpText();
+                Add(new CmdDebug()); // Does not appear in help
 
                 MyAPIGateway.Utilities.MessageRecieved += ReceiveCommand;
                 RacingSession.Instance.Net.Register(RacingConstants.packetCmd, ReceiveCommandPacket);
@@ -106,7 +106,7 @@ namespace avaness.RacingMod.Chat
                 cmdOb.Run(p, admin, cmd, race);
         }
 
-        private void BuildText()
+        private void BuildHelpText()
         {
             // Admin
             StringBuilder admin = new StringBuilder("Admin Commands:");
@@ -140,8 +140,10 @@ namespace avaness.RacingMod.Chat
             }
             helpMsg = gen.ToString();
 
+            // Add the admin help command
             ACmdHelp adminHelpCmd = new ACmdHelp(adminHelp);
             Add(adminHelpCmd, "admin");
+            admin.AppendLine();
             AppendCommand(admin, adminHelpCmd.Id, adminHelpCmd.Usage);
             adminHelpMsg = admin.ToString();
         }

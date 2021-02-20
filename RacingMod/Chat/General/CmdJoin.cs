@@ -14,7 +14,7 @@ namespace avaness.RacingMod.Chat.General
         public override string Id => "join";
 
         public override string Usage => ": Join the race.";
-        public override string AdminUsage => "[name|all]: Join the race or force a player to join.";
+        public override string AdminUsage => "[name|all]: Join or force a player to join.";
 
         protected override void Execute(IMyPlayer p, bool admin, string[] cmd, Track race)
         {
@@ -26,11 +26,13 @@ namespace avaness.RacingMod.Chat.General
                 {
                     List<IMyPlayer> players = new List<IMyPlayer>();
                     MyAPIGateway.Players.GetPlayers(players);
+                    int count = 0;
                     foreach (IMyPlayer temp in players)
                     {
-                        if (!race.Contains(temp.SteamUserId))
-                            race.JoinRace(temp);
+                        if (!race.Contains(temp.SteamUserId) && race.JoinRace(temp))
+                            count++;
                     }
+                    ShowChatMsg(p, $"Added {count} racers to the race.");
                 }
                 else
                 {
