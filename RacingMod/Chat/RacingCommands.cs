@@ -34,7 +34,7 @@ namespace avaness.RacingMod.Chat
                 Add(new CmdRejoin(), "rejoin");
                 Add(new ACmdClear(), new ACmdFinish(), new ACmdGrant(), new ACmdKick(), new ACmdLaps(), new ACmdLooped(), new ACmdMode(), new ACmdStrictStart(), new ACmdTimers());
                 BuildHelpText();
-                Add(new CmdDebug()); // Does not appear in help
+                Add(new CmdDebug(), "debug"); // Does not appear in help
 
                 MyAPIGateway.Utilities.MessageRecieved += ReceiveCommand;
                 RacingSession.Instance.Net.Register(RacingConstants.packetCmd, ReceiveCommandPacket);

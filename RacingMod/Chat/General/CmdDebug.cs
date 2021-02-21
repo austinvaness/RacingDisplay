@@ -15,7 +15,11 @@ namespace avaness.RacingMod.Chat.General
             if (MyAPIGateway.Session.Player != p)
             {
                 ShowChatMsg(p, "Debug view only works for the server host.");
+            }
+            else
+            {
                 race.ToggleDebug();
+                ShowChatMsg(p, "Toggled debug view.");
             }
         }
     }
