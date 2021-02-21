@@ -11,6 +11,7 @@ using avaness.RacingMod.Net;
 using avaness.RacingMod.Race;
 using VRage;
 using VRage.Game.ModAPI;
+using avaness.RacingMod.Chat;
 
 namespace avaness.RacingMod
 {
