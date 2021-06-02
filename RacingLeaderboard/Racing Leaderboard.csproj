@@ -7,8 +7,8 @@
     <ProjectGuid>{2DB02401-6F4E-477C-A9B0-6D482DCDE428}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>avaness.RacingPaths</RootNamespace>
-    <AssemblyName>RacingPaths</AssemblyName>
+    <RootNamespace>avaness.RacingLeaderboard</RootNamespace>
+    <AssemblyName>RacingLeaderboard</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -101,10 +101,10 @@
     <Compile Include="..\RacingMod\API\RacingDisplayAPI.cs">
       <Link>RacingDisplayAPI.cs</Link>
     </Compile>
-    <Compile Include="Commands.cs" />
-    <Compile Include="Data\IPath.cs" />
+    <Compile Include="Chat\ChatCommand.cs" />
+    <Compile Include="Chat\Commands.cs" />
+    <Compile Include="Chat\Admin\AdminCommand.cs" />
     <Compile Include="Data\SerializableMatrix.cs" />
-    <Compile Include="Data\TimeOnlyPath.cs" />
     <Compile Include="Hud\Cursor.cs" />
     <Compile Include="Hud\CoreHud.cs" />
     <Compile Include="Data\Path.cs" />
@@ -139,7 +139,9 @@
     <None Include="Workshop\Data\TransparentMaterials.sbc" />
     <None Include="Workshop\modinfo.sbmi" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Chat\General\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd /D $(ProjectDir)

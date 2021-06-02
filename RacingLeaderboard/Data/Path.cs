@@ -12,7 +12,7 @@ using VRageMath;
 namespace avaness.RacingLeaderboard.Data
 {
     [ProtoContract]
-    public partial class Path : IPath
+    public partial class Path
     {
         private int runtime = 0;
         private GridInfo prevGrid;

@@ -10,10 +10,14 @@ using System.Text;
 using VRage.Game.ModAPI;
 using VRage.Utils;
 
-namespace avaness.RacingLeaderboard
+namespace avaness.RacingLeaderboard.Chat
 {
     public class Commands
     {
+        public const string prefix = "";
+
+        private readonly Dictionary<string, ChatCommand> commands = new Dictionary<string, ChatCommand>();
+
         private readonly PathStorage paths;
         private readonly RecordingManager recs;
         private readonly PlaybackManager play;
@@ -27,6 +31,12 @@ namespace avaness.RacingLeaderboard
                 MyAPIGateway.Utilities.MessageEnteredSender += Utilities_MessageEnteredSender;
             if(RacingPathsSession.IsPlayer)
                 MyAPIGateway.Utilities.MessageEntered += Utilities_MessageEntered;
+        }
+
+        private void Add(params ChatCommand[] cmds)
+        {
+            foreach (ChatCommand cmd in cmds)
+                commands[cmd.Id] = cmd;
         }
 
         public void Unload()

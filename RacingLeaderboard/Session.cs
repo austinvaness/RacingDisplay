@@ -9,6 +9,7 @@ using System;
 using avaness.RacingLeaderboard.Data;
 using VRageMath;
 using VRage;
+using avaness.RacingLeaderboard.Chat;
 
 namespace avaness.RacingLeaderboard
 {
@@ -17,7 +18,7 @@ namespace avaness.RacingLeaderboard
     {
         public static RacingPathsSession Instance;
 
-        public static bool IsServer => MyAPIGateway.Session.IsServer || MyAPIGateway.Session.OnlineMode == MyOnlineModeEnum.OFFLINE;
+        public static bool IsServer => MyAPIGateway.Session.IsServer;
         public static bool IsDedicated => IsServer && MyAPIGateway.Utilities.IsDedicated;
         public static bool IsPlayer => !IsDedicated;
 
@@ -66,7 +67,7 @@ namespace avaness.RacingLeaderboard
                 recs = new RecordingManager(paths, net, play);
             }
 
-            cmds = new Commands(paths, recs, play);
+            //cmds = new Commands(paths, recs, play);
 
             init = true;
         }
