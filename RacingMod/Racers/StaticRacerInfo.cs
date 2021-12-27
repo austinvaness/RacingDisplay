@@ -106,17 +106,6 @@ namespace avaness.RacingMod.Racers
             AutoJoin = false;
         }
 
-        public ulong[] GetSelectedGhosts()
-        {
-            // TODO
-            List<IMyPlayer> players = new List<IMyPlayer>();
-            MyAPIGateway.Players.GetPlayers(players);
-            return players.Select(p => p.SteamUserId).ToArray();
-        }
-
-
-
-
         public override bool Equals(object obj)
         {
             return Equals(obj as StaticRacerInfo);
