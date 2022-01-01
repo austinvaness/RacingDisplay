@@ -168,6 +168,12 @@
     <Compile Include="Chat\General\CmdLeave.cs" />
     <Compile Include="Chat\General\CmdDebug.cs" />
     <Compile Include="Chat\General\CmdRejoin.cs" />
+    <Compile Include="Ghost\Data\Path.cs" />
+    <Compile Include="Ghost\Data\Path.GridData.cs" />
+    <Compile Include="Ghost\Data\SerializableMatrix.cs" />
+    <Compile Include="Ghost\PathPlayer.cs" />
+    <Compile Include="Ghost\PathRecorder.cs" />
+    <Compile Include="Ghost\RecordingManager.cs" />
     <Compile Include="Hud\HudText.cs" />
     <Compile Include="Racers\Timer.cs" />
     <Compile Include="Race\Finish\IFinisher.cs" />
@@ -211,6 +217,7 @@
     <None Include=".editorconfig" />
     <None Include="Font\FontDataRacePA-0.pdn" />
     <None Include="Font\FontDataRacePA-1.pdn" />
+    <Compile Include="Ghost\Data\Path.GridInfo.cs" />
     <None Include="Workshop-Main\modinfo.sbmi" />
     <None Include="Workshop-Test\modinfo.sbmi" />
     <None Include="Workshop\Data\EntityComponents.sbc" />
