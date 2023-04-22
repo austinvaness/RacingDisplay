@@ -31,7 +31,7 @@ namespace avaness.RacingMod.Chat
                 Add(new CmdAutoJoin(), "autojoin", "aj");
                 Add(new CmdJoin(), "join", "j");
                 Add(new CmdLeave(), "leave", "l");
-                Add(new CmdRejoin(), "rejoin");
+                Add(new CmdRejoin(), new CmdGhost(), new CmdRecord());
                 Add(new ACmdClear(), new ACmdFinish(), new ACmdGrant(), new ACmdKick(), new ACmdLaps(), new ACmdLooped(), new ACmdMode(), new ACmdStrictStart(), new ACmdTimers());
                 BuildHelpText();
                 Add(new CmdDebug(), "debug"); // Does not appear in help

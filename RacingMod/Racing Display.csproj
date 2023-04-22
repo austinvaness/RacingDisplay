@@ -163,10 +163,12 @@
     <Compile Include="Chat\Admin\ACmdTimers.cs" />
     <Compile Include="Chat\Admin\AdminCommand.cs" />
     <Compile Include="Chat\ChatCommand.cs" />
+    <Compile Include="Chat\General\CmdGhost.cs" />
     <Compile Include="Chat\General\CmdAutoJoin.cs" />
     <Compile Include="Chat\General\CmdJoin.cs" />
     <Compile Include="Chat\General\CmdLeave.cs" />
     <Compile Include="Chat\General\CmdDebug.cs" />
+    <Compile Include="Chat\General\CmdRecord.cs" />
     <Compile Include="Chat\General\CmdRejoin.cs" />
     <Compile Include="Ghost\Data\Path.cs" />
     <Compile Include="Ghost\Data\Path.GridData.cs" />
