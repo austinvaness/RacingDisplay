@@ -113,6 +113,9 @@ namespace avaness.RacingMod.Chat
             HashSet<string> printed = new HashSet<string>();
             foreach (ChatCommand cmd in commands.Values)
             {
+                if (cmd.Hidden)
+                    continue;
+
                 AdminCommand acmd = cmd as AdminCommand;
                 if (acmd != null && printed.Add(cmd.Id))
                 {
@@ -130,6 +133,9 @@ namespace avaness.RacingMod.Chat
             admin.Append("Commands:");
             foreach (ChatCommand cmd in commands.Values)
             {
+                if (cmd.Hidden)
+                    continue;
+
                 if (printed.Add(cmd.Id))
                 {
                     admin.AppendLine();

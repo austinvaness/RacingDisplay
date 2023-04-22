@@ -11,7 +11,8 @@ namespace avaness.RacingMod.Chat
         public abstract string Id { get; }
         public abstract string Usage { get; }
         public virtual string AdminUsage => Usage;
-        
+        public virtual bool Hidden => false;
+
         public void Run(IMyPlayer p, bool admin, string[] cmd, Track race)
         {
             if (ValidateLength(cmd.Length, admin))
