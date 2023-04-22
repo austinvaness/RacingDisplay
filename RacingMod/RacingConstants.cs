@@ -11,11 +11,10 @@ namespace avaness.RacingMod
         public static bool IsDedicated => IsServer && MyAPIGateway.Utilities.IsDedicated;
         public static bool IsPlayer => !IsDedicated;
 
-        // One second = 10,000,000 ticks
-        public static TimeSpan oneTick = new TimeSpan((long)(MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS * 10000000));
+        public static TimeSpan oneTick = TimeSpan.FromSeconds(MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS);
 
         public const long ModMessageId = 1708268562;
-
+        
         public const byte packetMainId = 0;
         public const byte packetCmd = 1;
         public const byte packetSettings = 2;
