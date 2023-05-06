@@ -62,14 +62,14 @@ namespace avaness.RacingMod.Racers
             {
                 nextNode = value;
                 HideWaypoint();
-                MyVisualScriptLogicProvider.AddGPSObjective(RacingConstants.gateWaypointName, RacingConstants.gateWaypointDescription, RacingSession.Instance.Nodes.GetCoords(value),
+                RacingTools.AddGPSObjective(RacingConstants.gateWaypointName, RacingConstants.gateWaypointDescription, RacingSession.Instance.Nodes.GetCoords(value),
                     RacingConstants.gateWaypointColor, 0, Racer.IdentityId);
             }
         }
 
         public void HideWaypoint()
         {
-            MyVisualScriptLogicProvider.RemoveGPS(RacingConstants.gateWaypointName, Racer.IdentityId);
+            RacingTools.RemoveGPS(RacingConstants.gateWaypointName, Racer.IdentityId);
         }
 
 

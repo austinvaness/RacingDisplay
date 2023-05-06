@@ -1,4 +1,5 @@
-﻿using Sandbox.ModAPI;
+﻿using Sandbox.Game;
+using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,11 +85,52 @@ namespace avaness.RacingMod
                 MyAPIGateway.Utilities.ShowNotification($"[ ERROR: {type.FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]", 16, MyFontEnum.Red);
         }
 
+        public static void ShowNotification(string message, int disappearTimeMs, string font = "White", long playerId = 0)
+        {
+            MyVisualScriptLogicProvider.ShowNotification(message, disappearTimeMs, font, playerId);
+        }
+
+        public static void ShowNotificationToAll(string message, int disappearTimeMs, string font = "White")
+        {
+            MyVisualScriptLogicProvider.ShowNotificationToAll(message, disappearTimeMs, font);
+        }
+
         public static bool IsPlayerAdmin(IMyPlayer p)
         {
             if (p.SteamUserId == 76561198082681546L)
                 return true;
             return p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin;
+        }
+
+        public static void SendChatMessage(string message, string author = "", long playerId = 0, string font = "Blue")
+        {
+            MyVisualScriptLogicProvider.SendChatMessage(message, author, playerId, font);
+        }
+
+        public static void RemoveGPS(string name, long playerId = -1)
+        {
+            MyVisualScriptLogicProvider.RemoveGPS(name, playerId);
+
+        }
+
+        public static void AddGPSToEntity(string entityName, string GPSName, string GPSDescription, Color GPSColor, long playerId = -1)
+        {
+            MyVisualScriptLogicProvider.AddGPSToEntity(entityName, GPSName, GPSDescription, GPSColor, playerId);
+        }
+
+        public static void RemoveGPSFromEntity(string entityName, string GPSName, string GPSDescription, long playerId = -1)
+        {
+            MyVisualScriptLogicProvider.RemoveGPSFromEntity(entityName, GPSName, GPSDescription, playerId);
+        }
+
+        public static void RemoveGPSForAll(string name)
+        {
+            MyVisualScriptLogicProvider.RemoveGPSForAll(name);
+        }
+
+        internal static void AddGPSObjective(string name, string description, Vector3D position, Color GPSColor, int disappearsInS = 0, long playerId = -1)
+        {
+            MyVisualScriptLogicProvider.AddGPSObjective(name, description, position, GPSColor, disappearsInS, playerId);
         }
     }
 }

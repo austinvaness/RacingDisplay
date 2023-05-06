@@ -138,7 +138,7 @@ namespace avaness.RacingMod.Race
             {
                 if (Nodes.OnTrack(p))
                 {
-                    MyVisualScriptLogicProvider.ShowNotification("Move behind the starting line before joining the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
+                    RacingTools.ShowNotification("Move behind the starting line before joining the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                     return false;
                 }
             }
@@ -149,13 +149,13 @@ namespace avaness.RacingMod.Race
                 info.Reset();
                 if (!MapSettings.TimedMode)
                     Finishers.Remove(info);
-                MyVisualScriptLogicProvider.ShowNotification("You have joined the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
+                RacingTools.ShowNotification("You have joined the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                 Nodes.JoinedRace(info);
                 return true;
             }
             else
             {
-                MyVisualScriptLogicProvider.ShowNotification("You are already in the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
+                RacingTools.ShowNotification("You are already in the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                 return false;
             }
         }
@@ -171,13 +171,13 @@ namespace avaness.RacingMod.Race
 
             if (activePlayers.Remove(p.SteamUserId))
             {
-                MyVisualScriptLogicProvider.ShowNotification("You have left the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
+                RacingTools.ShowNotification("You have left the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                 return true;
             }
             else
             {
                 if (alwaysMsg)
-                    MyVisualScriptLogicProvider.ShowNotification("You are not in the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
+                    RacingTools.ShowNotification("You are not in the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                 return false;
             }
         }
@@ -205,7 +205,7 @@ namespace avaness.RacingMod.Race
                 {
                     Finishers.Add(info);
                     if (!MapSettings.TimedMode)
-                        MyVisualScriptLogicProvider.ShowNotificationToAll($"{p.DisplayName} just finished in position {Finishers.Count}", RacingConstants.defaultMsgMs, "White");
+                        RacingTools.ShowNotificationToAll($"{p.DisplayName} just finished in position {Finishers.Count}", RacingConstants.defaultMsgMs, "White");
                     if (state == NodeManager.RacerState.Finish)
                         LeaveRace(p);
                 }

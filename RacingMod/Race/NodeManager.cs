@@ -349,7 +349,7 @@ namespace avaness.RacingMod.Race
                     info.NextNode = 1;
             }
             if (mapSettings.NumLaps > 1)
-                MyVisualScriptLogicProvider.ShowNotification($"Lap {info.Laps + 1} / {mapSettings.NumLaps}", RacingConstants.defaultMsgMs, "White", info.Racer.IdentityId);
+                RacingTools.ShowNotification($"Lap {info.Laps + 1} / {mapSettings.NumLaps}", RacingConstants.defaultMsgMs, "White", info.Racer.IdentityId);
         }
 
         private RacerState UpdateInfo (StaticRacerInfo info)
@@ -556,7 +556,7 @@ namespace avaness.RacingMod.Race
                 if (info.MarkTime() && mapSettings.TimedMode)
                 {
                     string time = RacingTools.Format(info.BestTime);
-                    MyVisualScriptLogicProvider.ShowNotificationToAll($"{info.Racer.DisplayName} just finished with time {time}", RacingConstants.defaultMsgMs, "White");
+                    RacingTools.ShowNotificationToAll($"{info.Racer.DisplayName} just finished with time {time}", RacingConstants.defaultMsgMs, "White");
                 }
 
                 if (mapSettings.TimedMode && mapSettings.Looped && info.AutoJoin)
@@ -577,7 +577,7 @@ namespace avaness.RacingMod.Race
                 else
                     info.NextNode = 0;
             }
-            MyVisualScriptLogicProvider.ShowNotification($"Lap {info.Laps + 1} / {mapSettings.NumLaps}", RacingConstants.defaultMsgMs, "White", info.Racer.IdentityId);
+            RacingTools.ShowNotification($"Lap {info.Laps + 1} / {mapSettings.NumLaps}", RacingConstants.defaultMsgMs, "White", info.Racer.IdentityId);
             return RacerState.On;
         }
 

@@ -157,12 +157,12 @@ namespace avaness.RacingMod.Paths
 
         private void AddGps()
         {
-            MyVisualScriptLogicProvider.AddGPSToEntity(RacingConstants.ghostId, RacingConstants.ghostName, RacingConstants.ghostDescription, RacingConstants.ghostWaypointColor);
+            RacingTools.AddGPSToEntity(RacingConstants.ghostId, RacingConstants.ghostName, RacingConstants.ghostDescription, RacingConstants.ghostWaypointColor);
         }
 
         private void RemoveGps()
         {
-            MyVisualScriptLogicProvider.RemoveGPSFromEntity(RacingConstants.ghostId, RacingConstants.ghostName, RacingConstants.ghostDescription);
+            RacingTools.RemoveGPSFromEntity(RacingConstants.ghostId, RacingConstants.ghostName, RacingConstants.ghostDescription);
         }
 
         private class GridInfo

@@ -10,6 +10,7 @@ using avaness.RacingMod.Paths;
 using avaness.RacingMod.Hud;
 using avaness.RacingMod.Net;
 using avaness.RacingMod.Race;
+using avaness.RacingMod.Chat;
 
 namespace avaness.RacingMod
 {
@@ -61,7 +62,7 @@ namespace avaness.RacingMod
 
             if (RacingConstants.IsServer)
             {
-                MyVisualScriptLogicProvider.RemoveGPSForAll(RacingConstants.gateWaypointName);
+                RacingTools.RemoveGPSForAll(RacingConstants.gateWaypointName);
                 MapSettings.Copy(RacingMapSettings.LoadFile());
                 if(Hud != null)
                     Hud.OnEnabled += Hud_OnEnabled;

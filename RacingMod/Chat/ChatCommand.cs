@@ -37,12 +37,12 @@ namespace avaness.RacingMod.Chat
 
         protected void ShowMsg(IMyPlayer p, string msg)
         {
-            MyVisualScriptLogicProvider.ShowNotification(msg, RacingConstants.defaultMsgMs, "White", p.IdentityId);
+            RacingTools.ShowNotification(msg, RacingConstants.defaultMsgMs, "White", p.IdentityId);
         }
 
         protected void ShowChatMsg(IMyPlayer p, string msg)
         {
-            MyVisualScriptLogicProvider.SendChatMessage(msg, "rcd", p.IdentityId, "Red");
+            RacingTools.SendChatMessage(msg, "rcd", p.IdentityId);
         }
 
         protected void WarnPermission(IMyPlayer p)
