@@ -33,12 +33,12 @@ namespace avaness.RacingMod
             return temp.FirstOrDefault();
         }
 
-        public static string SetLength (object o, int length)
+        public static string SetLength (object o, int length, int startIndex = 0)
         {
             string s = "";
             if (o != null)
                 s = o.ToString();
-            return s.PadRight(length).Substring(0, length);
+            return s.PadRight(length + startIndex).Substring(startIndex, length);
         }
 
         /// <summary>

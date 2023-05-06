@@ -115,7 +115,7 @@ namespace avaness.RacingMod.Race.Finish
         // Build the final racer text
         private void FinishersModifed ()
         {
-            tempSb.Clear();//.Append(RacingConstants.colorFinalist);
+            tempSb.Clear().Append(RacingConstants.colorFinalist);
 
             IEnumerable<IFinisher> temp;
             if (MapSettings.TimedMode)
@@ -137,12 +137,12 @@ namespace avaness.RacingMod.Race.Finish
 
                     i++;
                     tempSb.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');
-                    tempSb.Append(RacingTools.SetLength(info.Name, RacingConstants.nameWidth)).Append(' ');
+                    tempSb.Append(info.Name).Append(' ');
                     tempSb.Append(RacingTools.Format(info.BestTime)).AppendLine();
                 }
 
                 tempSb.Length--;
-                tempSb.AppendLine(); //.Append(RacingConstants.colorWhite)
+                tempSb.Append(RacingConstants.colorWhite).AppendLine();
             }
             finalString = tempSb.ToString();
             if(this.serializable != null)
@@ -182,7 +182,10 @@ namespace avaness.RacingMod.Race.Finish
                     {
                         serializable = temp;
                         foreach(SerializableFinisher finisher in temp)
+                        {
+                            finisher.Name = RacingTools.SetLength(finisher.Name, RacingConstants.nameWidth);
                             finishers.Add(finisher);
+                        }
                         racers.LoadData(serializable);
                         FinishersModifed();
                     }

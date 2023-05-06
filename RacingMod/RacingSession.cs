@@ -27,8 +27,6 @@ namespace avaness.RacingMod
 
         public ClientRaceRecorder Recorder;
 
-        public bool HasTextHudAPI { get; private set; }
-
         private RacingCommands cmds;
         private readonly Track race;
         private readonly RacingPreferences config = new RacingPreferences();
@@ -43,11 +41,14 @@ namespace avaness.RacingMod
             race = new Track(MapSettings);
             Nodes = new NodeManager(MapSettings, race);
         }
-        
+
         private void Start()
         {
-            if(Net == null)
+            if(cmds == null)
+            {
                 Net = new Network();
+                cmds = new RacingCommands(race);
+            }
 
             if (RacingConstants.IsPlayer)
             {
@@ -57,9 +58,6 @@ namespace avaness.RacingMod
                     return;
             }
 
-            CheckTextAPI();
-
-            MyVisualScriptLogicProvider.RemoveBoardScreen("RacingDisplay", 0);
 
             if (RacingConstants.IsServer)
             {
@@ -67,7 +65,7 @@ namespace avaness.RacingMod
                 MapSettings.Copy(RacingMapSettings.LoadFile());
                 if(Hud != null)
                     Hud.OnEnabled += Hud_OnEnabled;
-                race.Init();
+                race.LoadServer();
             }
             else
             {
@@ -95,24 +93,8 @@ namespace avaness.RacingMod
                 }
             }
 
-            cmds = new RacingCommands(race);
-
             MyLog.Default.WriteLineAndConsole("Racing Display started.");
             running = true;
-        }
-
-        private void CheckTextAPI()
-        {
-            foreach(var mod in MyAPIGateway.Session.Mods)
-            {
-                if(mod.PublishedFileId == 758597413)
-                {
-                    HasTextHudAPI = true;
-                    return;
-                }
-            }
-            HasTextHudAPI = false;
-            MyLog.Default.WriteLineAndConsole("[WARNING] Text Hud API was not found! Alternate hud will be used.");
         }
 
         private void Hud_OnEnabled()
@@ -240,8 +222,11 @@ namespace avaness.RacingMod
             Nodes.Unload();
             if(MapSettings != null)
                 MapSettings.Unload();
-            Net?.Unload();
-            cmds?.Unload();
+            if (Net != null)
+            {
+                Net.Unload();
+                cmds.Unload();
+            }
             api?.Unload();
         }
 

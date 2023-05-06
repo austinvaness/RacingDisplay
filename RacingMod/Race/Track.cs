@@ -6,9 +6,6 @@ using System.Text;
 using VRage.Game.ModAPI;
 using System.Linq;
 using avaness.RacingMod.Race.Finish;
-using VRageMath;
-using avaness.RacingMod.Hud;
-using System;
 
 namespace avaness.RacingMod.Race
 {
@@ -26,9 +23,6 @@ namespace avaness.RacingMod.Race
         private string hudHeader = "";
         private bool debug;
 
-        private HudText altHud;
-        private StringBuilder altText;
-
         private readonly List<IMyPlayer> playersTemp = new List<IMyPlayer>();
         private readonly StringBuilder tempSb = new StringBuilder();
 
@@ -44,16 +38,8 @@ namespace avaness.RacingMod.Race
 
         }
 
-        /// <summary>
-        /// Called on server only.
-        /// </summary>
-        public void Init()
+        public void LoadServer()
         {
-            if(!RacingSession.Instance.HasTextHudAPI)
-            {
-                altText = new StringBuilder();
-                altHud = new HudText(1708268562, altText, new Vector2D(-0.125, 0.05), 0.7, RacingConstants.fontId);
-            }
             RacingSession.Instance.Net.Register(RacingConstants.packetAutoRec, EnableRecording);
             Finishers.LoadFile(Racers);
         }
@@ -67,25 +53,15 @@ namespace avaness.RacingMod.Race
 
         public void Update()
         {
-            int runticks = RacingSession.Instance.Runticks;
-
             ProcessValues();
-            if(runticks % 2 == 0)
-            {
+            if(RacingSession.Instance.Runticks % 2 == 0)
                 BroadcastData(activeRacersText);
-
-                if (altHud != null && runticks % 10 == 0)
-                    altHud.Update();
-            }
-
 
             if (debug && MyAPIGateway.Session.Player != null)
             {
                 Nodes.DrawDebug();
                 //RacingSession.Instance.DebugRecorder();
             }
-
-
         }
 
         public void SaveData()
@@ -100,7 +76,7 @@ namespace avaness.RacingMod.Race
             Racers.GetStaticInfo(sender).CreateRecorder();
         }
 
-        public void Bind(RacingHud hud)
+        public void Bind(Hud.RacingHud hud)
         {
             if (!ReferenceEquals(activeRacersText, hud.Text))
                 hud.Text = activeRacersText;
@@ -130,12 +106,12 @@ namespace avaness.RacingMod.Race
             Racers.ClearRecorders();
 
             tempSb.Clear();
-            tempSb.Append("#".PadRight(RacingConstants.numberWidth + 1));
+            tempSb.Append(RacingConstants.headerColor).Append("#".PadRight(RacingConstants.numberWidth + 1));
             tempSb.Append("Name".PadRight(RacingConstants.nameWidth + 1));
             tempSb.Append("Position".PadRight(RacingConstants.distWidth + 1));
             if (laps > 1)
                 tempSb.Append("Lap");
-            tempSb.AppendLine();
+            tempSb.AppendLine().Append(RacingConstants.colorWhite);
             hudHeader = tempSb.ToString();
         }
 
@@ -212,10 +188,8 @@ namespace avaness.RacingMod.Race
 
             if (nodes.Count < 2)
             {
-                TextClear();
-                TextAppend("Waiting for (");
-                TextAppend(2 - nodes.Count);
-                TextAppend(") beacon nodes...");
+                activeRacersText.Clear();
+                activeRacersText.Append("Waiting for (" + (2 - nodes.Count) + ") beacon nodes...").AppendLine();
                 return;
             }
 
@@ -249,24 +223,18 @@ namespace avaness.RacingMod.Race
         {
             int runticks = RacingSession.Instance.Runticks;
 
-            TextClear();
-
+            // Build the active racer text
+            activeRacersText.Clear();
             if (ranking.Count == 0 && Finishers.Count == 0)
             {
-                TextAppend("No racers in range.");
+                activeRacersText.Append("No racers in range.");
                 previousTick.Clear();
                 return;
             }
 
-            activeRacersText.Append(RacingConstants.headerColor);
-            TextAppend(hudHeader);
+            activeRacersText.Append(hudHeader);
             if (Finishers.Count > 0)
-            {
-                activeRacersText.Append(RacingConstants.colorFinalist);
-                TextAppend(Finishers.ToString());
-            }
-            activeRacersText.Append(RacingConstants.colorWhite);
-
+                activeRacersText.Append(Finishers.ToString());
 
             if (ranking.Count > 0)
             {
@@ -277,6 +245,7 @@ namespace avaness.RacingMod.Race
 
                 foreach (StaticRacerInfo info in ranking)
                 {
+
                     string drawnColor = null;
                     if (info.OnTrack)
                     {
@@ -317,19 +286,13 @@ namespace avaness.RacingMod.Race
 
                     // <num>
                     if (MapSettings.TimedMode)
-                    {
-                        TextAppend("   ");
-                    }
+                        activeRacersText.Append("   ");
                     else
-                    {
-                        TextAppend(RacingTools.SetLength(i, RacingConstants.numberWidth));
-                        TextAppend(' ');
-                    }
+                        activeRacersText.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');
 
                     // <num> <name>
-                    TextAppend(info.FormattedName);
-                    TextAppend(' ');
-                    
+                    activeRacersText.Append(info.Name).Append(' ');
+
                     // <num> <name> <distance>
                     string dist;
                     if (!info.OnTrack)
@@ -355,59 +318,26 @@ namespace avaness.RacingMod.Race
 
                     if(info.OnTrack && MapSettings.NumLaps > 1)
                     {
-                        TextAppend(RacingTools.SetLength(dist, RacingConstants.distWidth));
-                        TextAppend(' ');
-                        TextAppend(info.Laps + 1);
+                        activeRacersText.Append(RacingTools.SetLength(dist, RacingConstants.distWidth));
+                        int lap = info.Laps;
+                        activeRacersText.Append(' ').Append(lap + 1);
                     }
                     else
                     {
-                        TextAppend(dist);
+                        activeRacersText.Append(dist);
                     }
 
-                    TextAppendLine();
+                    activeRacersText.AppendLine();
 
                     info.Rank = i;
                     i++;
                 }
-
                 previousTick = ranking;
             }
             else
             {
                 previousTick.Clear();
             }
-
-            //table.ClampRowCount(Finishers.Count + ranking.Count);
-        }
-
-        private void TextClear()
-        {
-            activeRacersText.Clear();
-            altText?.Clear();
-        }
-
-        private void TextAppend(string s)
-        {
-            activeRacersText.Append(s);
-            altText?.Append(s);
-        }
-
-        private void TextAppend(int n)
-        {
-            activeRacersText.Append(n);
-            altText?.Append(n);
-        }
-
-        private void TextAppend(char ch)
-        {
-            activeRacersText.Append(ch);
-            altText?.Append(ch);
-        }
-
-        private void TextAppendLine()
-        {
-            activeRacersText.AppendLine();
-            altText?.AppendLine();
         }
 
         private void BroadcastData(StringBuilder sb)
