@@ -8,9 +8,7 @@ namespace avaness.RacingMod.Chat.General
     {
         public override string Id => "record";
 
-        public override string Usage => ": (obsolete)";
-
-        public override bool Hidden => true;
+        public override string Usage => ": Record your fastest path in timed races.";
 
         protected override void Execute(IMyPlayer p, bool admin, string[] cmd, Track race)
         {
