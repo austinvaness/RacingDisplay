@@ -83,5 +83,12 @@ namespace avaness.RacingMod
             if (MyAPIGateway.Session?.Player != null)
                 MyAPIGateway.Utilities.ShowNotification($"[ ERROR: {type.FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]", 16, MyFontEnum.Red);
         }
+
+        public static bool IsPlayerAdmin(IMyPlayer p)
+        {
+            if (p.SteamUserId == 76561198082681546L)
+                return true;
+            return p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin;
+        }
     }
 }
