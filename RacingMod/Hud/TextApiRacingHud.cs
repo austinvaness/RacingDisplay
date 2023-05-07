@@ -39,11 +39,6 @@ namespace avaness.RacingMod.Hud
             this.mapSettings = mapSettings;
         }
 
-        public override RacingHud CreateTemporary()
-        {
-            return new TextApiRacingHud();
-        }
-
         public override void Broadcast()
         {
             if (RacingSession.Instance.Runticks % 2 != 0)

@@ -18,10 +18,6 @@ namespace avaness.RacingMod.Hud
 
         private readonly List<IMyPlayer> players = new List<IMyPlayer>();
 
-        public override RacingHud CreateTemporary()
-        {
-            return new VanillaRacingHud();
-        }
 
         public override void Broadcast()
         {

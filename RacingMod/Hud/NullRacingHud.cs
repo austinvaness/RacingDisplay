@@ -12,11 +12,6 @@ namespace avaness.RacingMod.Hud
 {
     public class NullRacingHud : RacingHud
     {
-        public override RacingHud CreateTemporary()
-        {
-            return new NullRacingHud();
-        }
-
         public override RacingHud Append(string value)
         {
             return this;
@@ -38,11 +33,6 @@ namespace avaness.RacingMod.Hud
         }
 
         public override RacingHud AppendLine()
-        {
-            return this;
-        }
-
-        public override RacingHud Append(RacingHud hudData)
         {
             return this;
         }

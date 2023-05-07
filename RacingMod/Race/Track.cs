@@ -23,7 +23,6 @@ namespace avaness.RacingMod.Race
 
         private readonly HashSet<ulong> activePlayers = new HashSet<ulong>();
         private SortedSet<StaticRacerInfo> previousTick = new SortedSet<StaticRacerInfo>();
-        private RacingHud hudHeader = new NullRacingHud();
         private bool debug;
 
         private readonly List<IMyPlayer> playersTemp = new List<IMyPlayer>();
@@ -81,8 +80,6 @@ namespace avaness.RacingMod.Race
         public void SetOutputHud(RacingHud hud)
         {
             this.hud = hud;
-            hudHeader = hud.CreateTemporary();
-            Finishers.SetOutputHud(hud);
         }
 
 
@@ -107,14 +104,6 @@ namespace avaness.RacingMod.Race
             foreach (ulong id in activePlayers)
                 Racers.SetMaxLaps(id, laps);
             Racers.ClearRecorders();
-
-            hudHeader.Clear();
-            hudHeader.Append(RacingConstants.headerColor).Append("#".PadRight(RacingConstants.numberWidth + 1));
-            hudHeader.Append("Name".PadRight(RacingConstants.nameWidth + 1));
-            hudHeader.Append("Position".PadRight(RacingConstants.distWidth + 1));
-            if (laps > 1)
-                hudHeader.Append("Lap");
-            hudHeader.AppendLine().Append(RacingConstants.colorWhite);
         }
 
         bool IsPlayerActive(IMyPlayer p)
@@ -254,9 +243,17 @@ namespace avaness.RacingMod.Race
                 return;
             }
 
-            hud.Append(hudHeader);
+            // Header
+            hud.Append(RacingConstants.headerColor).Append("#".PadRight(RacingConstants.numberWidth + 1));
+            hud.Append("Name".PadRight(RacingConstants.nameWidth + 1));
+            hud.Append("Position".PadRight(RacingConstants.distWidth + 1));
+            if (MapSettings.NumLaps > 1)
+                hud.Append("Lap");
+            hud.AppendLine().Append(RacingConstants.colorWhite);
+
+            // Finishers
             if (Finishers.Count > 0)
-                hud.Append(Finishers.HudData);
+                Finishers.BuildText(hud);
 
             if (ranking.Count > 0)
             {

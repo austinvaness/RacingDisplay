@@ -33,8 +33,6 @@ namespace avaness.RacingMod.Hud
             return this;
         }
 
-        public abstract RacingHud CreateTemporary();
-
         public virtual RacingHud Append(string value)
         {
             text.Append(value);
@@ -58,12 +56,6 @@ namespace avaness.RacingMod.Hud
 
         public virtual RacingHud Append(HudColor color)
         {
-            return this;
-        }
-
-        public virtual RacingHud Append(RacingHud hudData)
-        {
-            text.Append(hudData.text);
             return this;
         }
 

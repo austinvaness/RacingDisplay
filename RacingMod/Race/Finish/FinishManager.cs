@@ -10,23 +10,17 @@ namespace avaness.RacingMod.Race.Finish
 {
     public class FinishList : IEnumerable<IFinisher>
     {
-        private RacingHud tempSb = new NullRacingHud();
+        private StringBuilder tempSb = new StringBuilder();
+        private string finishersText = "";
         private RacingMapSettings MapSettings => RacingSession.Instance.MapSettings;
         private readonly List<IFinisher> finishers = new List<IFinisher>();
         private SerializableFinisher[] serializable;
 
         public event Action OnFinishersModified;
 
-        public RacingHud HudData => tempSb;
-
         public FinishList()
         {
             MapSettings.TimedModeChanged += TimedModeChanged;
-        }
-
-        public void SetOutputHud(RacingHud hud)
-        {
-            tempSb = hud.CreateTemporary();
         }
 
         public int Count => finishers.Count;
@@ -122,7 +116,7 @@ namespace avaness.RacingMod.Race.Finish
         // Build the final racer text
         private void FinishersModifed ()
         {
-            tempSb.Clear().Append(RacingConstants.colorFinalist);
+            tempSb.Clear();
 
             IEnumerable<IFinisher> temp;
             if (MapSettings.TimedMode)
@@ -149,7 +143,7 @@ namespace avaness.RacingMod.Race.Finish
                 }
 
                 tempSb.Length--;
-                tempSb.Append(RacingConstants.colorWhite).AppendLine();
+                finishersText = tempSb.ToString();
             }
             if(this.serializable != null)
                 this.serializable = serializable;
@@ -206,6 +200,14 @@ namespace avaness.RacingMod.Race.Finish
         IEnumerator IEnumerable.GetEnumerator ()
         {
             return finishers.GetEnumerator();
+        }
+
+        public void BuildText(RacingHud hud)
+        {
+            hud.Append(RacingConstants.colorFinalist);
+            hud.Append(finishersText);
+            hud.Append(RacingConstants.colorWhite).AppendLine();
+
         }
     }
 }
