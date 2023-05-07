@@ -7,7 +7,7 @@ namespace avaness.RacingMod
 {
     public static class RacingConstants
     {
-        public static bool IsServer => MyAPIGateway.Session.IsServer || MyAPIGateway.Session.OnlineMode == MyOnlineModeEnum.OFFLINE;
+        public static bool IsServer => MyAPIGateway.Session.IsServer;
         public static bool IsDedicated => IsServer && MyAPIGateway.Utilities.IsDedicated;
         public static bool IsPlayer => !IsDedicated;
 
