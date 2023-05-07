@@ -211,7 +211,7 @@ namespace avaness.RacingMod.Race.Finish
                 hud.Append(RacingTools.Format(info.BestTime)).AppendLine();
             }
 
-            hud.Append(RacingConstants.colorWhite).AppendLine();
+            hud.Append(RacingConstants.colorWhite);
 
         }
     }
