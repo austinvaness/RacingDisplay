@@ -102,15 +102,22 @@ namespace avaness.RacingMod
             return p.PromoteLevel == MyPromoteLevel.Owner || p.PromoteLevel == MyPromoteLevel.Admin;
         }
 
+        public static bool IsLocalPlayer(long playerId)
+        {
+            return playerId == 0 || MyAPIGateway.Session?.Player?.IdentityId == playerId;
+        }
+
         public static void SendChatMessage(string message, string author = "", long playerId = 0, string font = "Blue")
         {
-            MyVisualScriptLogicProvider.SendChatMessage(message, author, playerId, font);
+            if(IsLocalPlayer(playerId))
+                MyAPIGateway.Utilities.ShowMessage(author, message);
+            else if (RacingConstants.IsServer)
+                MyVisualScriptLogicProvider.SendChatMessage(message, author, playerId, font);
         }
 
         public static void RemoveGPS(string name, long playerId = -1)
         {
             MyVisualScriptLogicProvider.RemoveGPS(name, playerId);
-
         }
 
         public static void AddGPSToEntity(string entityName, string GPSName, string GPSDescription, Color GPSColor, long playerId = -1)
