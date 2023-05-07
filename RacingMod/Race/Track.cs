@@ -269,7 +269,7 @@ namespace avaness.RacingMod.Race
                 foreach (StaticRacerInfo info in ranking)
                 {
 
-                    VRageMath.Color? drawnColor = null;
+                    HudColor? drawnColor = null;
                     if (info.OnTrack)
                     {
                         if (!Moved(info.Racer))

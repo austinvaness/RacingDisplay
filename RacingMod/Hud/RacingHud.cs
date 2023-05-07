@@ -56,7 +56,7 @@ namespace avaness.RacingMod.Hud
             return this;
         }
 
-        public virtual RacingHud Append(VRageMath.Color color)
+        public virtual RacingHud Append(HudColor color)
         {
             return this;
         }

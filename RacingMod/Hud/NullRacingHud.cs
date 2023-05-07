@@ -32,7 +32,7 @@ namespace avaness.RacingMod.Hud
             return this;
         }
 
-        public override RacingHud Append(Color color)
+        public override RacingHud Append(HudColor color)
         {
             return this;
         }

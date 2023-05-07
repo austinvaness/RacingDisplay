@@ -9,5 +9,57 @@
       <Default>false</Default>
       <Path>Fonts\FreeMono_Racing\FontDataRacePA.xml</Path>
     </Font>
+    <Font>
+      <Id>
+        <TypeId>FontDefinition</TypeId>
+        <SubtypeId>FreeMono_Racing_Header</SubtypeId>
+      </Id>
+      <ColorMask>
+        <X>127</X>
+        <Y>127</Y>
+        <Z>127</Z>
+      </ColorMask>
+      <Default>false</Default>
+      <Path>Fonts\FreeMono_Racing\FontDataRacePA.xml</Path>
+    </Font>
+    <Font>
+      <Id>
+        <TypeId>FontDefinition</TypeId>
+        <SubtypeId>FreeMono_Racing_Stationary</SubtypeId>
+      </Id>
+      <ColorMask>
+        <X>255</X>
+        <Y>124</Y>
+        <Z>124</Z>
+      </ColorMask>
+      <Default>false</Default>
+      <Path>Fonts\FreeMono_Racing\FontDataRacePA.xml</Path>
+    </Font>
+    <Font>
+      <Id>
+        <TypeId>FontDefinition</TypeId>
+        <SubtypeId>FreeMono_Racing_RankUp</SubtypeId>
+      </Id>
+      <ColorMask>
+        <X>124</X>
+        <Y>255</Y>
+        <Z>154</Z>
+      </ColorMask>
+      <Default>false</Default>
+      <Path>Fonts\FreeMono_Racing\FontDataRacePA.xml</Path>
+    </Font>
+    <Font>
+      <Id>
+        <TypeId>FontDefinition</TypeId>
+        <SubtypeId>FreeMono_Racing_Finalist</SubtypeId>
+      </Id>
+      <ColorMask>
+        <X>140</X>
+        <Y>255</Y>
+        <Z>255</Z>
+      </ColorMask>
+      <Default>false</Default>
+      <Path>Fonts\FreeMono_Racing\FontDataRacePA.xml</Path>
+    </Font>
   </Fonts>
 </Definitions>

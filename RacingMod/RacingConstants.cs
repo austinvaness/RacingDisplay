@@ -1,4 +1,5 @@
-﻿using Sandbox.ModAPI;
+﻿using avaness.RacingMod.Hud;
+using Sandbox.ModAPI;
 using System;
 using VRage.Game;
 using VRageMath;
@@ -38,11 +39,11 @@ namespace avaness.RacingMod
         public const int rankUpTime = 90; // Number of ticks to display color
 
         // Colors
-        public static readonly Color headerColor = new Color(127, 127, 127);
-        public static readonly Color colorWhite = Color.White;
-        public static readonly Color colorStationary = new Color(255, 124, 124);
-        public static readonly Color colorRankUp = new Color(124, 255, 154);
-        public static readonly Color colorFinalist = new Color(140, 255, 255);
+        public static readonly HudColor headerColor = new HudColor(127, 127, 127, fontId + "_Header");
+        public static readonly HudColor colorWhite = new HudColor(255, 255, 255, fontId);
+        public static readonly HudColor colorStationary = new HudColor(255, 124, 124, fontId + "_Stationary");
+        public static readonly HudColor colorRankUp = new HudColor(124, 255, 154, fontId + "_RankUp");
+        public static readonly HudColor colorFinalist = new HudColor(140, 255, 255, fontId + "_Finalist");
 
         public static Color ghostWaypointColor = new Color(0, 0, 255);
         public static string ghostId => "BestTime" + MyAPIGateway.Session.Player.SteamUserId;

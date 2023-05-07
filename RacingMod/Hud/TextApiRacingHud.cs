@@ -144,7 +144,7 @@ namespace avaness.RacingMod.Hud
                 return "Off";
         }
 
-        public override RacingHud Append(Color color)
+        public override RacingHud Append(HudColor color)
         {
             text.Append("<color=").Append(color.R).Append(',').Append(color.G).Append(',').Append(color.B).Append('>');
             return this;
