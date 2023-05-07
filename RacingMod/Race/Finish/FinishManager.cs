@@ -11,12 +11,13 @@ namespace avaness.RacingMod.Race.Finish
     public class FinishList : IEnumerable<IFinisher>
     {
         private RacingHud tempSb = new NullRacingHud();
-        private string finalString;
         private RacingMapSettings MapSettings => RacingSession.Instance.MapSettings;
         private readonly List<IFinisher> finishers = new List<IFinisher>();
         private SerializableFinisher[] serializable;
 
         public event Action OnFinishersModified;
+
+        public RacingHud HudData => tempSb;
 
         public FinishList()
         {
@@ -150,16 +151,10 @@ namespace avaness.RacingMod.Race.Finish
                 tempSb.Length--;
                 tempSb.Append(RacingConstants.colorWhite).AppendLine();
             }
-            finalString = tempSb.ToString();
             if(this.serializable != null)
                 this.serializable = serializable;
             if (OnFinishersModified != null)
                 OnFinishersModified.Invoke();
-        }
-
-        public override string ToString ()
-        {
-            return finalString;
         }
 
         public void SaveFile()

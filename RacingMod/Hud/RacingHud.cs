@@ -61,6 +61,12 @@ namespace avaness.RacingMod.Hud
             return this;
         }
 
+        public virtual RacingHud Append(RacingHud hudData)
+        {
+            text.Append(hudData.text);
+            return this;
+        }
+
         public static RacingHud Create(RacingPreferences config, RacingMapSettings mapSettings)
         {
             bool useTextHudApi = MyAPIGateway.Session.Mods?.Any(x => x.PublishedFileId == 758597413 && x.PublishedServiceName == "Steam") == true;
@@ -68,11 +74,6 @@ namespace avaness.RacingMod.Hud
             //    return new TextApiRacingHud(config, mapSettings);
             //else
                 return new VanillaRacingHud();
-        }
-
-        public override string ToString()
-        {
-            return text.ToString();
         }
     }
 }

@@ -23,7 +23,7 @@ namespace avaness.RacingMod.Race
 
         private readonly HashSet<ulong> activePlayers = new HashSet<ulong>();
         private SortedSet<StaticRacerInfo> previousTick = new SortedSet<StaticRacerInfo>();
-        private string hudHeader = "";
+        private RacingHud hudHeader = new NullRacingHud();
         private bool debug;
 
         private readonly List<IMyPlayer> playersTemp = new List<IMyPlayer>();
@@ -81,6 +81,7 @@ namespace avaness.RacingMod.Race
         public void SetOutputHud(RacingHud hud)
         {
             this.hud = hud;
+            hudHeader = hud.CreateTemporary();
             Finishers.SetOutputHud(hud);
         }
 
@@ -107,15 +108,13 @@ namespace avaness.RacingMod.Race
                 Racers.SetMaxLaps(id, laps);
             Racers.ClearRecorders();
 
-            RacingHud tempSb = hud.CreateTemporary();
-            tempSb.Clear();
-            tempSb.Append(RacingConstants.headerColor).Append("#".PadRight(RacingConstants.numberWidth + 1));
-            tempSb.Append("Name".PadRight(RacingConstants.nameWidth + 1));
-            tempSb.Append("Position".PadRight(RacingConstants.distWidth + 1));
+            hudHeader.Clear();
+            hudHeader.Append(RacingConstants.headerColor).Append("#".PadRight(RacingConstants.numberWidth + 1));
+            hudHeader.Append("Name".PadRight(RacingConstants.nameWidth + 1));
+            hudHeader.Append("Position".PadRight(RacingConstants.distWidth + 1));
             if (laps > 1)
-                tempSb.Append("Lap");
-            tempSb.AppendLine().Append(RacingConstants.colorWhite);
-            hudHeader = tempSb.ToString();
+                hudHeader.Append("Lap");
+            hudHeader.AppendLine().Append(RacingConstants.colorWhite);
         }
 
         bool IsPlayerActive(IMyPlayer p)
@@ -257,7 +256,7 @@ namespace avaness.RacingMod.Race
 
             hud.Append(hudHeader);
             if (Finishers.Count > 0)
-                hud.Append(Finishers.ToString());
+                hud.Append(Finishers.HudData);
 
             if (ranking.Count > 0)
             {

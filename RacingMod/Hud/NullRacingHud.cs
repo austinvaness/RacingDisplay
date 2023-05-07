@@ -42,6 +42,11 @@ namespace avaness.RacingMod.Hud
             return this;
         }
 
+        public override RacingHud Append(RacingHud hudData)
+        {
+            return this;
+        }
+
         public override void Broadcast()
         {
 
