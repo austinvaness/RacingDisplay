@@ -11,18 +11,6 @@ namespace avaness.RacingMod.Hud
     {
         protected StringBuilder text = new StringBuilder();
 
-        public virtual int Length
-        {
-            get
-            {
-                return text.Length;
-            }
-            set
-            {
-                text.Length = value;
-            }
-        }
-
         public virtual void Broadcast() { }
         public virtual void Unload() { }
         public virtual void ToggleUI() { }

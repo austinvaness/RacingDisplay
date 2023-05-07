@@ -10,8 +10,6 @@ namespace avaness.RacingMod.Race.Finish
 {
     public class FinishList : IEnumerable<IFinisher>
     {
-        private StringBuilder tempSb = new StringBuilder();
-        private string finishersText = "";
         private RacingMapSettings MapSettings => RacingSession.Instance.MapSettings;
         private readonly List<IFinisher> finishers = new List<IFinisher>();
         private SerializableFinisher[] serializable;
@@ -116,8 +114,6 @@ namespace avaness.RacingMod.Race.Finish
         // Build the final racer text
         private void FinishersModifed ()
         {
-            tempSb.Clear();
-
             IEnumerable<IFinisher> temp;
             if (MapSettings.TimedMode)
                 temp = new SortedSet<IFinisher>(finishers, new RacerBestTimeComparer());
@@ -137,13 +133,7 @@ namespace avaness.RacingMod.Race.Finish
                     serializable[i] = s;
 
                     i++;
-                    tempSb.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');
-                    tempSb.Append(info.Name).Append(' ');
-                    tempSb.Append(RacingTools.Format(info.BestTime)).AppendLine();
                 }
-
-                tempSb.Length--;
-                finishersText = tempSb.ToString();
             }
             if(this.serializable != null)
                 this.serializable = serializable;
@@ -205,7 +195,22 @@ namespace avaness.RacingMod.Race.Finish
         public void BuildText(RacingHud hud)
         {
             hud.Append(RacingConstants.colorFinalist);
-            hud.Append(finishersText);
+
+            IEnumerable<IFinisher> temp;
+            if (MapSettings.TimedMode)
+                temp = new SortedSet<IFinisher>(finishers, new RacerBestTimeComparer());
+            else
+                temp = finishers;
+
+            int i = 0;
+            foreach (IFinisher info in temp)
+            {
+                i++;
+                hud.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');
+                hud.Append(info.Name).Append(' ');
+                hud.Append(RacingTools.Format(info.BestTime)).AppendLine();
+            }
+
             hud.Append(RacingConstants.colorWhite).AppendLine();
 
         }
