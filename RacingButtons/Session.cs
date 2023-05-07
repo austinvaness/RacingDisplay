@@ -68,6 +68,9 @@ namespace avaness.RacingButtons
         {
             switch (s)
             {
+                case "toggle autojoin":
+                    api.ToggleAutoJoin(p);
+                    break;
                 case "join race":
                     api.JoinRace(p);
                     break;

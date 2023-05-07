@@ -45,14 +45,15 @@ namespace avaness.RacingMod.API
 
         private void RecieveData(object obj)
         {
-            if (!Enabled && obj is MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>>)
+            if (!Enabled && obj is MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>, Action<IMyPlayer>>)
             {
                 // Initialization
-                var funcs = (MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>>)obj;
+                var funcs = (MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>, Action<IMyPlayer>>)obj;
                 finishers = funcs.Item1;
                 racers = funcs.Item2;
                 joinRace = funcs.Item3;
                 leaveRace = funcs.Item4;
+                toggleAutoJoin = funcs.Item5;
                 Enabled = true;
                 if (onEnabled != null)
                 {
@@ -96,23 +97,6 @@ namespace avaness.RacingMod.API
         /// <summary>
         /// Requests that a player join the race.
         /// </summary>
-        /// <param name="id">The id of the player.</param>
-        /// <param name="force">Force the player to join the race even if they are in the middle of the track.</param>
-        /// <returns>True if the player is now in the race.</returns>
-        public bool JoinRace(ulong id, bool force = false)
-        {
-            if(Enabled)
-            {
-                IMyPlayer p = GetPlayer(id);
-                if(p != null)
-                    return joinRace(p, force);
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Requests that a player join the race.
-        /// </summary>
         /// <param name="p">The player.</param>
         /// <param name="force">Force the player to join the race even if they are in the middle of the track.</param>
         /// <returns>True if the player is now in the race.</returns>
@@ -127,22 +111,6 @@ namespace avaness.RacingMod.API
         /// <summary>
         /// Requests that a player leave the race.
         /// </summary>
-        /// <param name="id">The id of the player.</param>
-        /// <returns>True if the player is no longer in the race.</returns>
-        public bool LeaveRace(ulong id)
-        {
-            if(Enabled)
-            {
-                IMyPlayer p = GetPlayer(id);
-                if (p != null)
-                    return leaveRace(p);
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Requests that a player leave the race.
-        /// </summary>
         /// <param name="p">The player.</param>
         /// <returns>True if the player is no longer in the race.</returns>
         public bool LeaveRace(IMyPlayer p)
@@ -152,13 +120,15 @@ namespace avaness.RacingMod.API
             return false;
         }
 
-        private IMyPlayer GetPlayer(ulong steamId)
+        private Action<IMyPlayer> toggleAutoJoin;
+        /// <summary>
+        /// Requests that a player join the race with autojoin mode.
+        /// </summary>
+        /// <param name="p">The player.</param>
+        public void ToggleAutoJoin(IMyPlayer p)
         {
-            if (steamId == 0)
-                return null;
-            List<IMyPlayer> temp = new List<IMyPlayer>(1);
-            MyAPIGateway.Players.GetPlayers(temp, (p) => p.SteamUserId == steamId);
-            return temp.FirstOrDefault();
+            if (Enabled)
+                toggleAutoJoin(p);
         }
     }
 }

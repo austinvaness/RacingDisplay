@@ -85,12 +85,12 @@ namespace avaness.RacingMod
                 MyAPIGateway.Utilities.ShowNotification($"[ ERROR: {type.FullName}: {e.Message} | Send SpaceEngineers.Log to mod author ]", 16, MyFontEnum.Red);
         }
 
-        public static void ShowNotification(string message, int disappearTimeMs, string font = "White", long playerId = 0)
+        public static void ShowNotification(string message, int disappearTimeMs = RacingConstants.defaultMsgMs, string font = "White", long playerId = 0)
         {
             MyVisualScriptLogicProvider.ShowNotification(message, disappearTimeMs, font, playerId);
         }
 
-        public static void ShowNotificationToAll(string message, int disappearTimeMs, string font = "White")
+        public static void ShowNotificationToAll(string message, int disappearTimeMs = RacingConstants.defaultMsgMs, string font = "White")
         {
             MyVisualScriptLogicProvider.ShowNotificationToAll(message, disappearTimeMs, font);
         }

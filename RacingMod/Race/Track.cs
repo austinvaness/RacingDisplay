@@ -6,6 +6,7 @@ using System.Text;
 using VRage.Game.ModAPI;
 using System.Linq;
 using avaness.RacingMod.Race.Finish;
+using System;
 
 namespace avaness.RacingMod.Race
 {
@@ -43,6 +44,7 @@ namespace avaness.RacingMod.Race
             RacingSession.Instance.Net.Register(RacingConstants.packetAutoRec, EnableRecording);
             Finishers.LoadFile(Racers);
         }
+
 
         public void Unload()
         {
@@ -179,6 +181,26 @@ namespace avaness.RacingMod.Race
                 if (alwaysMsg)
                     RacingTools.ShowNotification("You are not in the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                 return false;
+            }
+        }
+
+        public void ToggleAutoJoin(IMyPlayer p)
+        {
+            if (MapSettings.TimedMode && MapSettings.Looped)
+            {
+                if (!Contains(p.SteamUserId) && !JoinRace(p))
+                    return;
+
+                StaticRacerInfo info = Racers.GetStaticInfo(p);
+                if (info.AutoJoin)
+                    RacingTools.ShowNotification("You will leave the race after finishing.", playerId: p.IdentityId);
+                else
+                    RacingTools.ShowNotification("Your timer will reset after finishing.", playerId: p.IdentityId);
+                info.AutoJoin = !info.AutoJoin;
+            }
+            else
+            {
+                RacingTools.ShowNotification("Auto join only works for looped timed races.", playerId: p.IdentityId);
             }
         }
 

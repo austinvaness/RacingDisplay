@@ -18,8 +18,8 @@ namespace avaness.RacingMod.API
             {
                 this.race = race;
                 MyAPIGateway.Utilities.SendModMessage(RacingConstants.ModMessageId,
-                    new MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>>
-                    (GetFinishers, GetActiveRacers, RequestJoin, RequestLeave));
+                    new MyTuple<Func<IEnumerable<MyTuple<ulong, TimeSpan>>>, Func<IEnumerable<MyTuple<ulong, double>>>, Func<IMyPlayer, bool, bool>, Func<IMyPlayer, bool>, Action<IMyPlayer>>
+                    (GetFinishers, GetActiveRacers, RequestJoin, RequestLeave, ToggleAutoJoin));
             }
         }
 
@@ -46,6 +46,11 @@ namespace avaness.RacingMod.API
         private bool RequestLeave(IMyPlayer p)
         {
             return race.LeaveRace(p, false);
+        }
+
+        private void ToggleAutoJoin(IMyPlayer p)
+        {
+            race.ToggleAutoJoin(p);
         }
     }
 }
