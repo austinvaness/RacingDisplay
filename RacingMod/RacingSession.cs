@@ -23,11 +23,11 @@ namespace avaness.RacingMod
         public readonly RacingMapSettings MapSettings = new RacingMapSettings();
         public readonly HashSet<IMyTimerBlock> StartTimers = new HashSet<IMyTimerBlock>();
         public Network Net;
-        public RacingHud Hud;
         public NodeManager Nodes;
 
         public ClientRaceRecorder Recorder;
 
+        private RacingHud hud;
         private RacingCommands cmds;
         private readonly Track race;
         private readonly RacingPreferences config = new RacingPreferences();
@@ -51,21 +51,19 @@ namespace avaness.RacingMod
                 cmds = new RacingCommands(race);
             }
 
-            if (RacingConstants.IsPlayer)
+            if (hud == null)
             {
-                if(Hud == null)
-                    Hud = new RacingHud(config, MapSettings);
-                if (MyAPIGateway.Session.Player == null)
-                    return;
+                hud = RacingHud.Create(config, MapSettings);
+                race.SetOutputHud(hud);
             }
 
+            if (RacingConstants.IsPlayer && MyAPIGateway.Session.Player == null)
+                return;
 
             if (RacingConstants.IsServer)
             {
                 RacingTools.RemoveGPSForAll(RacingConstants.gateWaypointName);
                 MapSettings.Copy(RacingMapSettings.LoadFile());
-                if(Hud != null)
-                    Hud.OnEnabled += Hud_OnEnabled;
                 race.LoadServer();
             }
             else
@@ -96,12 +94,6 @@ namespace avaness.RacingMod
 
             MyLog.Default.WriteLineAndConsole("Racing Display started.");
             running = true;
-        }
-
-        private void Hud_OnEnabled()
-        {
-            race.Bind(Hud);
-            Hud.OnEnabled -= Hud_OnEnabled;
         }
 
         public override void SaveData()
@@ -196,8 +188,8 @@ namespace avaness.RacingMod
                     DebugRecorder();
                 }*/
 
-                if (Hud != null && config != null && config.HideHud.IsKeybindPressed())
-                    Hud.ToggleUI();
+                if (hud != null && config != null && config.HideHud.IsKeybindPressed())
+                    hud.ToggleUI();
             }
             catch (Exception e)
             {
@@ -214,11 +206,7 @@ namespace avaness.RacingMod
 
         protected override void UnloadData()
         {
-            if(Hud != null)
-            {
-                Hud.Unload();
-                Hud.OnEnabled -= Hud_OnEnabled;
-            }
+            hud.Unload();
             race.Unload();
             Nodes.Unload();
             if(MapSettings != null)

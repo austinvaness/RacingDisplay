@@ -1,4 +1,5 @@
-﻿using avaness.RacingMod.Racers;
+﻿using avaness.RacingMod.Hud;
+using avaness.RacingMod.Racers;
 using Sandbox.ModAPI;
 using System;
 using System.Collections;
@@ -9,7 +10,7 @@ namespace avaness.RacingMod.Race.Finish
 {
     public class FinishList : IEnumerable<IFinisher>
     {
-        private readonly StringBuilder tempSb = new StringBuilder();
+        private RacingHud tempSb = new NullRacingHud();
         private string finalString;
         private RacingMapSettings MapSettings => RacingSession.Instance.MapSettings;
         private readonly List<IFinisher> finishers = new List<IFinisher>();
@@ -20,6 +21,11 @@ namespace avaness.RacingMod.Race.Finish
         public FinishList()
         {
             MapSettings.TimedModeChanged += TimedModeChanged;
+        }
+
+        public void SetOutputHud(RacingHud hud)
+        {
+            tempSb = hud.CreateTemporary();
         }
 
         public int Count => finishers.Count;

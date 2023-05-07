@@ -1,130 +1,78 @@
-﻿using Draygo.API;
-using avaness.RacingMod.Font;
-using VRage.Input;
-using VRageMath;
-using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
-using System.Text;
+﻿using Sandbox.ModAPI;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace avaness.RacingMod.Hud
 {
-    public class RacingHud
+    public abstract class RacingHud
     {
-        public readonly HudAPIv2 api;
-        private readonly RacingPreferences config;
-        private readonly RacingMapSettings mapSettings;
-        private Vector2D activeHudPosition = new Vector2D(-0.95, 0.90);
+        protected StringBuilder text = new StringBuilder();
 
-        public HudAPIv2.HUDMessage activeRacersHud;
-        private HudAPIv2.MenuRootCategory menuRoot;
-        private HudAPIv2.MenuKeybindInput hideHudInput;
-        private HudAPIv2.MenuItem autoRecordInput;
-        private MapSettingsMenu settingsMenu;
-
-        public event Action OnEnabled;
-
-        private StringBuilder text = new StringBuilder("Loading...");
-        public StringBuilder Text
+        public virtual int Length
         {
             get
             {
-                return text;
+                return text.Length;
             }
             set
             {
-                text = value;
-                activeRacersHud.Message = value;
+                text.Length = value;
             }
         }
 
-        public RacingHud(RacingPreferences config, RacingMapSettings mapSettings)
+        public virtual void Broadcast() { }
+        public virtual void Unload() { }
+        public virtual void ToggleUI() { }
+
+        public virtual RacingHud Clear()
         {
-            if (RacingSession.Instance.Hud != null)
-                throw new Exception("Error, cannot create another hud instance!");
-            api = new HudAPIv2(CreateHud);
-            this.config = config;
-            this.mapSettings = mapSettings;
+            text.Clear();
+            return this;
         }
 
-        public void Unload()
+        public abstract RacingHud CreateTemporary();
+
+        public virtual RacingHud Append(string value)
         {
-            api.Unload();
-            OnEnabled = null;
-            if(settingsMenu != null)
-                settingsMenu.Unload();
-            config.OnHideHudChanged -= UpdateHideHud;
-            config.OnAutoRecordChanged -= UpdateAutoRecord;
+            text.Append(value);
+            return this;
+        }
+        public virtual RacingHud Append(char value)
+        {
+            text.Append(value);
+            return this;
+        }
+        public virtual RacingHud Append(int value)
+        {
+            text.Append(value);
+            return this;
+        }
+        public virtual RacingHud AppendLine()
+        {
+            text.AppendLine();
+            return this;
         }
 
-        private void CreateHud()
+        public virtual RacingHud Append(VRageMath.Color color)
         {
-            new HudAPIFont(RacingConstants.fontData, RacingConstants.fontId).CreateFont();
-
-            activeRacersHud = new HudAPIv2.HUDMessage(text, activeHudPosition, HideHud: false, Font: RacingConstants.fontId, Blend: BlendTypeEnum.PostPP);
-
-            menuRoot = new HudAPIv2.MenuRootCategory("Racing Display", HudAPIv2.MenuRootCategory.MenuFlag.PlayerMenu, "Racing Display");
-            hideHudInput = new HudAPIv2.MenuKeybindInput("Hide Hud - " + config.HideHud.ToString(), menuRoot, "Press any Key [Hide Hud]", SetHideHudKey);
-            config.OnHideHudChanged += UpdateHideHud;
-            autoRecordInput = new HudAPIv2.MenuItem("Auto Record - " + BoolToString(config.AutoRecord), menuRoot, SetAutoRecord);
-            config.OnAutoRecordChanged += UpdateAutoRecord;
-
-            settingsMenu = new MapSettingsMenu(mapSettings);
-
-            if(OnEnabled != null)
-            {
-                OnEnabled.Invoke();
-                OnEnabled = null;
-            }
-
-            RacingSession.Instance.Net.Register(RacingConstants.packetMainId, ReceiveHudText);
+            return this;
         }
 
-        private void SetAutoRecord()
+        public static RacingHud Create(RacingPreferences config, RacingMapSettings mapSettings)
         {
-            config.AutoRecord = !config.AutoRecord;
+            bool useTextHudApi = MyAPIGateway.Session.Mods?.Any(x => x.PublishedFileId == 758597413 && x.PublishedServiceName == "Steam") == true;
+            //if (useTextHudApi)
+            //    return new TextApiRacingHud(config, mapSettings);
+            //else
+                return new VanillaRacingHud();
         }
 
-        private void UpdateAutoRecord(bool autoRecord)
+        public override string ToString()
         {
-            autoRecordInput.Text = "Auto Record - " + BoolToString(autoRecord);
-        }
-
-        private void ReceiveHudText(byte[] data)
-        {
-            try
-            {
-                string text = Encoding.UTF8.GetString(data);
-                this.text.Clear();
-                this.text.Append(text);
-            }
-            catch (Exception e)
-            {
-                RacingTools.ShowError(e, GetType());
-            }
-        }
-
-        public void ToggleUI()
-        {
-            if (activeRacersHud == null)
-                return;
-            activeRacersHud.Visible = !activeRacersHud.Visible;
-        }
-
-        private void SetHideHudKey (MyKeys key, bool shift, bool ctrl, bool alt)
-        {
-            config.HideHud = new Keybind(key, shift, ctrl, alt);
-        }
-        private void UpdateHideHud(Keybind keybind)
-        {
-            hideHudInput.Text = "Hide Hud - " + keybind.ToString();
-        }
-
-        private string BoolToString(bool b)
-        {
-            if (b)
-                return "On";
-            else
-                return "Off";
+            return text.ToString();
         }
     }
 }

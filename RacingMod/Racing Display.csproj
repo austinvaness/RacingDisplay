@@ -166,12 +166,14 @@
     <Compile Include="Chat\General\CmdRecord.cs" />
     <Compile Include="Chat\General\CmdRejoin.cs" />
     <Compile Include="Chat\RacingCommands.cs" />
+    <Compile Include="Hud\RacingHud.cs" />
+    <Compile Include="Hud\NullRacingHud.cs" />
+    <Compile Include="Hud\VanillaRacingHud.cs" />
     <Compile Include="Racers\Timer.cs" />
     <Compile Include="Race\Finish\IFinisher.cs" />
     <Compile Include="Race\Finish\RacerBestTimeComparer.cs" />
     <Compile Include="Race\Finish\FinishManager.cs" />
     <Compile Include="Font\HudAPIFont.cs" />
-    <Compile Include="Hud\InfoHud.cs" />
     <Compile Include="Hud\MapSettingsMenu.cs" />
     <Compile Include="Net\Networking.cs" />
     <Compile Include="Race\Finish\SerializableFinisher.cs" />
@@ -192,7 +194,7 @@
     <Compile Include="RacingPreferences.cs" />
     <Compile Include="RacingSession.cs" />
     <Compile Include="RacingTools.cs" />
-    <Compile Include="Hud\RacingHud.cs" />
+    <Compile Include="Hud\TextApiRacingHud.cs" />
     <Compile Include="StartTimer.cs" />
     <Compile Include="Racers\StaticRacerInfo.cs" />
   </ItemGroup>
@@ -221,7 +223,10 @@
 mkdir "Workshop"
 mkdir "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)"
 rclone sync "$(ProjectDir)\" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)\Data\Scripts\$(ProjectName)" --filter "- obj/**" --filter "- bin/**" --filter "- **/AssemblyInfo.cs" --filter "+ **.cs" --filter "- *" -v
-rclone sync "$(ProjectDir)\Workshop" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" --exclude "**.cs" -v</PostBuildEvent>
+rclone sync "$(ProjectDir)\Workshop" "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" --exclude "**.cs" -v
+
+rclone sync "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" "C:\Program Files (x86)\Steam\steamapps\workshop\content\244850\1708268562"
+rclone sync "%25Appdata%25\SpaceEngineers\Mods\$(ProjectName)" "D:\Torch\Instance\content\244850\1708268562"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <LangVersion>6</LangVersion>

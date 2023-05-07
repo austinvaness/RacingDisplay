@@ -7,6 +7,7 @@ using VRage.Game.ModAPI;
 using System.Linq;
 using avaness.RacingMod.Race.Finish;
 using System;
+using avaness.RacingMod.Hud;
 
 namespace avaness.RacingMod.Race
 {
@@ -18,14 +19,14 @@ namespace avaness.RacingMod.Race
         public RacerStorage Racers { get; }
         public bool Debug => debug;
 
-        private readonly StringBuilder activeRacersText = new StringBuilder();
+        private RacingHud hud = new NullRacingHud();
+
         private readonly HashSet<ulong> activePlayers = new HashSet<ulong>();
         private SortedSet<StaticRacerInfo> previousTick = new SortedSet<StaticRacerInfo>();
         private string hudHeader = "";
         private bool debug;
 
         private readonly List<IMyPlayer> playersTemp = new List<IMyPlayer>();
-        private readonly StringBuilder tempSb = new StringBuilder();
 
         public Track(RacingMapSettings mapSettings)
         {
@@ -56,8 +57,7 @@ namespace avaness.RacingMod.Race
         public void Update()
         {
             ProcessValues();
-            if(RacingSession.Instance.Runticks % 2 == 0)
-                BroadcastData(activeRacersText);
+            hud.Broadcast();
 
             if (debug && MyAPIGateway.Session.Player != null)
             {
@@ -78,10 +78,10 @@ namespace avaness.RacingMod.Race
             Racers.GetStaticInfo(sender).CreateRecorder();
         }
 
-        public void Bind(Hud.RacingHud hud)
+        public void SetOutputHud(RacingHud hud)
         {
-            if (!ReferenceEquals(activeRacersText, hud.Text))
-                hud.Text = activeRacersText;
+            this.hud = hud;
+            Finishers.SetOutputHud(hud);
         }
 
 
@@ -107,6 +107,7 @@ namespace avaness.RacingMod.Race
                 Racers.SetMaxLaps(id, laps);
             Racers.ClearRecorders();
 
+            RacingHud tempSb = hud.CreateTemporary();
             tempSb.Clear();
             tempSb.Append(RacingConstants.headerColor).Append("#".PadRight(RacingConstants.numberWidth + 1));
             tempSb.Append("Name".PadRight(RacingConstants.nameWidth + 1));
@@ -210,8 +211,8 @@ namespace avaness.RacingMod.Race
 
             if (nodes.Count < 2)
             {
-                activeRacersText.Clear();
-                activeRacersText.Append("Waiting for (" + (2 - nodes.Count) + ") beacon nodes...").AppendLine();
+                hud.Clear();
+                hud.Append("Waiting for (" + (2 - nodes.Count) + ") beacon nodes...").AppendLine();
                 return;
             }
 
@@ -246,17 +247,17 @@ namespace avaness.RacingMod.Race
             int runticks = RacingSession.Instance.Runticks;
 
             // Build the active racer text
-            activeRacersText.Clear();
+            hud.Clear();
             if (ranking.Count == 0 && Finishers.Count == 0)
             {
-                activeRacersText.Append("No racers in range.");
+                hud.Append("No racers in range.");
                 previousTick.Clear();
                 return;
             }
 
-            activeRacersText.Append(hudHeader);
+            hud.Append(hudHeader);
             if (Finishers.Count > 0)
-                activeRacersText.Append(Finishers.ToString());
+                hud.Append(Finishers.ToString());
 
             if (ranking.Count > 0)
             {
@@ -268,7 +269,7 @@ namespace avaness.RacingMod.Race
                 foreach (StaticRacerInfo info in ranking)
                 {
 
-                    string drawnColor = null;
+                    VRageMath.Color? drawnColor = null;
                     if (info.OnTrack)
                     {
                         if (!Moved(info.Racer))
@@ -295,25 +296,25 @@ namespace avaness.RacingMod.Race
                         }
                     }
 
-                    if (drawnColor != null)
+                    if (drawnColor.HasValue)
                     {
-                        activeRacersText.Append(drawnColor);
+                        hud.Append(drawnColor.Value);
                         drawWhite = true;
                     }
                     else if (drawWhite)
                     {
-                        activeRacersText.Append(RacingConstants.colorWhite);
+                        hud.Append(RacingConstants.colorWhite);
                         drawWhite = false;
                     }
 
                     // <num>
                     if (MapSettings.TimedMode)
-                        activeRacersText.Append("   ");
+                        hud.Append("   ");
                     else
-                        activeRacersText.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');
+                        hud.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');
 
                     // <num> <name>
-                    activeRacersText.Append(info.Name).Append(' ');
+                    hud.Append(info.Name).Append(' ');
 
                     // <num> <name> <distance>
                     string dist;
@@ -340,16 +341,16 @@ namespace avaness.RacingMod.Race
 
                     if(info.OnTrack && MapSettings.NumLaps > 1)
                     {
-                        activeRacersText.Append(RacingTools.SetLength(dist, RacingConstants.distWidth));
+                        hud.Append(RacingTools.SetLength(dist, RacingConstants.distWidth));
                         int lap = info.Laps;
-                        activeRacersText.Append(' ').Append(lap + 1);
+                        hud.Append(' ').Append(lap + 1);
                     }
                     else
                     {
-                        activeRacersText.Append(dist);
+                        hud.Append(dist);
                     }
 
-                    activeRacersText.AppendLine();
+                    hud.AppendLine();
 
                     info.Rank = i;
                     i++;
@@ -359,22 +360,6 @@ namespace avaness.RacingMod.Race
             else
             {
                 previousTick.Clear();
-            }
-        }
-
-        private void BroadcastData(StringBuilder sb)
-        {
-            Net.Network net = RacingSession.Instance.Net;
-            byte[] data = net.Prep(RacingConstants.packetMainId, Encoding.UTF8.GetBytes(sb.ToString()));
-
-            List<IMyPlayer> players = new List<IMyPlayer>();
-            MyAPIGateway.Players.GetPlayers(players);
-            foreach (IMyPlayer p in players)
-            {
-                if (p.SteamUserId == MyAPIGateway.Multiplayer.ServerId)
-                    continue;
-
-                net.SendTo(data, p.SteamUserId);
             }
         }
 

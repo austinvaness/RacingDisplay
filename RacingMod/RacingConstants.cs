@@ -38,11 +38,11 @@ namespace avaness.RacingMod
         public const int rankUpTime = 90; // Number of ticks to display color
 
         // Colors
-        public const string headerColor = "<color=127,127,127>";
-        public const string colorWhite = "<color=white>";
-        public const string colorStationary = "<color=255,124,124>";
-        public const string colorRankUp = "<color=124,255,154>";
-        public const string colorFinalist = "<color=140,255,255>";
+        public static readonly Color headerColor = new Color(127, 127, 127);
+        public static readonly Color colorWhite = Color.White;
+        public static readonly Color colorStationary = new Color(255, 124, 124);
+        public static readonly Color colorRankUp = new Color(124, 255, 154);
+        public static readonly Color colorFinalist = new Color(140, 255, 255);
 
         public static Color ghostWaypointColor = new Color(0, 0, 255);
         public static string ghostId => "BestTime" + MyAPIGateway.Session.Player.SteamUserId;
