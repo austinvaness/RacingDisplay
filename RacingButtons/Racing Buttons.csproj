@@ -103,7 +103,9 @@
     <Compile Include="Session.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="Workshop\modinfo.sbmi" />
+  </ItemGroup>
   <ItemGroup>
     <Content Include="Workshop\thumb.jpg" />
   </ItemGroup>

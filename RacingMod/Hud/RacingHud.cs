@@ -50,9 +50,9 @@ namespace avaness.RacingMod.Hud
         public static RacingHud Create(RacingPreferences config, RacingMapSettings mapSettings)
         {
             bool useTextHudApi = MyAPIGateway.Session.Mods?.Any(x => x.PublishedFileId == 758597413 && x.PublishedServiceName == "Steam") == true;
-            //if (useTextHudApi)
-            //    return new TextApiRacingHud(config, mapSettings);
-            //else
+            if (useTextHudApi)
+                return new TextApiRacingHud(config, mapSettings);
+            else
                 return new VanillaRacingHud();
         }
     }
