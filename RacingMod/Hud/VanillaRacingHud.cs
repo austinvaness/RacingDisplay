@@ -15,16 +15,18 @@ namespace avaness.RacingMod.Hud
         private static readonly Vector2 hudPosition = new Vector2(-0.125f, 0.05f);
         private const float fontSize = 0.7f;
         private const long stringId = 1708268562;
-        private readonly List<UiString> uiStrings = new List<UiString>();
+        private readonly Dictionary<string, UiString> uiStrings = new Dictionary<string, UiString>();
 
-        private string font = RacingConstants.fontId;
         private int lineIndex = 0;
-        private int stringIndex = 0;
+        private int lineLength = 0;
+        private UiString currentString;
+        private string font = RacingConstants.fontId;
 
         public VanillaRacingHud()
         {
-            uiStrings.Add(new UiString(stringId, RacingConstants.fontId));
-            text = uiStrings[0].Text;
+            string whiteFont = RacingConstants.colorWhite.AltFont;
+            uiStrings.Add(whiteFont, new UiString(stringId, whiteFont));
+            currentString = uiStrings.Values.First();
         }
 
 
@@ -33,98 +35,83 @@ namespace avaness.RacingMod.Hud
             if (RacingSession.Instance.Runticks % 10 != 0)
                 return;
 
-            foreach (UiString s in uiStrings)
+            foreach (UiString s in uiStrings.Values)
                 s.Update();
         }
 
         public override RacingHud Clear()
         {
-            for (int i = 0; i <= stringIndex; i++)
-                uiStrings[i].Clear();
+            foreach (UiString s in uiStrings.Values)
+                s.Clear();
             lineIndex = 0;
-            stringIndex = -1;
-            MoveToNextString();
+            lineLength = 0;
+            currentString = uiStrings[RacingConstants.colorWhite.AltFont];
+            font = currentString.Font;
             return this;
         }
 
         public override RacingHud AppendLine()
         {
             lineIndex++;
-
-            // Check if a new font is needed
-            UiString s = uiStrings[stringIndex];
-            if (font != s.Font)
-                MoveToNextString();
-            else
-                s.AppendLine();
+            lineLength = 0;
+            currentString.AppendLine();
             return this;
-        }
-
-        private void MoveToNextString()
-        {
-            stringIndex++;
-
-            // Create or get the existing string
-            UiString s;
-            if (stringIndex < uiStrings.Count)
-            {
-                s = uiStrings[stringIndex];
-                s.Font = font;
-            }
-            else
-            {
-                s = new UiString(stringId + uiStrings.Count, font);
-                uiStrings.Add(s);
-            }
-
-            // Move the string to the correct line (measuring line heights is difficult with the mod api)
-            text = s.Text;
-            s.Clear();
-            s.SetLine(lineIndex);
         }
 
         public override RacingHud Append(HudColor color)
         {
-            AppendFont(color.AltFont);
+            font = color.AltFont;
             return this;
         }
 
-        private void AppendFont(string font)
+        private void CheckForFontChange()
         {
-            this.font = font;
-
-            UiString s = uiStrings[stringIndex];
-            if (s.IsEmpty) // If current string has no text, change font for the current string
-                s.Font = font;
-            else if (EndsWithNewline()) // If the current position is at a blank newline, create a new string object
-                MoveToNextString();
+            if(font != currentString.Font)
+            {
+                if(!uiStrings.TryGetValue(font, out currentString))
+                {
+                    currentString = new UiString(stringId + uiStrings.Count, font);
+                    uiStrings.Add(font, currentString);
+                }
+                currentString.SetPosition(lineIndex, lineLength);
+            }
         }
 
-        private bool EndsWithNewline()
+        public override RacingHud Append(string value)
         {
-            string newline = Environment.NewLine;
-            int i = newline.Length - 1;
-            int j = text.Length - 1;
-            while(i >= 0 && j >= 0)
-            {
-                if (text[j] != newline[i])
-                    return false;
-                i--;
-                j--;
-            }
-            return true;
+            CheckForFontChange();
+            lineLength += value.Length;
+            currentString.Append(value);
+            return this;
+        }
+
+        public override RacingHud Append(char value)
+        {
+            CheckForFontChange();
+            lineLength++;
+            currentString.Append(value);
+            return this;
+        }
+
+        public override RacingHud Append(int value)
+        {
+            CheckForFontChange();
+            lineLength += currentString.Append(value);
+            return this;
         }
 
         private class UiString
         {
-            public StringBuilder Text = new StringBuilder();
-            public string Font;
+            public string Font { get; }
+            public bool IsEmpty => Text.Length == baseLength;
 
             private readonly long id;
 
+            private StringBuilder Text = new StringBuilder();
+            private int lines;
+            private int chars;
             private bool active;
             private int baseLength;
-            public bool IsEmpty => Text.Length == baseLength;
 
             public UiString(long id, string font)
             {
@@ -136,26 +123,50 @@ namespace avaness.RacingMod.Hud
             {
                 Text.Clear();
                 baseLength = 0;
+                lines = 0;
+                chars = 0;
             }
 
-            public void SetLine(int lineIndex)
+            public void SetPosition(int lines, int chars)
             {
-                for (int i = 0; i < lineIndex; i++)
+                bool empty = IsEmpty;
+                for (int i = this.lines; i < lines; i++)
                     Text.AppendLine();
-                baseLength = Text.Length;
+                if(chars > this.chars)
+                    Text.Append(' ', chars - this.chars);
+                if (empty)
+                    baseLength = Text.Length;
             }
 
             public void AppendLine()
             {
-                if (IsEmpty)
-                {
-                    Text.AppendLine();
+                bool empty = IsEmpty;
+                Text.AppendLine();
+                lines++;
+                chars = 0;
+                if (empty)
                     baseLength = Text.Length;
-                }
-                else
-                {
-                    Text.AppendLine();
-                }
+            }
+
+            public void Append(string value)
+            {
+                Text.Append(value);
+                chars += value.Length;
+            }
+
+            public void Append(char value)
+            {
+                Text.Append(value);
+                chars++;
+            }
+
+            public int Append(int value)
+            {
+                int start = Text.Length;
+                Text.Append(value);
+                int length = Text.Length - start;
+                chars += length;
+                return length;
             }
 
             public void Update()
