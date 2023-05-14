@@ -45,7 +45,7 @@ namespace avaness.RacingMod.Racers
         public StaticRacerInfo(IMyPlayer p)
         {
             Id = p.SteamUserId;
-            Name = RacingTools.SetLength(p.DisplayName, RacingConstants.nameWidth);
+            Name = RacingTools.SetLength(RacingTools.GetDisplayName(p), RacingConstants.nameWidth);
             Racer = p;
             Timer = new Timer(true);
         }

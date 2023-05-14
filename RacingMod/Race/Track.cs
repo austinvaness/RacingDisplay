@@ -216,7 +216,7 @@ namespace avaness.RacingMod.Race
                 {
                     Finishers.Add(info);
                     if (!MapSettings.TimedMode)
-                        RacingTools.ShowNotificationToAll($"{p.DisplayName} just finished in position {Finishers.Count}", RacingConstants.defaultMsgMs, "White");
+                        RacingTools.ShowNotificationToAll($"{RacingTools.GetDisplayName(p)} just finished in position {Finishers.Count}", RacingConstants.defaultMsgMs, "White");
                     if (state == NodeManager.RacerState.Finish)
                         LeaveRace(p);
                 }

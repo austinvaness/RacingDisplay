@@ -30,7 +30,7 @@ namespace avaness.RacingMod
         {
             name = name.ToLower();
             List<IMyPlayer> temp = new List<IMyPlayer>();
-            MyAPIGateway.Players.GetPlayers(temp, (p) => p.DisplayName.ToLower().Contains(name));
+            MyAPIGateway.Players.GetPlayers(temp, (p) => GetDisplayName(p).ToLower().Contains(name));
             return temp.FirstOrDefault();
         }
 
@@ -40,6 +40,11 @@ namespace avaness.RacingMod
             if (o != null)
                 s = o.ToString();
             return s.PadRight(length + startIndex).Substring(startIndex, length);
+        }
+
+        public static string GetDisplayName(IMyPlayer p)
+        {
+            return p.DisplayName.TrimStart('\uE030', '\uE031', '\uE032');
         }
 
         /// <summary>
