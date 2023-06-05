@@ -2,6 +2,8 @@
 using System;
 using ProtoBuf;
 using VRage.Utils;
+using avaness.RacingMod.Race.Modes;
+using System.Xml.Serialization;
 
 namespace avaness.RacingMod
 {
@@ -42,26 +44,25 @@ namespace avaness.RacingMod
         }
         public event Action<int> NumLapsChanged;
 
-        [ProtoMember(2)]
-        private bool timedMode = false;
-        public bool TimedMode
+        /// <summary>
+        /// Used only for backwards compatibility
+        /// </summary>
+        public bool? TimedMode
         {
             get
             {
-                return timedMode;
+                return null;
             }
             set
             {
-                if(value != timedMode)
-                {
-                    timedMode = value;
-                    Sync(new Packet(PacketEnum.TimedMode, timedMode));
-                    if (TimedModeChanged != null)
-                        TimedModeChanged.Invoke(value);
-                }
+                if (value.HasValue)
+                    ModeType = value.Value ? (byte)TrackModeType.Qualify : (byte)TrackModeType.Distance;
             }
         }
-        public event Action<bool> TimedModeChanged;
+        public bool ShouldSerializeTimedMode()
+        {
+            return false; // This prevents the obsolete TimedMode from going back into the settings file
+        }
 
         [ProtoMember(3)]
         private bool strictStart = true;
@@ -109,6 +110,42 @@ namespace avaness.RacingMod
         }
         public event Action<bool> LoopedChanged;
 
+        private byte mode = (byte)TrackModeType.Distance;
+        [ProtoMember(5)]
+        public byte ModeType
+        {
+            get
+            {
+                return mode;
+            }
+            set
+            {
+                if (!Enum.IsDefined(typeof(TrackModeType), value))
+                    value = (byte)TrackModeType.Distance;
+
+                if (value != mode)
+                {
+                    mode = value;
+                    Sync(new Packet(PacketEnum.Mode, mode));
+                    if (ModeChanged != null)
+                        ModeChanged.Invoke(Mode);
+                }
+            }
+        }
+
+        private TrackModeBase trackMode;
+        public TrackModeBase Mode
+        {
+            get
+            {
+                TrackModeType trackModeType = (TrackModeType)mode;
+                if (trackMode == null || trackMode.TypeEnum != trackModeType)
+                    trackMode = TrackModeBase.Create(trackModeType);
+                return trackMode;
+            }
+        }
+        public event Action<TrackModeBase> ModeChanged;
+
         public void SaveFile ()
         {
             if (RacingConstants.IsServer)
@@ -126,10 +163,6 @@ namespace avaness.RacingMod
             if (NumLapsChanged != null)
                 NumLapsChanged.Invoke(numLaps);
 
-            timedMode = config.timedMode;
-            if (TimedModeChanged != null)
-                TimedModeChanged.Invoke(timedMode);
-
             strictStart = config.strictStart;
             if (StrictStartChanged != null)
                 StrictStartChanged.Invoke(strictStart);
@@ -137,14 +170,18 @@ namespace avaness.RacingMod
             looped = config.looped;
             if (LoopedChanged != null)
                 LoopedChanged.Invoke(looped);
+
+            mode = config.mode;
+            if (ModeChanged != null)
+                ModeChanged.Invoke(Mode);
         }
 
         public void Unload()
         {
             NumLapsChanged = null;
-            TimedModeChanged = null;
             StrictStartChanged = null;
             LoopedChanged = null;
+            ModeChanged = null;
         }
 
         public static RacingMapSettings LoadFile ()
@@ -184,9 +221,10 @@ namespace avaness.RacingMod
         public enum PacketEnum : byte
         {
             NumLaps = 0,
-            TimedMode = 1,
+            //TimedMode = 1,
             StrictStart = 2,
-            Looped = 3
+            Looped = 3,
+            Mode = 4
         }
 
         [ProtoContract]
@@ -227,12 +265,6 @@ namespace avaness.RacingMod
                         if (config.NumLapsChanged != null)
                             config.NumLapsChanged.Invoke(value);
                         break;
-                    case PacketEnum.TimedMode:
-                        bool b1 = value == 1;
-                        config.timedMode = b1;
-                        if (config.TimedModeChanged != null)
-                            config.TimedModeChanged.Invoke(b1);
-                        break;
                     case PacketEnum.StrictStart:
                         bool b2 = value == 1;
                         config.strictStart = b2;
@@ -245,6 +277,15 @@ namespace avaness.RacingMod
                         if (config.LoopedChanged != null)
                             config.LoopedChanged.Invoke(b3);
                         break;
+                    case PacketEnum.Mode:
+                        if (!Enum.IsDefined(typeof(TrackModeType), value))
+                            config.mode = (byte)TrackModeType.Distance;
+                        else
+                            config.mode = value;
+                        if (config.ModeChanged != null)
+                            config.ModeChanged.Invoke(config.Mode);
+                        break;
+
                 }
             }
         }

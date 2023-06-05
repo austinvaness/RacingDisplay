@@ -178,6 +178,11 @@
     <Compile Include="Hud\MapSettingsMenu.cs" />
     <Compile Include="Net\Networking.cs" />
     <Compile Include="Race\Finish\SerializableFinisher.cs" />
+    <Compile Include="Race\Modes\TrackModeType.cs" />
+    <Compile Include="Race\Modes\TrackModeBase.cs" />
+    <Compile Include="Race\Modes\TrackModeQualify.cs" />
+    <Compile Include="Race\Modes\TrackModeInterval.cs" />
+    <Compile Include="Race\Modes\TrackModeDistance.cs" />
     <Compile Include="Race\NodeManager.cs" />
     <Compile Include="Paths\IRaceRecorder.cs" />
     <Compile Include="Paths\PathRecorder.cs" />

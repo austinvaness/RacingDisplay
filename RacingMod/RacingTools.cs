@@ -2,6 +2,7 @@
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using VRage.Game;
 using VRage.Game.ModAPI;
@@ -62,8 +63,8 @@ namespace avaness.RacingMod
         public static string Format (TimeSpan span)
         {
             if (span.TotalHours >= 1)
-                return span.ToString("hh\\:mm\\:ss");
-            return span.ToString("mm\\:ss\\.ff");
+                return span.ToString("hh\\:mm\\:ss", CultureInfo.InvariantCulture);
+            return span.ToString("mm\\:ss\\.ff", CultureInfo.InvariantCulture);
         }
 
         /// <summary>

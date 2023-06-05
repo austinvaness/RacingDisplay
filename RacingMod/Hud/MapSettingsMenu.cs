@@ -1,4 +1,6 @@
-﻿using Draygo.API;
+﻿using avaness.RacingMod.Race.Modes;
+using Draygo.API;
+using System;
 
 namespace avaness.RacingMod.Hud
 {
@@ -6,7 +8,7 @@ namespace avaness.RacingMod.Hud
     {
         private readonly HudAPIv2.MenuRootCategory adminRoot;
         private readonly HudAPIv2.MenuTextInput numLapsInput;
-        private readonly HudAPIv2.MenuItem timedModeInput;
+        private readonly HudAPIv2.MenuTextInput modeInput;
         private readonly HudAPIv2.MenuItem onTrackStartInput;
         private readonly HudAPIv2.MenuItem loopedInput;
         private readonly RacingMapSettings mapSettings;
@@ -17,8 +19,8 @@ namespace avaness.RacingMod.Hud
             adminRoot = new HudAPIv2.MenuRootCategory("Racing Display", HudAPIv2.MenuRootCategory.MenuFlag.AdminMenu, "Racing Display Settings");
             numLapsInput = new HudAPIv2.MenuTextInput("Laps - " + mapSettings.NumLaps, adminRoot, "Enter number of laps:", OnNumLapsChanged);
             mapSettings.NumLapsChanged += UpdateNumLaps;
-            timedModeInput = new HudAPIv2.MenuItem("Timed Mode - " + BoolToString(mapSettings.TimedMode), adminRoot, OnTimedModeChanged);
-            mapSettings.TimedModeChanged += UpdateTimedMode;
+            modeInput = new HudAPIv2.MenuTextInput("Mode - " + mapSettings.Mode, adminRoot, "Enter distance, interval, or qualify:", OnModeChanged);
+            mapSettings.ModeChanged += UpdateMode;
             onTrackStartInput = new HudAPIv2.MenuItem("Strict Start - " + BoolToString(mapSettings.StrictStart), adminRoot, OnTrackStartChanged);
             mapSettings.StrictStartChanged += UpdateStrictStart;
             loopedInput = new HudAPIv2.MenuItem("Looped - " + BoolToString(mapSettings.Looped), adminRoot, OnLoopedChanged, mapSettings.NumLaps == 1);
@@ -28,7 +30,7 @@ namespace avaness.RacingMod.Hud
         public void Unload()
         {
             mapSettings.NumLapsChanged -= UpdateNumLaps;
-            mapSettings.TimedModeChanged -= UpdateTimedMode;
+            mapSettings.ModeChanged -= UpdateMode;
             mapSettings.StrictStartChanged -= UpdateStrictStart;
         }
 
@@ -49,13 +51,15 @@ namespace avaness.RacingMod.Hud
             onTrackStartInput.Text = "Strict Start - " + BoolToString(strict);
         }
 
-        private void OnTimedModeChanged()
+        private void OnModeChanged(string text)
         {
-            mapSettings.TimedMode = !mapSettings.TimedMode;
+            byte mode;
+            if (TrackModeBase.TryParseType(text.Trim(), out mode))
+                mapSettings.ModeType = mode;
         }
-        public void UpdateTimedMode(bool timed)
+        public void UpdateMode(TrackModeBase mode)
         {
-            timedModeInput.Text = "Timed Mode - " + BoolToString(timed);
+            modeInput.Text = "Mode - " + mode;
         }
 
         private void OnNumLapsChanged(string text)

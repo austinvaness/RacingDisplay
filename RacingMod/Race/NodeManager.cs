@@ -340,7 +340,7 @@ namespace avaness.RacingMod.Race
             info.Timer.Reset(false);
             info.OnTrack = true;
             info.InStart = false;
-            if(info.Recorder != null && mapSettings.TimedMode)
+            if(info.Recorder != null)
                 info.Recorder.StartTrack();
             if (resetPos)
             {
@@ -553,13 +553,9 @@ namespace avaness.RacingMod.Race
             if (info.Laps >= mapSettings.NumLaps)
             {
                 info.Laps = 0;
-                if (info.MarkTime() && mapSettings.TimedMode)
-                {
-                    string time = RacingTools.Format(info.BestTime);
-                    RacingTools.ShowNotificationToAll($"{info.Racer.DisplayName} just finished with time {time}", RacingConstants.defaultMsgMs, "White");
-                }
+                mapSettings.Mode.OnRacerReset(race, info);
 
-                if (mapSettings.TimedMode && mapSettings.Looped && info.AutoJoin)
+                if (mapSettings.Looped && info.AutoJoin)
                 {
                     NewOnTrack(info, false);
                     info.NextNode = 1;

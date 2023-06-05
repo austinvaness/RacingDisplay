@@ -8,6 +8,7 @@ using System.Linq;
 using avaness.RacingMod.Race.Finish;
 using System;
 using avaness.RacingMod.Hud;
+using avaness.RacingMod.Race.Modes;
 
 namespace avaness.RacingMod.Race
 {
@@ -111,12 +112,12 @@ namespace avaness.RacingMod.Race
             return activePlayers.Contains(p.SteamUserId) && p.Character?.Physics != null;
         }
 
-        bool Moved(IMyPlayer racer)
+        double? GetSpeed(IMyPlayer racer)
         {
             IMyCubeGrid grid = RacingTools.GetCockpit(racer)?.CubeGrid;
             if (grid?.Physics == null)
-                return false;
-            return grid.Physics.LinearVelocity.LengthSquared() > RacingConstants.moveThreshold2;
+                return null;
+            return grid.Physics.LinearVelocity.LengthSquared();
         }
 
 
@@ -138,8 +139,7 @@ namespace avaness.RacingMod.Race
             {
                 StaticRacerInfo info = Racers.GetStaticInfo(p);
                 info.Reset();
-                if (!MapSettings.TimedMode)
-                    Finishers.Remove(info);
+                MapSettings.Mode.OnRacerJoined(this, info);
                 RacingTools.ShowNotification("You have joined the race.", RacingConstants.defaultMsgMs, "White", p.IdentityId);
                 Nodes.JoinedRace(info);
                 return true;
@@ -175,7 +175,7 @@ namespace avaness.RacingMod.Race
 
         public void ToggleAutoJoin(IMyPlayer p)
         {
-            if (MapSettings.TimedMode && MapSettings.Looped)
+            if (MapSettings.Looped)
             {
                 if (!Contains(p.SteamUserId) && !JoinRace(p))
                     return;
@@ -189,7 +189,7 @@ namespace avaness.RacingMod.Race
             }
             else
             {
-                RacingTools.ShowNotification("Auto join only works for looped timed races.", playerId: p.IdentityId);
+                RacingTools.ShowNotification("Auto join only works for looped races.", playerId: p.IdentityId);
             }
         }
 
@@ -215,8 +215,7 @@ namespace avaness.RacingMod.Race
                 if (state != NodeManager.RacerState.On)
                 {
                     Finishers.Add(info);
-                    if (!MapSettings.TimedMode)
-                        RacingTools.ShowNotificationToAll($"{RacingTools.GetDisplayName(p)} just finished in position {Finishers.Count}", RacingConstants.defaultMsgMs, "White");
+                    MapSettings.Mode.OnRacerFinished(this, info);
                     if (state == NodeManager.RacerState.Finish)
                         LeaveRace(p);
                 }
@@ -255,6 +254,7 @@ namespace avaness.RacingMod.Race
             if (Finishers.Count > 0)
                 Finishers.BuildText(hud);
 
+            TrackModeBase mode = MapSettings.Mode;
             if (ranking.Count > 0)
             {
                 bool drawWhite = false;
@@ -264,16 +264,16 @@ namespace avaness.RacingMod.Race
 
                 foreach (StaticRacerInfo info in ranking)
                 {
-
+                    double? speed = GetSpeed(info.Racer);
                     HudColor? drawnColor = null;
                     if (info.OnTrack)
                     {
-                        if (!Moved(info.Racer))
+                        if (!speed.HasValue || speed.Value < RacingConstants.moveThreshold2)
                         {
                             // stationary
                             drawnColor = RacingConstants.colorStationary;
                         }
-                        else if (!MapSettings.TimedMode)
+                        else if (mode.EnableRankColors)
                         {
                             if (previousTick.Count == ranking.Count && i < info.Rank)
                             {
@@ -304,10 +304,10 @@ namespace avaness.RacingMod.Race
                     }
 
                     // <num>
-                    if (MapSettings.TimedMode)
-                        hud.Append("   ");
-                    else
+                    if (mode.EnableRankIndex)
                         hud.Append(RacingTools.SetLength(i, RacingConstants.numberWidth)).Append(' ');
+                    else
+                        hud.Append("   ");
 
                     // <num> <name>
                     hud.Append(info.Name).Append(' ');
@@ -324,15 +324,8 @@ namespace avaness.RacingMod.Race
                     }
                     else
                     {
-                        if (MapSettings.TimedMode)
-                        {
-                            dist = RacingTools.Format(info.Timer.GetTime());
-                        }
-                        else
-                        {
-                            dist = ((int)(previousDist - info.Distance)).ToString();
-                            previousDist = info.Distance;
-                        }
+                        dist = mode.GetPosition(i, previousDist - info.Distance, speed, info.Timer);
+                        previousDist = info.Distance;
                     }
 
                     if(info.OnTrack && MapSettings.NumLaps > 1)

@@ -12,24 +12,16 @@ namespace avaness.RacingMod.Chat.General
 
         protected override void Execute(IMyPlayer p, bool admin, string[] cmd, Track race)
         {
-            if (race.MapSettings.TimedMode)
+            StaticRacerInfo info = race.Racers.GetStaticInfo(p);
+            if (info.Recorder == null)
             {
-                StaticRacerInfo info = race.Racers.GetStaticInfo(p);
-                if (info.Recorder == null)
-                {
-                    ShowMsg(p, "Your best time is now being recorded.");
-                    info.CreateRecorder();
-                }
-                else
-                {
-                    ShowMsg(p, "Your recorder is already active.");
-                }
+                ShowMsg(p, "Your best time is now being recorded.");
+                info.CreateRecorder();
             }
             else
             {
-                ShowMsg(p, "Recording only works in timed mode.");
+                ShowMsg(p, "Your recorder is already active.");
             }
-            return;
         }
     }
 }

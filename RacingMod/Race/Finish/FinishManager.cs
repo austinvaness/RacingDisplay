@@ -1,9 +1,11 @@
 ﻿using avaness.RacingMod.Hud;
+using avaness.RacingMod.Race.Modes;
 using avaness.RacingMod.Racers;
 using Sandbox.ModAPI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace avaness.RacingMod.Race.Finish
@@ -18,7 +20,7 @@ namespace avaness.RacingMod.Race.Finish
 
         public FinishList()
         {
-            MapSettings.TimedModeChanged += TimedModeChanged;
+            MapSettings.ModeChanged += TimedModeChanged;
         }
 
         public int Count => finishers.Count;
@@ -102,11 +104,11 @@ namespace avaness.RacingMod.Race.Finish
 
         public void Unload()
         {
-            MapSettings.TimedModeChanged -= TimedModeChanged;
+            MapSettings.ModeChanged -= TimedModeChanged;
             OnFinishersModified = null;
         }
 
-        private void TimedModeChanged (bool timed)
+        private void TimedModeChanged (TrackModeBase mode)
         {
             FinishersModifed();
         }
@@ -114,11 +116,7 @@ namespace avaness.RacingMod.Race.Finish
         // Build the final racer text
         private void FinishersModifed ()
         {
-            IEnumerable<IFinisher> temp;
-            if (MapSettings.TimedMode)
-                temp = new SortedSet<IFinisher>(finishers, new RacerBestTimeComparer());
-            else
-                temp = finishers;
+            IEnumerable<IFinisher> temp = MapSettings.Mode.SortFinisherList(finishers);
 
             SerializableFinisher[] serializable = new SerializableFinisher[finishers.Count];
 
@@ -135,6 +133,7 @@ namespace avaness.RacingMod.Race.Finish
                     i++;
                 }
             }
+
             if(this.serializable != null)
                 this.serializable = serializable;
             if (OnFinishersModified != null)
@@ -196,11 +195,7 @@ namespace avaness.RacingMod.Race.Finish
         {
             hud.Append(RacingConstants.colorFinalist);
 
-            IEnumerable<IFinisher> temp;
-            if (MapSettings.TimedMode)
-                temp = new SortedSet<IFinisher>(finishers, new RacerBestTimeComparer());
-            else
-                temp = finishers;
+            IEnumerable<IFinisher> temp = MapSettings.Mode.SortFinisherList(finishers);
 
             int i = 0;
             foreach (IFinisher info in temp)
