@@ -39,7 +39,7 @@ namespace avaness.RacingMod.Chat.Admin
         {
             if (p.Character?.PositionComp == null)
                 return;
-            if (MyAPIGateway.Session.Player != null && MyAPIGateway.Session.Player.IdentityId == p.IdentityId)
+            if (MyAPIGateway.Session.Player == null || MyAPIGateway.Session.Player.IdentityId != p.IdentityId)
             {
                 ShowChatMsg(p, "Opening nodes via command only works for the server host.");
                 return;
