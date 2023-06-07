@@ -153,6 +153,7 @@
     <Compile Include="Chat\Admin\ACmdHelp.cs" />
     <Compile Include="Chat\Admin\ACmdKick.cs" />
     <Compile Include="Chat\Admin\ACmdLaps.cs" />
+    <Compile Include="Chat\Admin\ACmdNode.cs" />
     <Compile Include="Chat\Admin\ACmdLooped.cs" />
     <Compile Include="Chat\Admin\ACmdMode.cs" />
     <Compile Include="Chat\Admin\ACmdStrictStart.cs" />
@@ -219,6 +220,7 @@
     <None Include="Workshop-Test\modinfo.sbmi" />
     <None Include="Workshop\Data\EntityComponents.sbc" />
     <None Include="Workshop\Data\Fonts.sbc" />
+    <None Include="Workshop\Data\Prefabs\RacingNodePrefab.sbc" />
     <None Include="Workshop\Data\TransparentMaterials2.sbc" />
     <None Include="Workshop\modinfo.sbmi" />
   </ItemGroup>

@@ -404,5 +404,15 @@ namespace avaness.RacingMod.Beacon
                 return !isStatic;
             return NodeNumber.Equals(other.NodeNumber);
         }
+
+        public void Insert()
+        {
+            BeaconStorage s = Storage;
+            s.CreateTemp();
+            s.Temporary.Enabled = true;
+            s.Temporary.NodeNum = float.NaN;
+            s.ApplyTemp();
+            RefreshUI();
+        }
     }
 }

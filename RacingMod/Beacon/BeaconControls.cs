@@ -118,14 +118,9 @@ namespace avaness.RacingMod.Beacon
             controls = true;
         }
 
-        private static void InsertBeacon(IMyTerminalBlock block)
+        public static void InsertBeacon(IMyTerminalBlock block)
         {
-            BeaconStorage s = block.GameLogic.GetAs<RacingBeacon>().Storage;
-            s.CreateTemp();
-            s.Temporary.Enabled = true;
-            s.Temporary.NodeNum = float.NaN;
-            s.ApplyTemp();
-            RefreshUI(block);
+            block.GameLogic.GetAs<RacingBeacon>()?.Insert();
         }
 
         private static void SelectTrack(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> sel)
