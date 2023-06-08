@@ -287,7 +287,11 @@ namespace avaness.RacingMod.Beacon
         private void UpdateRegistration(bool save)
         {
             if (float.IsNaN(Storage.NodeNum))
+            {
                 Storage.NodeNum = ComputeNodeNum();
+                if (save)
+                    Storage.Save();
+            }
 
             if (Storage.Enabled)
             {
@@ -407,6 +411,7 @@ namespace avaness.RacingMod.Beacon
 
         public void Insert()
         {
+            // NOTE: If this command is run after spawning a prefab, it will be editing the storage object after Init but before UpdateOnceBeforeFrame
             BeaconStorage s = Storage;
             s.CreateTemp();
             s.Temporary.Enabled = true;
