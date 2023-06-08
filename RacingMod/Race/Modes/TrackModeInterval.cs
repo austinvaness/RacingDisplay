@@ -42,10 +42,9 @@ namespace avaness.RacingMod.Race.Modes
             if (rank <= 1)
                 return RacingTools.Format(timer.GetTime());
             double seconds = distance / Math.Sqrt(speed2.Value);
-            TimeSpan interval = TimeSpan.FromSeconds(seconds);
-            if(interval.TotalMinutes > 0)
-                return RacingTools.Format(interval);
-            return interval.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture);
+            if (seconds >= 60)
+                return RacingTools.Format(TimeSpan.FromSeconds(seconds));
+            return seconds.ToString("0.###", CultureInfo.InvariantCulture);
         }
     }
 }
