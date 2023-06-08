@@ -26,7 +26,7 @@ namespace avaness.RacingMod.Beacon
             MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(sep);
 
             IMyTerminalControlListbox existingTracks = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlListbox, IMyBeacon>("RCD_AllTracks");
-            existingTracks.Visible = IsStatic;
+            existingTracks.Visible = (b) => false;
             existingTracks.Enabled = IsStatic;
             existingTracks.Multiselect = false;
             existingTracks.VisibleRowsCount = 5;
@@ -36,7 +36,7 @@ namespace avaness.RacingMod.Beacon
             MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(existingTracks);
 
             IMyTerminalControlTextbox trackName = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlTextbox, IMyBeacon>("RCD_TrackName");
-            trackName.Visible = IsStatic;
+            trackName.Visible = (b) => false;
             trackName.Enabled = IsStatic;
             trackName.Getter = GetTrackName;
             trackName.Setter = SetTrackName;
@@ -118,7 +118,7 @@ namespace avaness.RacingMod.Beacon
             controls = true;
         }
 
-        public static void InsertBeacon(IMyTerminalBlock block)
+        private static void InsertBeacon(IMyTerminalBlock block)
         {
             block.GameLogic.GetAs<RacingBeacon>()?.Insert();
         }
