@@ -100,66 +100,95 @@ namespace avaness.RacingMod.Race
         /// <param name="end">The end index of the segment, or nodes.Count if the position is after the track.</param>
         /// <param name="partialDist">The projected distance of the position along the segment from the start node.</param>
         /// <returns>True if there are greater than 2 nodes, false otherwise.</returns>
-        private bool GetClosestSegment (Vector3D position, out int start, out int end, out double partialDist)
+        private bool GetClosestSegment (Vector3D position, out int start, out int end, out double partialDistance)
         {
-            start = 0;
-            end = -1;
-            partialDist = 0;
-            double minLinear2 = double.PositiveInfinity;
-
             if (nodes.Count < 2)
-                return false;
-
-            int closest = 0;
-            long minDistanceGrid = nodes [0].Beacon.CubeGrid.EntityId;
-            double minDistance2 = Vector3D.DistanceSquared(nodes [0].GetCoords(), position);
-
-            for (int i = 1; i < nodes.Count; i++)
             {
-                Vector3D node = nodes [i].GetCoords();
-                Vector3D segment = nodes [i - 1].GetCoords() - node;
+                start = 0;
+                end = -1;
+                partialDistance = 0;
+                return false;
+            }
+
+            double? lineDistance2 = GetClosestLine(position, out partialDistance, out start, out end);
+            int closestIndex;
+            double closestDistance2 = GetClosestNode(position, out closestIndex);
+            if (lineDistance2.HasValue && lineDistance2 <= closestDistance2)
+                return true;
+
+            if (closestIndex == 0)
+                start = -1;
+            else
+                start = closestIndex;
+            end = start + 1;
+            partialDistance = 0;
+            return true;
+        }
+
+        private double? GetClosestLine(Vector3D position, out double partialDistance, out int start, out int end)
+        {
+            partialDistance = 0;
+            start = 0;
+            end = 0;
+            double distance2 = double.PositiveInfinity;
+            bool looped = mapSettings.Looped;
+            for (int i = 1; i <= nodes.Count; i++)
+            {
+                RacingBeacon startNode = nodes[i - 1];
+                RacingBeacon endNode;
+                if (i == nodes.Count)
+                {
+                    if (!looped)
+                        break;
+                    endNode = nodes[0];
+                }
+                else
+                {
+                    endNode = nodes[i];
+                }
+
+                Vector3D endPos = endNode.GetCoords();
+                Vector3D segment = startNode.GetCoords() - endPos;
                 double segmentLen = segment.Length();
                 if (segmentLen <= 0)
                     continue;
                 segment /= segmentLen;
 
-                long beaconGrid = nodes [i].Beacon.CubeGrid.EntityId;
-                Vector3D endToRacer = position - node;
-                double dist2 = endToRacer.LengthSquared();
-                bool verifyGrid = true;
-                if (dist2 < minDistance2 && beaconGrid != minDistanceGrid)
-                {
-                    verifyGrid = false;
-                    minDistanceGrid = beaconGrid;
-                    minDistance2 = dist2;
-                    closest = i;
-                }
+                Vector3D endToRacer = position - endPos;
 
                 double scaler = RacingTools.ScalarProjection(endToRacer, segment);
-                if (scaler <= 0 || scaler > segmentLen || (verifyGrid && beaconGrid == minDistanceGrid))
+                if (scaler <= 0 || scaler > segmentLen)
                     continue;
-                double linear2 = (endToRacer - (scaler * segment)).LengthSquared();
+                double lineDistance2 = (endToRacer - (scaler * segment)).LengthSquared();
 
-                if (linear2 < minLinear2)
+                if (lineDistance2 < distance2)
                 {
                     start = i - 1;
                     end = i;
-                    partialDist = segmentLen - scaler;
-                    minLinear2 = linear2;
+                    partialDistance = segmentLen - scaler;
+                    distance2 = lineDistance2;
                 }
             }
+            if (start == end)
+                return null;
+            return distance2;
+        }
 
-            if (minDistance2 < minLinear2)
+        private double GetClosestNode(Vector3D position, out int index)
+        {
+            index = 0;
+            double distance2 = double.PositiveInfinity;
+            for (int i = 0; i < nodes.Count; i++)
             {
-                if (closest > nodes.Count - 1)
-                    closest = nodes.Count - 1; // Racer is past the last node
-                if (closest <= 0)
-                    closest = -1;
-                start = closest;
-                end = closest + 1;
-                partialDist = 0;
+                Vector3D nodeToRacer = position - nodes[i].GetCoords();
+                double nodeDistance2 = nodeToRacer.LengthSquared();
+                if(nodeDistance2 < distance2)
+                {
+                    index = i;
+                    distance2 = nodeDistance2;
+                }
             }
-            return true;
+            return distance2;
         }
 
         public void DrawDebug ()
