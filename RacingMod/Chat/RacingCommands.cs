@@ -48,12 +48,12 @@ namespace avaness.RacingMod.Chat
         }
 
         // Called on server
-        private void ReceiveCommandPacket(byte[] data)
+        private void ReceiveCommandPacket(ulong sender, byte[] data)
         {
             try
             {
                 CommandInfo cmd = MyAPIGateway.Utilities.SerializeFromBinary<CommandInfo>(data);
-                ReceiveCommand(cmd.id, cmd.command);
+                ReceiveCommand(sender, cmd.command);
             }
             catch (Exception e)
             {

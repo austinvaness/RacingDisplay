@@ -101,7 +101,7 @@ namespace avaness.RacingMod.Hud
             autoRecordInput.Text = "Auto Record - " + BoolToString(autoRecord);
         }
 
-        private void ReceiveHudText(byte[] data)
+        private void ReceiveHudText(ulong sender, byte[] data)
         {
             try
             {

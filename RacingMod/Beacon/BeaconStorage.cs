@@ -92,7 +92,7 @@ namespace avaness.RacingMod.Beacon
             RacingSession.Instance.Net.Register(RacingConstants.packetBeaconSettings, PacketReceived);
         }
 
-        private static void PacketReceived(byte[] data)
+        private static void PacketReceived(ulong sender, byte[] data)
         {
             BeaconStorage storage = MyAPIGateway.Utilities.SerializeFromBinary<BeaconStorage>(data);
             if(storage != null)

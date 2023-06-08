@@ -60,7 +60,7 @@ namespace avaness.RacingMod.Paths
                 this.methodId = methodId;
             }
 
-            public static void Received(byte[] data)
+            public static void Received(ulong sender, byte[] data)
             {
                 try
                 {

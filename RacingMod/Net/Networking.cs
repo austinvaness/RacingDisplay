@@ -10,7 +10,7 @@ namespace avaness.RacingMod.Net
         //private const bool debug = false;
         private const ushort packetId = 1337;
 
-        private readonly Dictionary<byte, Action<byte[]>> receivers = new Dictionary<byte, Action<byte[]>>();
+        private readonly Dictionary<byte, Action<ulong, byte[]>> receivers = new Dictionary<byte, Action<ulong, byte[]>>();
         private readonly Dictionary<byte, Action<ulong>> msgReceivers = new Dictionary<byte, Action<ulong>>();
 
         public Network()
@@ -25,7 +25,7 @@ namespace avaness.RacingMod.Net
             msgReceivers.Clear();
         }
 
-        public void Register(byte id, Action<byte[]> func)
+        public void Register(byte id, Action<ulong, byte[]> func)
         {
             receivers.Add(id, func);
         }
@@ -101,7 +101,7 @@ namespace avaness.RacingMod.Net
                 return;
 
             byte id = data[0];
-            Action<byte[]> func;
+            Action<ulong, byte[]> func;
             if(data.Length == 1)
             {
                 Action<ulong> func2;
@@ -116,7 +116,7 @@ namespace avaness.RacingMod.Net
 
                 byte[]  newData = new byte[data.Length - 1];
                 Array.Copy(data, 1, newData, 0, newData.Length);
-                func.Invoke(newData);
+                func.Invoke(sender, newData);
             }
         }
     }

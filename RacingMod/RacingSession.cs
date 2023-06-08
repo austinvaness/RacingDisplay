@@ -113,7 +113,7 @@ namespace avaness.RacingMod
             return StartTimers.Count;
         }
 
-        private void ReceiveSettings(byte[] data)
+        private void ReceiveSettings(ulong sender, byte[] data)
         {
             try
             {
@@ -128,17 +128,16 @@ namespace avaness.RacingMod
             }
         }
 
-        private void ReceiveSettingsInit(byte[] data)
+        private void ReceiveSettingsInit(ulong sender, byte[] data)
         {
             try
             {
                 if (RacingConstants.IsServer)
                 {
-                    ulong id = BitConverter.ToUInt64(data, 0);
-                    if (id != 0)
+                    if (sender != 0)
                     {
                         byte[] config = MyAPIGateway.Utilities.SerializeToBinary(MapSettings);
-                        Net.SendTo(RacingConstants.packetSettingsInit, config, id);
+                        Net.SendTo(RacingConstants.packetSettingsInit, config, sender);
                     }
                 }
                 else
