@@ -131,7 +131,7 @@ namespace avaness.RacingMod.Beacon
             }
             else
             {
-                BoundingSphereD sphere = new BoundingSphereD(gridCenter, Storage.CheckpointSize);
+                BoundingSphereD sphere = new BoundingSphereD(Storage.GridPosition ? gridCenter : Beacon.GetPosition(), Storage.CheckpointSize);
                 
                 return Contains(e, ref sphere);
             }
@@ -164,7 +164,7 @@ namespace avaness.RacingMod.Beacon
             }
             else
             {
-                MatrixD matrix = MatrixD.CreateWorld(gridCenter);
+                MatrixD matrix = MatrixD.CreateWorld(Storage.GridPosition ? gridCenter : Beacon.GetPosition());
                 MySimpleObjectDraw.DrawTransparentSphere(ref matrix, radius, ref color, MySimpleObjectRasterizer.Solid, 30, material, material, 0.01f, -1, null, BlendTypeEnum.PostPP);
             }
         }
