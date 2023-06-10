@@ -14,6 +14,17 @@ namespace avaness.RacingMod.Chat.Admin
         protected override void ExecuteAdmin(IMyPlayer p, string[] cmd, Track race)
         {
             RacingMapSettings mapSettings = race.MapSettings;
+            if (cmd.Length < 3)
+            {
+                ShowChatMsg(p, 
+                    $"Usage:\n{RacingCommands.prefix} {Id} <mode>\n" +
+                    "distance: Racer positions as distance\n" +
+                    "interval: Racer positions as time\n" +
+                    "qualify: Sort racers by best time\n" +
+                    $"Current mode: {mapSettings.Mode}");
+                return;
+            }
+
             byte mode;
             if (TrackModeBase.TryParseType(cmd[2], out mode))
             {
@@ -28,7 +39,7 @@ namespace avaness.RacingMod.Chat.Admin
 
         protected override bool ValidateLength(int len)
         {
-            return len == 3;
+            return len == 2 || len == 3;
         }
     }
 }
