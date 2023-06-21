@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using avaness.RacingMod.Race;
 using Sandbox.Common.ObjectBuilders;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
@@ -26,6 +27,7 @@ namespace avaness.RacingMod.Beacon
         private bool registered;
         private bool autoDisabled;
         private bool isStatic;
+        private NodeManager nodes;
 
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
@@ -40,8 +42,8 @@ namespace avaness.RacingMod.Beacon
 
         public override void Close()
         {
-            if (isStatic && RacingSession.Instance?.Nodes != null)
-                RacingSession.Instance.Nodes.RemoveNode(this);
+            if (isStatic && nodes != null)
+                nodes.RemoveNode(this);
 
             if (Storage != null)
             {
@@ -286,6 +288,13 @@ namespace avaness.RacingMod.Beacon
         }
         private void UpdateRegistration(bool save)
         {
+            NodeManager nodes = RacingSession.Instance.GetNodeManager(Storage.TrackName);
+            if(!ReferenceEquals(nodes, this.nodes))
+            {
+                Unregister();
+                this.nodes = nodes;
+            }
+
             if (float.IsNaN(Storage.NodeNum))
             {
                 Storage.NodeNum = ComputeNodeNum();
@@ -325,7 +334,7 @@ namespace avaness.RacingMod.Beacon
         {
             RacingBeacon start;
             RacingBeacon end;
-            if(RacingSession.Instance.Nodes.GetNeighbors(Beacon.GetPosition(), out start, out end))
+            if(nodes.GetNeighbors(Beacon.GetPosition(), out start, out end))
             {
                 if(start == null)
                     return end.NodeNumber - 1;
@@ -342,7 +351,7 @@ namespace avaness.RacingMod.Beacon
             if(!registered)
             {
                 UpdateGridCenter();
-                if (!float.IsNaN(NodeNumber) && !float.IsInfinity(NodeNumber) && RacingSession.Instance.Nodes.RegisterNode(this))
+                if (!float.IsNaN(NodeNumber) && !float.IsInfinity(NodeNumber) && nodes.RegisterNode(this))
                 {
                     registered = true;
                 }
@@ -368,7 +377,7 @@ namespace avaness.RacingMod.Beacon
         {
             if(registered)
             {
-                RacingSession.Instance.Nodes.RemoveNode(this);
+                nodes.RemoveNode(this);
                 registered = false;
             }
         }

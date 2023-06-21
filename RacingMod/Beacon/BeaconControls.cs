@@ -25,23 +25,13 @@ namespace avaness.RacingMod.Beacon
             sep.Visible = IsStatic;
             MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(sep);
 
-            IMyTerminalControlListbox existingTracks = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlListbox, IMyBeacon>("RCD_AllTracks");
-            existingTracks.Visible = (b) => false;
-            existingTracks.Enabled = IsStatic;
-            existingTracks.Multiselect = false;
-            existingTracks.VisibleRowsCount = 5;
-            existingTracks.Title = MyStringId.GetOrCompute("All Tracks");
-            existingTracks.ListContent = GetAllTracks;
-            existingTracks.ItemSelected = SelectTrack;
-            MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(existingTracks);
-
             IMyTerminalControlTextbox trackName = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlTextbox, IMyBeacon>("RCD_TrackName");
-            trackName.Visible = (b) => false;
+            trackName.Visible = IsStatic;
             trackName.Enabled = IsStatic;
             trackName.Getter = GetTrackName;
             trackName.Setter = SetTrackName;
             trackName.Title = MyStringId.GetOrCompute("Selected Track");
-            trackName.Tooltip = MyStringId.GetOrCompute("Multi track support coming soon.");//"Select a track above or enter a new track name.\nNames are case sensitive.");
+            trackName.Tooltip = MyStringId.GetOrCompute("The name of the track.");
             MyAPIGateway.TerminalControls.AddControl<IMyBeacon>(trackName);
 
             IMyTerminalControlCheckbox enabled = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlCheckbox, IMyBeacon>("RCD_Enabled");
@@ -123,46 +113,6 @@ namespace avaness.RacingMod.Beacon
             block.GameLogic.GetAs<RacingBeacon>()?.Insert();
         }
 
-        private static void SelectTrack(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> sel)
-        {
-            /*if (sel.Count == 0)
-                return;
-
-            string selected = (string)sel[0].UserData;
-
-            BeaconStorage s = block.GameLogic.GetAs<RacingBeacon>().Storage;
-            if (s.HasTemp())
-            {
-                s.Temporary.TrackName = selected;
-                RefreshUI(block);
-            }
-            else
-            {
-                if (s.TrackName != selected)
-                {
-                    s.CreateTemp();
-                    s.Temporary.TrackName = selected;
-                    RefreshUI(block);
-                }
-
-            }*/
-
-        }
-
-        private static void GetAllTracks(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> all, List<MyTerminalControlListBoxItem> sel)
-        {
-            all.Add(new MyTerminalControlListBoxItem(MyStringId.GetOrCompute("Default"), MyStringId.GetOrCompute("Multi track support coming soon."), "Default"));
-            /*string current = GetLatestStorage(block).TrackName;
-
-            foreach (string name in RacingSession.Instance.TestList)
-            {
-                var item = new MyTerminalControlListBoxItem(MyStringId.GetOrCompute(name), MyStringId.NullOrEmpty, name);
-                all.Add(item);
-                if (name == current)
-                    sel.Add(item);
-            }*/
-        }
-
         private static void UpdateStorage(IMyTerminalBlock block)
         {
             BeaconStorage s = block.GameLogic.GetAs<RacingBeacon>().Storage;
@@ -191,18 +141,17 @@ namespace avaness.RacingMod.Beacon
 
         private static StringBuilder GetTrackName(IMyTerminalBlock block)
         {
-            return new StringBuilder("Default");
-            /*BeaconStorage s = GetLatestStorage(block);
-            return new StringBuilder(s.TrackName);*/
+            BeaconStorage s = GetLatestStorage(block);
+            return new StringBuilder(s.TrackName);
         }
 
         private static void SetTrackName(IMyTerminalBlock block, StringBuilder name)
         {
-            /*string temp = name.ToString().Trim();
+            string temp = name.ToString().Trim();
             if (string.IsNullOrWhiteSpace(temp))
-                temp = "Default";
+                temp = RacingConstants.DefaultTrackId;
             BeaconStorage s = GetTemporaryStorage(block);
-            s.TrackName = temp;*/
+            s.TrackName = temp;
         }
 
         private static void SetNodeNum(IMyTerminalBlock block, StringBuilder sb)

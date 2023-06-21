@@ -18,7 +18,7 @@ namespace avaness.RacingMod.Chat.General
             }
             else
             {
-                race.ToggleDebug();
+                RacingSession.Instance.ToggleDebug();
                 ShowChatMsg(p, "Toggled debug view.");
             }
         }

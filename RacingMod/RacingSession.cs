@@ -11,6 +11,7 @@ using avaness.RacingMod.Hud;
 using avaness.RacingMod.Net;
 using avaness.RacingMod.Race;
 using avaness.RacingMod.Chat;
+using System.Diagnostics;
 
 namespace avaness.RacingMod
 {
@@ -23,7 +24,7 @@ namespace avaness.RacingMod
         public readonly RacingMapSettings MapSettings = new RacingMapSettings();
         public readonly HashSet<IMyTimerBlock> StartTimers = new HashSet<IMyTimerBlock>();
         public Network Net;
-        public NodeManager Nodes;
+        public NodeManager CurrentNodes { get; private set; }
 
         public ClientRaceRecorder Recorder;
 
@@ -33,14 +34,15 @@ namespace avaness.RacingMod
         private readonly RacingPreferences config = new RacingPreferences();
         private bool running;
         private API.APILogic api;
-        //private int gateWaypointGps;
-
+        private Dictionary<string, NodeManager> nodes = new Dictionary<string, NodeManager>();
+        private bool debug;
 
         public RacingSession ()
         {
             Instance = this;
             race = new Track(MapSettings);
-            Nodes = new NodeManager(MapSettings, race);
+            CurrentNodes = new NodeManager(MapSettings, race);
+            nodes[RacingConstants.DefaultTrackId.ToLowerInvariant()] = CurrentNodes;
         }
 
         private void Start()
@@ -181,8 +183,14 @@ namespace avaness.RacingMod
                 if (RacingConstants.IsServer)
                 {
                     race.Update();
+
+                    if (debug && MyAPIGateway.Session.Player != null)
+                    {
+                        foreach(NodeManager nodes in this.nodes.Values)
+                            nodes.DrawDebug();
+                    }
                 }
-                /*else if(race.Debug)
+                /*if (debug)
                 {
                     DebugRecorder();
                 }*/
@@ -207,7 +215,8 @@ namespace avaness.RacingMod
         {
             hud.Unload();
             race.Unload();
-            Nodes.Unload();
+            foreach (NodeManager nodes in this.nodes.Values)
+                nodes.Unload();
             if(MapSettings != null)
                 MapSettings.Unload();
             if (Net != null)
@@ -219,5 +228,23 @@ namespace avaness.RacingMod
         }
 
 
+        public NodeManager GetNodeManager(string trackId)
+        {
+            if (string.IsNullOrWhiteSpace(trackId))
+                trackId = RacingConstants.DefaultTrackId;
+            trackId = trackId.ToLowerInvariant();
+
+            NodeManager result;
+            if (nodes.TryGetValue(trackId, out result))
+                return result;
+            result = new NodeManager(MapSettings, race);
+            nodes[trackId] = result;
+            return result;
+        }
+
+        public void ToggleDebug()
+        {
+            debug = !debug;
+        }
     }
 }

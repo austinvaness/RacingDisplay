@@ -14,11 +14,10 @@ namespace avaness.RacingMod.Race
 {
     public class Track
     {
-        public NodeManager Nodes => RacingSession.Instance.Nodes;
+        public NodeManager Nodes => RacingSession.Instance.CurrentNodes;
         public FinishList Finishers { get; }
         public RacingMapSettings MapSettings { get; }
         public RacerStorage Racers { get; }
-        public bool Debug => debug;
 
         private RacingHud hud = new NullRacingHud();
 
@@ -58,12 +57,6 @@ namespace avaness.RacingMod.Race
         {
             ProcessValues();
             hud.Broadcast();
-
-            if (debug && MyAPIGateway.Session.Player != null)
-            {
-                Nodes.DrawDebug();
-                //RacingSession.Instance.DebugRecorder();
-            }
         }
 
         public void SaveData()

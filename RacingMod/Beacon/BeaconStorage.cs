@@ -26,7 +26,7 @@ namespace avaness.RacingMod.Beacon
         public bool GridPosition = true;
 
         [ProtoMember(6)]
-        public string TrackName = "Default";
+        public string TrackName = RacingConstants.DefaultTrackId;
 
         [ProtoMember(7)]
         public float CheckpointSize = 0;
@@ -137,7 +137,7 @@ namespace avaness.RacingMod.Beacon
             NodeNum = other.NodeNum;
             TrackName = other.TrackName;
             if (string.IsNullOrWhiteSpace(TrackName))
-                TrackName = "Default";
+                TrackName = RacingConstants.DefaultTrackId;
             GridPosition = other.GridPosition;
             if (OnDataReceived != null)
                 OnDataReceived.Invoke();
@@ -180,14 +180,14 @@ namespace avaness.RacingMod.Beacon
                 Enabled = true;
                 Checkpoint = true;
                 NodeNum = RacingConstants.finishCompatNum;
-                TrackName = "Default";
+                TrackName = RacingConstants.DefaultTrackId;
                 Save();
                 block.CustomName = CompatRemoveTag(name, 8);
             }
             else if(name.StartsWith("[node]", StringComparison.OrdinalIgnoreCase))
             {
                 Checkpoint = false;
-                TrackName = "Default";
+                TrackName = RacingConstants.DefaultTrackId;
                 float num;
                 if(float.TryParse(block.CustomData, out num))
                 {
@@ -204,7 +204,7 @@ namespace avaness.RacingMod.Beacon
             else if(name.StartsWith("[checkpoint]", StringComparison.OrdinalIgnoreCase))
             {
                 Checkpoint = true;
-                TrackName = "Default";
+                TrackName = RacingConstants.DefaultTrackId;
                 float num;
                 if (float.TryParse(block.CustomData, out num))
                 {
