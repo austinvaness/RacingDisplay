@@ -209,7 +209,7 @@ namespace avaness.RacingMod.Race
             if (nodes.Count < 2)
             {
                 hud.Clear();
-                hud.Append("Waiting for (" + (2 - nodes.Count) + ") beacon nodes...").AppendLine();
+                hud.Append("Racing Display").AppendLine();
                 return;
             }
 
@@ -246,7 +246,7 @@ namespace avaness.RacingMod.Race
             hud.Clear();
             if (ranking.Count == 0 && Finishers.Count == 0)
             {
-                hud.Append("No racers in range.");
+                hud.Append("Racing Display");
                 previousTick.Clear();
                 return;
             }
