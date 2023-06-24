@@ -22,8 +22,15 @@ namespace avaness.RacingMod.Chat.Admin
                     StringBuilder sb = new StringBuilder();
                     sb.Append("No track was found with the name '").Append(cmd[2]).Append("'.").AppendLine();
                     sb.Append("Tracks: ").AppendLine();
+                    bool first = true;
                     foreach (NodeManager n in session.GetNodeManagers().Where(x => x.Count >= 2))
+                    {
+                        if (first)
+                            first = false;
+                        else
+                            sb.Append(", ");
                         sb.Append(n.Id);
+                    }
                     ShowChatMsg(p, sb.ToString());
                 }
                 else
