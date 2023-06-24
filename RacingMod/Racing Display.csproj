@@ -149,6 +149,7 @@
     <Compile Include="Beacon\BeaconType.cs" />
     <Compile Include="Chat\Admin\ACmdClear.cs" />
     <Compile Include="Chat\Admin\ACmdFinish.cs" />
+    <Compile Include="Chat\Admin\ACmdTrack.cs" />
     <Compile Include="Chat\Admin\ACmdGrant.cs" />
     <Compile Include="Chat\Admin\ACmdHelp.cs" />
     <Compile Include="Chat\Admin\ACmdKick.cs" />

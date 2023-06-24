@@ -147,6 +147,12 @@ namespace avaness.RacingMod.Race
         public bool LeaveRace(IMyPlayer p, bool alwaysMsg = true)
         {
             StaticRacerInfo info = Racers.GetStaticInfo(p);
+            return LeaveRace(info, alwaysMsg);
+        }
+
+        private bool LeaveRace(StaticRacerInfo info, bool alwaysMsg)
+        {
+            IMyPlayer p = info.Racer;
             info.Reset();
             info.Recorder?.LeftTrack();
 
@@ -165,6 +171,16 @@ namespace avaness.RacingMod.Race
                 return false;
             }
         }
+
+        public void Reset()
+        {
+            foreach (StaticRacerInfo info in Racers)
+            {
+                info.Recorder?.ClearData();
+                LeaveRace(info, false);
+            }
+        }
+
 
         public void ToggleAutoJoin(IMyPlayer p)
         {

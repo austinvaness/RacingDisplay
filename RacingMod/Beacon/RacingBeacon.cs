@@ -289,7 +289,11 @@ namespace avaness.RacingMod.Beacon
         private void UpdateRegistration(bool save)
         {
             NodeManager nodes = RacingSession.Instance.GetNodeManager(Storage.TrackName);
-            if(!ReferenceEquals(nodes, this.nodes))
+            if(this.nodes == null)
+            {
+                this.nodes = nodes;
+            }
+            else if (nodes.Id != this.nodes.Id)
             {
                 Unregister();
                 this.nodes = nodes;

@@ -41,8 +41,8 @@ namespace avaness.RacingMod
         {
             Instance = this;
             race = new Track(MapSettings);
-            CurrentNodes = new NodeManager(MapSettings, race);
-            nodes[RacingConstants.DefaultTrackId.ToLowerInvariant()] = CurrentNodes;
+            CurrentNodes = new NodeManager(MapSettings, race, RacingConstants.DefaultTrackId);
+            nodes[CurrentNodes.Id] = CurrentNodes;
         }
 
         private void Start()
@@ -227,17 +227,33 @@ namespace avaness.RacingMod
             api?.Unload();
         }
 
+        public void SetNodeManager(NodeManager nodes)
+        {
+            if (nodes.Id == CurrentNodes.Id)
+                return;
+            this.CurrentNodes = nodes;
+            race.Reset();
+        }
+
+        public IEnumerable<NodeManager> GetNodeManagers()
+        {
+            return nodes.Values;
+        }
+
+        public bool TryGetNodeManager(string trackId, out NodeManager nodes)
+        {
+            return this.nodes.TryGetValue(trackId, out nodes);
+        }
 
         public NodeManager GetNodeManager(string trackId)
         {
             if (string.IsNullOrWhiteSpace(trackId))
                 trackId = RacingConstants.DefaultTrackId;
-            trackId = trackId.ToLowerInvariant();
 
             NodeManager result;
             if (nodes.TryGetValue(trackId, out result))
                 return result;
-            result = new NodeManager(MapSettings, race);
+            result = new NodeManager(MapSettings, race, trackId);
             nodes[trackId] = result;
             return result;
         }

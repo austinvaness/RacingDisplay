@@ -20,14 +20,17 @@ namespace avaness.RacingMod.Race
             On, Finish, Reset
         }
 
+        public string Id { get; }
+
         private readonly RacingMapSettings mapSettings;
         private readonly Track race;
         private readonly List<RacingBeacon> nodes = new List<RacingBeacon>();
         private double [] nodeDistances = { };
         private double startEndDist;
 
-        public NodeManager(RacingMapSettings mapSettings, Track race)
+        public NodeManager(RacingMapSettings mapSettings, Track race, string trackId)
         {
+            Id = trackId;
             this.mapSettings = mapSettings;
             this.race = race;
             mapSettings.LoopedChanged += MapSettings_LoopedChanged;
