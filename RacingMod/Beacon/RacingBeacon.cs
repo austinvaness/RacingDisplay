@@ -422,11 +422,13 @@ namespace avaness.RacingMod.Beacon
             return NodeNumber.Equals(other.NodeNumber);
         }
 
-        public void Insert()
+        public void Insert(string trackId = null)
         {
             // NOTE: If this command is run after spawning a prefab, it will be editing the storage object after Init but before UpdateOnceBeforeFrame
             BeaconStorage s = Storage;
             s.CreateTemp();
+            if(!string.IsNullOrWhiteSpace(trackId))
+                s.Temporary.TrackName = trackId;
             s.Temporary.Enabled = true;
             s.Temporary.NodeNum = float.NaN;
             s.ApplyTemp();

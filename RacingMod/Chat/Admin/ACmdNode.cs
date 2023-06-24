@@ -118,9 +118,10 @@ namespace avaness.RacingMod.Chat.Admin
                     session.GPS.AddLocalGps(gps);
                 }
 
+                string trackName = RacingSession.Instance.CurrentNodes.Id;
                 RacingBeacon node;
                 if (TryGetNode(p, out node))
-                    node.Insert();
+                    node.Insert(trackName);
             });
         }
 
