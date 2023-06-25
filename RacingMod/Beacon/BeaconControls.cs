@@ -150,6 +150,8 @@ namespace avaness.RacingMod.Beacon
             string temp = name.ToString().Trim();
             if (string.IsNullOrWhiteSpace(temp))
                 temp = RacingConstants.DefaultTrackId;
+            else
+                temp = temp.ToLowerInvariant();
             BeaconStorage s = GetTemporaryStorage(block);
             s.TrackName = temp;
         }

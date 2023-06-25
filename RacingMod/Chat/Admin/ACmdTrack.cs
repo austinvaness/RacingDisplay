@@ -1,4 +1,5 @@
 ﻿using avaness.RacingMod.Race;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using VRage.Game.ModAPI;
@@ -21,16 +22,7 @@ namespace avaness.RacingMod.Chat.Admin
                 {
                     StringBuilder sb = new StringBuilder();
                     sb.Append("No track was found with the name '").Append(cmd[2]).Append("'.").AppendLine();
-                    sb.Append("Tracks: ").AppendLine();
-                    bool first = true;
-                    foreach (NodeManager n in session.GetNodeManagers().Where(x => x.Count >= 2))
-                    {
-                        if (first)
-                            first = false;
-                        else
-                            sb.Append(", ");
-                        sb.Append(n.Id);
-                    }
+                    AppendTracks(sb, session.GetNodeManagers());
                     ShowChatMsg(p, sb.ToString());
                 }
                 else
@@ -41,7 +33,26 @@ namespace avaness.RacingMod.Chat.Admin
             }
             else
             {
-                ShowChatMsg(p, $"Usage:\n{RacingCommands.prefix} {Id} {Usage}\nCurrent track: {session.CurrentNodes.Id}");
+                StringBuilder sb = new StringBuilder();
+                sb.Append("Usage:").AppendLine();
+                sb.Append(RacingCommands.prefix).Append(' ').Append(Id).Append(' ').Append(Usage).AppendLine();
+                sb.Append("Current: ").Append(session.CurrentNodes.Id).AppendLine();
+                AppendTracks(sb, session.GetNodeManagers());
+                ShowChatMsg(p, sb.ToString());
+            }
+        }
+
+        private void AppendTracks(StringBuilder sb, IEnumerable<NodeManager> nodeManagers)
+        {
+            sb.Append("Tracks: ");
+            bool first = true;
+            foreach (NodeManager n in nodeManagers.Where(x => x.Count >= 2))
+            {
+                if (first)
+                    first = false;
+                else
+                    sb.Append(", ");
+                sb.Append(n.Id);
             }
         }
 

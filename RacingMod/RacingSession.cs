@@ -245,13 +245,15 @@ namespace avaness.RacingMod
 
         public bool TryGetNodeManager(string trackId, out NodeManager nodes)
         {
-            return this.nodes.TryGetValue(trackId, out nodes);
+            return this.nodes.TryGetValue(trackId.ToLowerInvariant(), out nodes);
         }
 
         public NodeManager GetNodeManager(string trackId)
         {
             if (string.IsNullOrWhiteSpace(trackId))
                 trackId = RacingConstants.DefaultTrackId;
+            else
+                trackId = trackId.ToLowerInvariant();
 
             NodeManager result;
             if (nodes.TryGetValue(trackId, out result))

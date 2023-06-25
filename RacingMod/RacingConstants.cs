@@ -17,7 +17,7 @@ namespace avaness.RacingMod
 
         public const long ModMessageId = 1708268562;
 
-        public const string DefaultTrackId = "Default";
+        public const string DefaultTrackId = "default";
 
         public const byte packetMainId = 0;
         public const byte packetCmd = 1;
