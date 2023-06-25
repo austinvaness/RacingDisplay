@@ -144,7 +144,37 @@ namespace avaness.RacingMod
                 return trackMode;
             }
         }
+
         public event Action<TrackModeBase> ModeChanged;
+
+        [ProtoMember(6)]
+        private string selectedTrack = RacingConstants.DefaultTrackId;
+        public string SelectedTrack
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(selectedTrack))
+                    return RacingConstants.DefaultTrackId;
+                return selectedTrack;
+            }
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    value = RacingConstants.DefaultTrackId;
+                else
+                    value = value.ToLowerInvariant();
+
+
+                if (value != selectedTrack)
+                {
+                    selectedTrack = value;
+                    Sync(new Packet(PacketEnum.SelectedTrack, selectedTrack));
+                    if (SelectedTrackChanged != null)
+                        SelectedTrackChanged.Invoke(value);
+                }
+            }
+        }
+        public event Action<string> SelectedTrackChanged;
 
         public void SaveFile ()
         {
@@ -174,6 +204,10 @@ namespace avaness.RacingMod
             mode = config.mode;
             if (ModeChanged != null)
                 ModeChanged.Invoke(Mode);
+
+            selectedTrack = config.selectedTrack;
+            if (SelectedTrackChanged != null)
+                SelectedTrackChanged.Invoke(SelectedTrack);
         }
 
         public void Unload()
@@ -224,7 +258,8 @@ namespace avaness.RacingMod
             //TimedMode = 1,
             StrictStart = 2,
             Looped = 3,
-            Mode = 4
+            Mode = 4,
+            SelectedTrack = 5
         }
 
         [ProtoContract]
@@ -234,10 +269,18 @@ namespace avaness.RacingMod
             private readonly byte type;
             [ProtoMember(2)]
             private readonly byte value;
+            [ProtoMember(3)]
+            private readonly string valueString;
 
             public Packet()
             {
 
+            }
+
+            public Packet(PacketEnum type, string value)
+            {
+                this.type = (byte)type;
+                this.valueString = value;
             }
 
             public Packet(PacketEnum type, bool value)
@@ -284,6 +327,14 @@ namespace avaness.RacingMod
                             config.mode = value;
                         if (config.ModeChanged != null)
                             config.ModeChanged.Invoke(config.Mode);
+                        break;
+                    case PacketEnum.SelectedTrack:
+                        if (string.IsNullOrWhiteSpace(valueString))
+                            config.selectedTrack = RacingConstants.DefaultTrackId;
+                        else
+                            config.selectedTrack = valueString;
+                        if (config.SelectedTrackChanged != null)
+                            config.SelectedTrackChanged.Invoke(config.selectedTrack);
                         break;
 
                 }

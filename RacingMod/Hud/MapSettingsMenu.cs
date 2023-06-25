@@ -7,6 +7,7 @@ namespace avaness.RacingMod.Hud
     class MapSettingsMenu
     {
         private readonly HudAPIv2.MenuRootCategory adminRoot;
+        private readonly HudAPIv2.MenuItem trackNameInput;
         private readonly HudAPIv2.MenuTextInput numLapsInput;
         private readonly HudAPIv2.MenuTextInput modeInput;
         private readonly HudAPIv2.MenuItem onTrackStartInput;
@@ -17,6 +18,8 @@ namespace avaness.RacingMod.Hud
         {
             this.mapSettings = mapSettings;
             adminRoot = new HudAPIv2.MenuRootCategory("Racing Display", HudAPIv2.MenuRootCategory.MenuFlag.AdminMenu, "Racing Display Settings");
+            trackNameInput = new HudAPIv2.MenuItem("Track Name - " + mapSettings.SelectedTrack, adminRoot); // Must use command to change track name (client has no idea about what nodes are in the world)
+            mapSettings.SelectedTrackChanged += UpdateTrackName;
             numLapsInput = new HudAPIv2.MenuTextInput("Laps - " + mapSettings.NumLaps, adminRoot, "Enter number of laps:", OnNumLapsChanged);
             mapSettings.NumLapsChanged += UpdateNumLaps;
             modeInput = new HudAPIv2.MenuTextInput("Mode - " + mapSettings.Mode, adminRoot, "Enter distance, interval, or qualify:", OnModeChanged);
@@ -40,6 +43,11 @@ namespace avaness.RacingMod.Hud
                 return "On";
             else
                 return "Off";
+        }
+
+        private void UpdateTrackName(string name)
+        {
+            trackNameInput.Text = "Track Name - " + name;
         }
 
         private void OnTrackStartChanged()

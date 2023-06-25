@@ -67,6 +67,8 @@ namespace avaness.RacingMod
                 RacingTools.RemoveGPSForAll(RacingConstants.gateWaypointName);
                 MapSettings.Copy(RacingMapSettings.LoadFile());
                 race.LoadServer();
+                if(CurrentNodes.Id != MapSettings.SelectedTrack)
+                    SetNodeManager(GetNodeManager(MapSettings.SelectedTrack));
             }
             else
             {
@@ -231,6 +233,7 @@ namespace avaness.RacingMod
         {
             if (nodes.Id == CurrentNodes.Id)
                 return;
+            MapSettings.SelectedTrack = nodes.Id;
             this.CurrentNodes = nodes;
             race.Reset();
         }
