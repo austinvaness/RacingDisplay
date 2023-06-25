@@ -179,6 +179,7 @@ namespace avaness.RacingMod.Race
                 info.Recorder?.ClearData();
                 LeaveRace(info, false);
             }
+            Finishers.Clear();
         }
 
 
@@ -210,6 +211,7 @@ namespace avaness.RacingMod.Race
             {
                 hud.Clear();
                 hud.Append("Racing Display").AppendLine();
+                hud.Append("Current track '").Append(nodes.Id).Append("' is missing nodes.");
                 return;
             }
 
