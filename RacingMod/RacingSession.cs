@@ -25,6 +25,7 @@ namespace avaness.RacingMod
         public readonly HashSet<IMyTimerBlock> StartTimers = new HashSet<IMyTimerBlock>();
         public Network Net;
         public NodeManager CurrentNodes { get; private set; }
+        public ObjectiveGpsManager Gps { get; } = new ObjectiveGpsManager();
 
         public ClientRaceRecorder Recorder;
 
@@ -62,9 +63,10 @@ namespace avaness.RacingMod
             if (RacingConstants.IsPlayer && MyAPIGateway.Session.Player == null)
                 return;
 
+            Gps.Init();
+
             if (RacingConstants.IsServer)
             {
-                RacingTools.RemoveGPSForAll(RacingConstants.gateWaypointName);
                 MapSettings.Copy(RacingMapSettings.LoadFile());
                 race.LoadServer();
                 if(CurrentNodes.Id != MapSettings.SelectedTrack)
@@ -72,8 +74,6 @@ namespace avaness.RacingMod
             }
             else
             {
-                int gateWaypointGps = MyAPIGateway.Session.GPS.Create(RacingConstants.gateWaypointName, RacingConstants.gateWaypointDescription, Vector3D.Zero, true).Hash;
-                MyAPIGateway.Session.GPS.RemoveLocalGps(gateWaypointGps);
                 Net.SendToServer(RacingConstants.packetSettingsInit, BitConverter.GetBytes(MyAPIGateway.Session.Player.SteamUserId));
                 Net.Register(RacingConstants.packetRec, ServerRaceRecorder.Packet.Received);
             }

@@ -1,4 +1,6 @@
 ﻿using Sandbox.Game;
+using Sandbox.Game.Screens.Helpers;
+using Sandbox.Game.World;
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
@@ -141,9 +143,5 @@ namespace avaness.RacingMod
             MyVisualScriptLogicProvider.RemoveGPSForAll(name);
         }
 
-        internal static void AddGPSObjective(string name, string description, Vector3D position, Color GPSColor, int disappearsInS = 0, long playerId = -1)
-        {
-            MyVisualScriptLogicProvider.AddGPSObjective(name, description, position, GPSColor, disappearsInS, playerId);
-        }
     }
 }
