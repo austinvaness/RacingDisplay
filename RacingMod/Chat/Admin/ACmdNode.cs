@@ -21,17 +21,18 @@ namespace avaness.RacingMod.Chat.Admin
 
         protected override void ExecuteAdmin(IMyPlayer p, string[] cmd, Track race)
         {
-            switch (cmd[2].ToLowerInvariant())
+            string nodeCmd = cmd[2].ToLowerInvariant();
+            if(nodeCmd == "create")
             {
-                case "create":
-                    CreateNode(p);
-                    break;
-                case "open":
-                    OpenNode(p); 
-                    break;
-                default:
-                    ShowChatMsg(p, $"'{cmd[2]}' is not a valid option. Expected 'create' or 'open'.");
-                    break;
+                CreateNode(p);
+            }
+            else if(nodeCmd == "open")
+            {
+                OpenNode(p);
+            }
+            else
+            {
+                ShowChatMsg(p, $"'{cmd[2]}' is not a valid option. Expected 'create' or 'open'.");
             }
         }
 
